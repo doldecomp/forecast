@@ -624,7 +624,9 @@ UINT16 GKI_get_buf_size (void *p_buf)
 ** Returns          TRUE if there is a problem, else FALSE
 **
 *******************************************************************************/
-BOOLEAN gki_chk_buf_damage(void *p_buf)
+/* Not in the retail DOL: all call sites inline it, so static stops MWCC from
+   emitting a dead out-of-line copy. */
+static BOOLEAN gki_chk_buf_damage(void *p_buf)
 {
 #if (GKI_ENABLE_BUF_CORRUPTION_CHECK == TRUE)
 
@@ -978,6 +980,10 @@ void *GKI_getfirst (BUFFER_Q *p_q)
 }
 
 
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
+
 /*******************************************************************************
 **
 ** Function         GKI_getlast
@@ -993,6 +999,8 @@ void *GKI_getlast (BUFFER_Q *p_q)
 {
     return (p_q->p_last);
 }
+
+#endif /* REVOLUTION */
 
 /*******************************************************************************
 **
@@ -1034,6 +1042,13 @@ BOOLEAN GKI_queue_is_empty(BUFFER_Q *p_q)
 {
     return ((BOOLEAN) (p_q->count == 0));
 }
+
+/* Not present in the retail RVL build (dead-stripped from the DOL), but the
+   trace string it used is still part of the retail .data, so keep its bytes
+   (with their original position) in an explicit array. */
+char lbl_801D0928[] = "GKI_get_buf_start:: bad addr";
+
+#ifndef REVOLUTION
 
 /*******************************************************************************
 **
@@ -1077,6 +1092,8 @@ void *GKI_find_buf_start (void *p_user_area)
     return (NULL);
 }
 
+#endif /* REVOLUTION */
+
 
 /*******************************************************************************
 **
@@ -1092,7 +1109,9 @@ void *GKI_find_buf_start (void *p_user_area)
 **                  GKI_INVALID_POOL if unsuccessful
 **
 *******************************************************************************/
-UINT8 GKI_set_pool_permission(UINT8 pool_id, UINT8 permission)
+/* Not in the retail DOL: the only call site (GKI_create_pool) inlines it, so
+   static stops MWCC from emitting a dead out-of-line copy. */
+static UINT8 GKI_set_pool_permission(UINT8 pool_id, UINT8 permission)
 {
     tGKI_COM_CB *p_cb = &gki_cb.com;
 
@@ -1174,6 +1193,10 @@ static void gki_remove_from_pool_list(UINT8 pool_id)
     return;
 }
 
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
+
 /*******************************************************************************
 **
 ** Function         GKI_igetpoolbuf
@@ -1219,6 +1242,12 @@ void *GKI_igetpoolbuf (UINT8 pool_id)
     return (NULL);
 }
 
+#endif /* REVOLUTION */
+
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
+
 /*******************************************************************************
 **
 ** Function         GKI_poolcount
@@ -1238,6 +1267,12 @@ UINT16 GKI_poolcount (UINT8 pool_id)
 
     return (gki_cb.com.freeq[pool_id].total);
 }
+
+#endif /* REVOLUTION */
+
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
 
 /*******************************************************************************
 **
@@ -1263,6 +1298,12 @@ UINT16 GKI_poolfreecount (UINT8 pool_id)
     return ((UINT16)(Q->total - Q->cur_cnt));
 }
 
+#endif /* REVOLUTION */
+
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
+
 /*******************************************************************************
 **
 ** Function         GKI_change_buf_owner
@@ -1283,6 +1324,8 @@ void GKI_change_buf_owner (void *p_buf, UINT8 task_id)
 
     return;
 }
+
+#endif /* REVOLUTION */
 
 #if (defined(GKI_SEND_MSG_FROM_ISR) &&  GKI_SEND_MSG_FROM_ISR == TRUE)
 /*******************************************************************************
@@ -1459,6 +1502,10 @@ void GKI_delete_pool (UINT8 pool_id)
 }
 
 
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
+
 /*******************************************************************************
 **
 ** Function         GKI_get_pool_bufsize
@@ -1477,6 +1524,12 @@ UINT16 GKI_get_pool_bufsize (UINT8 pool_id)
 
     return (0);
 }
+
+#endif /* REVOLUTION */
+
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
 
 /*******************************************************************************
 **
@@ -1504,4 +1557,6 @@ UINT16 GKI_poolutilization (UINT8 pool_id)
 
     return ((Q->cur_cnt * 100) / Q->total);
 }
+
+#endif /* REVOLUTION */
 

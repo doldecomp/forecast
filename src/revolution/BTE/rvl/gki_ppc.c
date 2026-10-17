@@ -168,7 +168,9 @@ void GKI_run(void *p_task_id)
 **
 *******************************************************************************/
 
-void GKI_exit_task(UINT8 task_id)
+/* Not in the retail DOL: the only call site (GKI_shutdown) inlines it, so
+   static stops MWCC from emitting a dead out-of-line copy. */
+static void GKI_exit_task(UINT8 task_id)
 {
     GKI_disable();
     gki_cb.com.OSRdyTbl[task_id] = TASK_DEAD;

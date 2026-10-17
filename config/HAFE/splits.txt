@@ -1436,6 +1436,16 @@ revolution/WUD/WUDHidHost.c:
 	.text       start:0x80132A2C end:0x80133028
 	.data       start:0x801D0598 end:0x801D0818
 
+revolution/WUD/debug_msg.c:
+	.text       start:0x80133028 end:0x80133078
+
+revolution/BTE/gki/common/gki_buffer.c:
+	.text       start:0x80133078 end:0x801344BC
+	.data       start:0x801D0818 end:0x801D0960
+
+revolution/BTE/gki/common/gki_time.c:
+	.text       start:0x801344BC end:0x80134A14
+
 revolution/BTE/rvl/gki_ppc.c:
 	.text       start:0x80134A14 end:0x80134CA4
 	.bss        start:0x802F80C8 end:0x80320BA8

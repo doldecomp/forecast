@@ -441,8 +441,8 @@ config.libs = [
             Object(NonMatching, "revolution/BTE/btif/co/bta_hh_co.c"),
 
             # BTE/gki/common
-            Object(NonMatching, "revolution/BTE/gki/common/gki_buffer.c"),
-            Object(NonMatching, "revolution/BTE/gki/common/gki_time.c"),
+            Object(Matching, "revolution/BTE/gki/common/gki_buffer.c"),
+            Object(Matching, "revolution/BTE/gki/common/gki_time.c"),
 
             # BTE/main
             Object(NonMatching, "revolution/BTE/main/bte_init.c"),
@@ -692,7 +692,7 @@ config.libs = [
             Object(NonMatching, "revolution/WPAD/WPAD.c"),
 
             # WUD
-            Object(NonMatching, "revolution/WUD/debug_msg.c"),
+            Object(Matching, "revolution/WUD/debug_msg.c"),
             Object(NonMatching, "revolution/WUD/WUD.c"),
             Object(Matching, "revolution/WUD/WUDHidHost.c"),
         ],

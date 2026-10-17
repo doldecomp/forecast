@@ -107,6 +107,10 @@ void gki_timers_init(void)
     return;
 }
 
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
+
 /*******************************************************************************
 **
 ** Function         gki_timers_is_timer_running
@@ -156,6 +160,8 @@ BOOLEAN gki_timers_is_timer_running(void)
 
 }
 
+#endif /* REVOLUTION */
+
 /*******************************************************************************
 **
 ** Function         GKI_get_tick_count
@@ -170,6 +176,10 @@ UINT32  GKI_get_tick_count(void)
     return gki_cb.com.OSTicks;
 }
 
+
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
 
 /*******************************************************************************
 **
@@ -192,6 +202,8 @@ INT32    GKI_ready_to_sleep (void)
 {
     return (gki_cb.com.OSTicksTilExp);
 }
+
+#endif /* REVOLUTION */
 
 
 /*******************************************************************************
@@ -390,6 +402,10 @@ void GKI_stop_timer (UINT8 tnum)
 
 }
 
+
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
 
 /*******************************************************************************
 **
@@ -605,6 +621,8 @@ void GKI_timer_update (INT32 ticks_since_last_update)
     return;
 }
 
+#endif /* REVOLUTION */
+
 
 #ifndef REVOLUTION
 
@@ -676,6 +694,10 @@ void GKI_init_timer_list (TIMER_LIST_Q *p_timer_listq)
     return;
 }
 
+/* Not present in the retail RVL build (dead-stripped from the DOL). */
+
+#ifndef REVOLUTION
+
 /*******************************************************************************
 **
 ** Function         GKI_init_timer_list_entry
@@ -696,6 +718,8 @@ void GKI_init_timer_list_entry (TIMER_LIST_ENT  *p_tle)
     p_tle->ticks   = GKI_UNUSED_LIST_ENTRY;
     p_tle->in_use  = FALSE;
 }
+
+#endif /* REVOLUTION */
 
 
 /*******************************************************************************
@@ -770,6 +794,12 @@ UINT16 GKI_update_timer_list (TIMER_LIST_Q *p_timer_listq, INT32 num_units_since
     return (num_time_out);
 }
 
+/* Not present in the retail RVL build: the function is absent from the DOL
+   and, unlike the dead functions in gki_buffer, its trace strings are absent
+   from .data too. */
+
+#ifndef REVOLUTION
+
 /*******************************************************************************
 **
 ** Function         GKI_get_remaining_ticks
@@ -818,6 +848,8 @@ UINT32 GKI_get_remaining_ticks (TIMER_LIST_Q *p_timer_listq, TIMER_LIST_ENT  *p_
 
     return (rem_ticks);
 }
+
+#endif /* REVOLUTION */
 
 /*******************************************************************************
 **
@@ -1038,7 +1070,9 @@ void GKI_remove_from_timer_list (TIMER_LIST_Q *p_timer_listq, TIMER_LIST_ENT  *p
 ** Returns          void
 **
 *******************************************************************************/
-void gki_adjust_timer_count (INT32 ticks)
+/* Not in the retail DOL: the only call site (GKI_start_timer) inlines it, so
+   static stops MWCC from emitting a dead out-of-line copy. */
+static void gki_adjust_timer_count (INT32 ticks)
 {
     if (ticks > 0)
     {
