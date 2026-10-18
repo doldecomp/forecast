@@ -1045,8 +1045,9 @@ BOOLEAN GKI_queue_is_empty(BUFFER_Q *p_q)
 
 /* Not present in the retail RVL build (dead-stripped from the DOL), but the
    trace string it used is still part of the retail .data, so keep its bytes
-   (with their original position) in an explicit array. */
-char lbl_801D0928[] = "GKI_get_buf_start:: bad addr";
+   (with their original position) in an explicit array. Named @1041 in
+   symbols.txt, after its compiler symbol in the original object. */
+char sBadAddrMsg[] = "GKI_get_buf_start:: bad addr";
 
 #ifndef REVOLUTION
 
@@ -1087,7 +1088,7 @@ void *GKI_find_buf_start (void *p_user_area)
     }
 
     /* If here, invalid address - not in one of our buffers */
-    GKI_exception (GKI_ERROR_BUF_SIZE_ZERO, "GKI_get_buf_start:: bad addr");
+    GKI_exception (GKI_ERROR_BUF_SIZE_ZERO, sBadAddrMsg);
 
     return (NULL);
 }
