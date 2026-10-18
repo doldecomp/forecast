@@ -890,7 +890,7 @@ DECOMP_INLINE void __WPADShutdown(void) {
     OSCancelAlarm(&_managerAlarm);
 
     WUDSetHidRecvCallback(NULL);
-    WUDShutdown();
+    WUDShutdown(FALSE);
 
     OSRestoreInterrupts(enabled);
 }
@@ -911,7 +911,7 @@ void __WPADReconnect(void) {
     OSCancelAlarm(&_managerAlarm);
 
     WUDSetHidRecvCallback(NULL);
-    WUDShutdown();
+    WUDShutdown(FALSE);
 
     OSRestoreInterrupts(enabled);
 }

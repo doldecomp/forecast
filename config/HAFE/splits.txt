@@ -1432,6 +1432,20 @@ revolution/EUART/euart.c:
 	.text       start:0x8012CC94 end:0x8012D004
 	.sbss       start:0x80331828 end:0x80331838
 
+revolution/USB/usb.c:
+	.text       start:0x8012D004 end:0x8012E130
+	.data       start:0x801CF008 end:0x801CF698
+	.sdata      start:0x80330880 end:0x80330890
+	.sbss       start:0x80331838 end:0x80331848
+
+revolution/WUD/WUD.c:
+	.text       start:0x8012E130 end:0x80132A2C
+	.data       start:0x801CF698 end:0x801D0598
+	.bss        start:0x802F6120 end:0x802F80C8
+	.sdata      start:0x80330890 end:0x80330898
+	.sbss       start:0x80331848 end:0x80331868
+	.sdata2     start:0x803330E8 end:0x803330F0
+
 revolution/WUD/WUDHidHost.c:
 	.text       start:0x80132A2C end:0x80133028
 	.data       start:0x801D0598 end:0x801D0818
