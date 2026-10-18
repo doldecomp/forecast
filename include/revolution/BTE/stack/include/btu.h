@@ -222,10 +222,12 @@ typedef struct
     tBTU_TIMER_REG   timer_reg[BTU_MAX_REG_TIMER];
     tBTU_EVENT_REG   event_reg[BTU_MAX_REG_EVENT];
 
-    TIMER_LIST_Q  quick_timer_queue;        /* Timer queue for transport level (100/10 msec)*/
     TIMER_LIST_Q  timer_queue;              /* Timer queue for normal BTU task (1 second)   */
 
     TIMER_LIST_ENT   cmd_cmpl_timer;        /* Command complete timer */
+
+    BUFFER_Q      cmd_xmit_q;               /* Command transmit queue */
+    BUFFER_Q      cmd_cmpl_q;               /* Command complete queue */
 
     UINT16    hcit_acl_data_size;           /* Max ACL data size across HCI transport    */
     UINT16    hcit_acl_pkt_size;            /* Max ACL packet size across HCI transport  */
@@ -237,9 +239,13 @@ typedef struct
                                             /* (this is data size plus 4 bytes overhead) */
 #endif
 
-    BOOLEAN     reset_complete;             /* TRUE after first ack from device received */
-    UINT8       trace_level;                /* Trace level for HCI layer */
+    UINT16    controller_cmd_window;        /* Controller command window */
+    BOOLEAN   reset_complete;               /* TRUE after first ack from device received */
+    UINT8     trace_level;                  /* Trace level for HCI layer */
 
+    /* Fields used by the bluedroid sources in this tree that are not part of
+       the retail structure; kept so those sources still build. */
+    TIMER_LIST_Q  quick_timer_queue;        /* Timer queue for transport level (100/10 msec)*/
     tHCI_CMD_CB hci_cmd_cb[BTU_MAX_LOCAL_CTRLS]; /* including BR/EDR */
 } tBTU_CB;
 

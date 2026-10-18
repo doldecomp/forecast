@@ -93,7 +93,7 @@
 
 /* Definitions of task IDs for inter-task messaging */
 #ifndef BTU_TASK
-#define BTU_TASK                0
+#define BTU_TASK                2
 #endif
 
 #ifndef BTIF_TASK

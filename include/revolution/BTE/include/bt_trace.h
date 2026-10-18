@@ -642,6 +642,10 @@ EXPORT_API extern void BTTRC_StackTrace6(tBTTRC_LAYER_ID layer_id,
                                                         (UINT32)(p2),(UINT32)(p3),(UINT32)(p4), \
                                                         (UINT32)(p5),(UINT32)(p6))
 
+/* RVL SDK: generic trace macro, with the trace layer and type given by name.
+ * Only the message-only form is used so far. */
+#define BT_TRACE(layer_, type_, m)                  LogMsg_0((TRACE_CTRL_GENERAL | TRACE_LAYER_ ## layer_ | TRACE_ORG_STACK | TRACE_TYPE_ ## type_),(m))
+
 #define BT_ERROR_TRACE_0(l,m)                     LogMsg_0(TRACE_CTRL_GENERAL | (l) | TRACE_ORG_STACK | TRACE_TYPE_ERROR,(m))
 #define BT_ERROR_TRACE_1(l,m,p1)                  LogMsg_1(TRACE_CTRL_GENERAL | (l) | TRACE_ORG_STACK | TRACE_TYPE_ERROR,(m),(UINT32)(p1))
 #define BT_ERROR_TRACE_2(l,m,p1,p2)               LogMsg_2(TRACE_CTRL_GENERAL | (l) | TRACE_ORG_STACK | TRACE_TYPE_ERROR,(m),(UINT32)(p1),(UINT32)(p2))

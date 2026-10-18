@@ -444,12 +444,19 @@ config.libs = [
             Object(Matching, "revolution/BTE/gki/common/gki_buffer.c"),
             Object(Matching, "revolution/BTE/gki/common/gki_time.c"),
 
+            # BTE/hci/src
+            Object(Matching, "revolution/BTE/hci/src/hcisu_h2.c"),
+
             # BTE/main
-            Object(NonMatching, "revolution/BTE/main/bte_init.c"),
+            Object(Matching, "revolution/BTE/main/bte_hcisu.c"),
+            Object(Matching, "revolution/BTE/main/bte_init.c"),
             Object(Matching, "revolution/BTE/main/bte_logmsg.c"),
 
             # BTE/rvl
             Object(Matching, "revolution/BTE/rvl/gki_ppc.c"),
+            # uusb_ppc.c only reproduces the original register allocation in
+            # uusb_WriteCtrlDataCB when built with the GC/3.0a5.2 compiler.
+            Object(Matching, "revolution/BTE/rvl/uusb_ppc.c", mw_version="GC/3.0a5.2"),
 
             # BTE/stack/btm
             Object(NonMatching, "revolution/BTE/stack/btm/btm_acl.c"),

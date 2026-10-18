@@ -4,6 +4,9 @@
 
 #include <revolution/OS/OSContext.h>
 #include <revolution/OS/OSExec.h>
+
+#define OSRoundUp32B(x) (((u32)(x) + 31) & ~31)
+
 #ifdef __cplusplus
 extern "C" {
 #endif

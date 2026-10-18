@@ -1450,6 +1450,26 @@ revolution/BTE/rvl/gki_ppc.c:
 	.text       start:0x80134A14 end:0x80134CA4
 	.bss        start:0x802F80C8 end:0x80320BA8
 
+revolution/BTE/hci/src/hcisu_h2.c:
+	.text       start:0x80134CA4 end:0x80135340
+	.rodata     start:0x80197528 end:0x80197540
+	.data       start:0x801D0960 end:0x801D09D0
+	.bss        start:0x80320BA8 end:0x80320BE0
+	.sdata2     start:0x803330F0 end:0x80333100
+
+revolution/BTE/rvl/uusb_ppc.c:
+	.text       start:0x80135340 end:0x80135F38
+	.bss        start:0x80320BE0 end:0x80322C40
+	.sdata      start:0x80330898 end:0x803308A8
+	.sbss       start:0x80331868 end:0x80331880
+
+revolution/BTE/main/bte_hcisu.c:
+	.text       start:0x80135F38 end:0x80135FF0
+	.sbss       start:0x80331880 end:0x80331888
+
+revolution/BTE/main/bte_init.c:
+	.text       start:0x80135FF0 end:0x8013601C
+
 revolution/BTE/main/bte_logmsg.c:
 	.text       start:0x8013601C end:0x80136180
 	.bss        start:0x80322C40 end:0x80323410

@@ -27,60 +27,71 @@
 #ifndef HCI_H
 #define HCI_H
 
-/******************************************************************************
-**  Constants & Macros
-******************************************************************************/
+#include <decomp.h>
 
-/******************************************************************************
-**  Type definitions
-******************************************************************************/
+#include "data_types.h"
 
-/** Prototypes for HCI Service interface functions **/
-
-/* Initialize transport's control block */
-typedef void (*tHCI_INIT)(void);
-
-/* Do transport's control block clean-up */
-typedef void (*tHCI_CLEANUP)(void);
-
-/* Send HCI command/data to the transport */
-typedef void (*tHCI_SEND)(HC_BT_HDR *p_msg);
-
-/* Handler for HCI upstream path */
-typedef uint16_t (*tHCI_RCV)(void);
-
-/* Callback function for the returned event of internally issued command */
-typedef void (*tINT_CMD_CBACK)(void *p_mem);
-
-/* Handler for sending HCI command from the local module */
-typedef uint8_t (*tHCI_SEND_INT)(uint16_t opcode, HC_BT_HDR *p_buf, \
-                                  tINT_CMD_CBACK p_cback);
-
-/* Handler for getting acl data length */
-typedef void (*tHCI_ACL_DATA_LEN_HDLR)(void);
-
-/******************************************************************************
-**  Extern variables and functions
-******************************************************************************/
-
-typedef struct {
-    tHCI_INIT init;
-    tHCI_CLEANUP cleanup;
-    tHCI_SEND send;
-    tHCI_SEND_INT send_int_cmd;
-    tHCI_ACL_DATA_LEN_HDLR get_acl_max_len;
-#ifdef HCI_USE_MCT
-    tHCI_RCV evt_rcv;
-    tHCI_RCV acl_rcv;
-#else
-    tHCI_RCV rcv;
+#ifdef __cplusplus
+	extern "C" {
 #endif
-} tHCI_IF;
 
-/******************************************************************************
-**  Functions
-******************************************************************************/
+enum
+{
+	MSG_HC_TO_STACK_HCI_EVT			= 0x1000,
+	MSG_HC_TO_STACK_HCI_ACL			= 0x1100,
+	MSG_HC_TO_STACK_HCI_SCO			= 0x1200,
+	MSG_HC_TO_STACK_HCI_ERR			= 0x1300,
+	MSG_HC_TO_STACK_L2C_SEG_XMIT	= 0x1900,
+};
 
+enum
+{
+	MSG_STACK_TO_HC_HCI_CMD			= 0x2000,
+	MSG_STACK_TO_HC_HCI_ACL			= 0x2100,
+	MSG_STACK_TO_HC_HCI_SCO			= 0x2200,
+};
+
+// separate anonymous struct to keep layers separate, i guess
+typedef struct
+{
+	UINT16	event;			// 0x00
+	UINT16	len;			// 0x02
+	UINT16	offset;			// 0x04
+	UINT16	layer_specific;	// 0x06
+} HC_BT_HDR; // size 0x08
+
+
+typedef struct
+{
+	UINT16	vid;	// 0x00
+	UINT16	pid;	// 0x02
+} tHCI_CFG; // size 0x04
+
+typedef void tHCI_INIT(UINT8, UINT8, UINT16);
+typedef BOOLEAN tHCI_OPEN(tHCI_CFG *p_cfg);
+typedef void tHCI_CLOSE(void);
+typedef BOOLEAN tHCI_SEND(HC_BT_HDR *p_msg);
+typedef int tHCI_HANDLE_EVENT(UINT16 len);
+
+typedef struct
+{
+	tHCI_INIT			*init;			// 0x00
+	tHCI_OPEN			*open;			// 0x04
+	tHCI_CLOSE			*close;			// 0x08
+	tHCI_SEND			*send;			// 0x0c
+	tHCI_HANDLE_EVENT	*handle_event;	// 0x10
+} tHCI_IF; // size 0x14
+
+extern tHCI_IF const hcisu_h2;
+
+void hcisu_h2_init(UINT8, UINT8, UINT16);
+BOOLEAN hcisu_h2_open(tHCI_CFG *p_cfg);
+void hcisu_h2_close(void);
+BOOLEAN hcisu_h2_send(HC_BT_HDR *p_msg);
+int hcisu_h2_handle_event(UINT16 len);
+
+#ifdef __cplusplus
+	}
+#endif
 
 #endif /* HCI_H */
-
