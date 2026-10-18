@@ -644,7 +644,7 @@ config.libs = [
             Object(Matching, "revolution/TPL/TPL.c"),
 
             # USB
-            Object(NonMatching, "revolution/USB/usb.c"),
+            Object(Matching, "revolution/USB/usb.c"),
 
             # VF
             Object(Matching, "revolution/VF/pf_clib.c"),
@@ -693,7 +693,8 @@ config.libs = [
 
             # WUD
             Object(Matching, "revolution/WUD/debug_msg.c"),
-            Object(NonMatching, "revolution/WUD/WUD.c"),
+            # WUD.c only reproduces the retail register allocation with 3.0a5.2
+            Object(Matching, "revolution/WUD/WUD.c", mw_version="GC/3.0a5.2"),
             Object(Matching, "revolution/WUD/WUDHidHost.c"),
         ],
     },

@@ -97,6 +97,7 @@ typedef enum {
     WUD_STATE_INIT_GET_DEV_INFO = 2,
     WUD_STATE_INIT_DONE = 3,
     WUD_STATE_INIT_INITIALIZED = 4,
+    WUD_STATE_INIT_WAIT_FOR_ENABLE = 5,
     WUD_STATE_INIT_ERROR = 255,
 } WUDInitState;
 
@@ -195,6 +196,8 @@ typedef struct WUDCB {
 
     u16 bufferStatus0; // at 0x744
     u16 bufferStatus1; // at 0x746
+    s16 waitStartSearchFrames; // at 0x748
+    s16 waitIncomingFrames;    // at 0x74A
 } WUDCB;
 
 extern WUDCB _wcb;

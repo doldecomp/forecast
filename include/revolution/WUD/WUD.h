@@ -75,7 +75,7 @@ BOOL WUDInit(void);
 BOOL WUDIsBusy(void);
 void WUDRegisterAllocator(WUDAllocFunc pAllocFunc, WUDFreeFunc pFreeFunc);
 u32 WUDGetAllocatedMemSize(void);
-void WUDShutdown(void);
+void WUDShutdown(BOOL saveSmp);
 
 WUDLibStatus WUDGetStatus(void);
 u8 WUDGetBufferStatus(void);
@@ -90,7 +90,6 @@ WUDClearDeviceCallback
 WUDSetClearDeviceCallback(WUDClearDeviceCallback pCallback);
 // clang-format on
 
-BOOL WUDStartSyncDevice(void);
 BOOL WUDStartFastSyncSimple(void);
 BOOL WUDStartSyncSimple(void);
 BOOL WUDStopSyncSimple(void);
@@ -102,37 +101,23 @@ WUDHidRecvCallback WUDSetHidRecvCallback(WUDHidRecvCallback pCallback);
 WUDHidConnCallback WUDSetHidConnCallback(WUDHidConnCallback pCallback);
 
 void WUDSetVisibility(u8 disc, u8 conn);
-u8 WUDGetConnectable(void);
 
-void WUDiGetFirmwareVersion(void);
 void WUDiInitSub(void);
 
-void WUDiEnableStack(void);
-void WUDiAutoSync(void);
-void WUDiDeleteAllLinkKeys(void);
 
 void WUDiRegisterDevice(BD_ADDR addr);
 void WUDiRemoveDevice(BD_ADDR addr);
 
 WUDDevInfo* WUDiGetDevInfo(BD_ADDR addr);
-WUDDevInfo* WUDiGetDevInfoIndex(int idx);
 WUDDevInfo* WUDiGetNewDevInfo(void);
-void WUDiRemoveDevInfo(BD_ADDR addr);
-void WUDiClearDevice(void);
 
-u8 WUDiGetDevNumber(void);
-u8 WUDiGetDevSmpNumber(void);
-u8 WUDiGetConnNumber(void);
-u8 WUDiGetLinkNum(void);
 
 void WUDiMoveTopSmpDevInfoPtr(WUDDevInfo* pInfo);
 void WUDiMoveBottomSmpDevInfoPtr(WUDDevInfo* pInfo);
-WUDDevInfo* WUDiGetRemoveSmpDevice(void);
 void WUDiMoveTopOfDisconnectedSmpDevice(WUDDevInfo* pInfo);
 
 void WUDiMoveTopStdDevInfoPtr(WUDDevInfo* pInfo);
 void WUDiMoveBottomStdDevInfoPtr(WUDDevInfo* pInfo);
-WUDDevInfo* WUDiGetRemoveStdDevice(void);
 void WUDiMoveTopOfDisconnectedStdDevice(WUDDevInfo* pInfo);
 
 BD_ADDR_PTR _WUDGetDevAddr(UINT8 handle);
