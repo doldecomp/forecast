@@ -237,49 +237,43 @@ typedef struct WPADCB {
     u8 lastReportID;        // at 0x987
     WPADCallback getInfoCB; // at 0x988
     u8 getInfoBusy;         // at 0x98C
+    u8 unused1;             // at 0x98D
+    u8 disableContinuous;   // at 0x98E, nonzero asks for a one-shot report
     u8 UNK_0x98F[0x9A0 - 0x990];
 } WPADCB;
 
 extern WPADCB _wpd[WPAD_MAX_CONTROLLERS];
 extern WPADCB* _wpdcb[WPAD_MAX_CONTROLLERS];
 
+// Set while the library is being torn down.
+extern u8 _shutdown;
+
+// Alarm that drives the periodic controller management update.
+extern OSAlarm _managerAlarm;
+
+// Registered with the OS to tear the library down on shutdown.
+extern OSShutdownFunctionInfo ShutdownFunctionInfo;
+
 void WPADiInitSub(void);
 
 void WPADiExcludeButton(s32 chan);
 void WPADiCopyOut(s32 chan);
 
-BOOL WPADiSendSetPort(WPADCommandQueue* pQueue, u8 port,
-                      WPADCallback pCallback);
 BOOL WPADiSendSetReportType(WPADCommandQueue* pQueue, s32 format,
-                            WPADCallback pCallback);
-BOOL WPADiSendEnableDPD(WPADCommandQueue* pQueue, BOOL enable,
-                        WPADCallback pCallback);
-BOOL WPADiSendEnableSpeaker(WPADCommandQueue* pQueue, BOOL enable,
-                            WPADCallback pCallback);
-BOOL WPADiSendGetContStat(WPADCommandQueue* pQueue, WPADInfo* pInfo,
-                          WPADCallback pCallback);
+                            BOOL disableContinuous, WPADCallback pCallback);
 BOOL WPADiSendWriteDataCmd(WPADCommandQueue* pQueue, u8 cmd, u32 addr,
                            WPADCallback pCallback);
 BOOL WPADiSendWriteData(WPADCommandQueue* pQueue, const void* pSrc, u16 len,
                         u32 addr, WPADCallback pCallback);
 BOOL WPADiSendReadData(WPADCommandQueue* pQueue, void* pDst, u16 len, u32 addr,
                        WPADCallback pCallback);
-BOOL WPADiSendStreamData(WPADCommandQueue* pQueue, const void* pData, u16 len);
-BOOL WPADiSendMuteSpeaker(WPADCommandQueue* pQueue, BOOL mute,
-                          WPADCallback pCallback);
-BOOL WPADiSendDPDCSB(WPADCommandQueue* pQueue, BOOL enable,
-                     WPADCallback pCallback);
 
 void WPADiClearQueue(WPADCommandQueue* pQueue);
-BOOL WPADiPushCommand(WPADCommandQueue* pQueue, WPADCommand command);
-BOOL WPADiGetCommand(const WPADCommandQueue* pQueue, WPADCommand* pCommand);
-BOOL WPADiPopCommand(WPADCommandQueue* pQueue);
 
-u16 _WPADGetStackBufferStatus(s32 chan);
-u16 _WPADGetModuleBufferStatus(s32 chan);
+void WPADiDecode(s32 chan, u8* pData, u16 len, u16 seed);
 
-void __WPADShutdown(void);
-void __WPADReconnect(void);
+void WPADiCreateKey(s32 chan);
+void WPADiCreateKeyFor3rd(s32 chan);
 
 #ifdef __cplusplus
 }

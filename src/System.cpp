@@ -89,7 +89,7 @@ void SystemInit(void) {
     for (int i = 0; i < WPAD_MAX_CONTROLLERS; i++) {
         KPADEnableDPD(i);
         KPADSetPosParam(i, 0.05f, 1.0f);
-        KPADSetHoriParam(i, 0.03f, 1.0f);
+        KPADSetDistParam(i, 0.03f, 1.0f);
 
         gCursorX[i] = GetScreenWidth() / 2;
         gCursorY[i] = 228.0f;

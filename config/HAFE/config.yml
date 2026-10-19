@@ -31,6 +31,8 @@ clean_extab: false
 
 
 block_relocations:
+# WPADEncrypt.c tb: a table word that happens to equal jumptable_801D0E9C+0x14
+- source: 0x801CDD5C
 - source: 0x80192B28
 # OS.c OSInit: the constant 0x80004000 happens to equal _f_init
 - source: 0x800E401C

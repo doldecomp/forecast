@@ -1428,6 +1428,41 @@ revolution/PAD/Pad.c:
 	.text       start:0x8011BF9C end:0x8011BFF8
 	.sbss       start:0x803317B0 end:0x803317B4
 
+revolution/WPAD/WPAD.c:
+	.text       start:0x8011BFF8 end:0x80123758
+	.rodata     start:0x801974E8 end:0x80197528
+	.data       start:0x801CD3F0 end:0x801CD6E8
+	.bss        start:0x802F1460 end:0x802F4B88
+	.sdata      start:0x80330800 end:0x80330810
+	.sbss       start:0x803317B8 end:0x803317E8
+	.sdata2     start:0x80333010 end:0x80333018
+
+revolution/WPAD/WPADHIDParser.c:
+	.text       start:0x80123758 end:0x80128BF8
+	.data       start:0x801CD6E8 end:0x801CDC88
+	.bss        start:0x802F4B88 end:0x802F4BF0
+	.sbss       start:0x803317E8 end:0x80331800
+	.sdata2     start:0x80333018 end:0x80333078
+
+revolution/WPAD/WPADMem.c:
+	.bss        start:0x802F4BF0 end:0x802F4C40
+
+revolution/WPAD/WPADEncrypt.c:
+	.text       start:0x80128BF8 end:0x80129CA0
+	.data       start:0x801CDC88 end:0x801CEFB0
+	.sbss       start:0x80331800 end:0x80331808
+
+revolution/WPAD/debug_msg.c:
+	.text       start:0x80129CA0 end:0x80129CF0
+
+revolution/KPAD/KPAD.c:
+	.text       start:0x80129CF0 end:0x8012CC94
+	.data       start:0x801CEFB0 end:0x801CF008
+	.bss        start:0x802F4C40 end:0x802F6120
+	.sdata      start:0x80330810 end:0x80330880
+	.sbss       start:0x80331808 end:0x80331828
+	.sdata2     start:0x80333078 end:0x803330E8
+
 revolution/EUART/euart.c:
 	.text       start:0x8012CC94 end:0x8012D004
 	.sbss       start:0x80331828 end:0x80331838

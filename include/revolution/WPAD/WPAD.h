@@ -275,21 +275,15 @@ void WPADInit(void);
 void WPADShutdown(void);
 
 BOOL WPADStartSimpleSync(void);
-BOOL WPADStartFastSimpleSync(void);
 BOOL WPADStopSimpleSync(void);
-BOOL WPADStartClearDevice(void);
 
 WPADSyncDeviceCallback
 WPADSetSimpleSyncCallback(WPADSyncDeviceCallback pCallback);
 
-WPADClearDeviceCallback
-WPADSetClearDeviceCallback(WPADClearDeviceCallback pCallback);
-
 void WPADRegisterAllocator(WPADAllocFunc pAllocFunc, WPADFreeFunc pFreeFunc);
-u32 WPADGetWorkMemorySize(void);
 
 WPADLibStatus WPADGetStatus(void);
-void WPADGetAddress(s32 chan, BD_ADDR_PTR pAddr);
+u8 WPADGetRadioSensitivity(s32 chan);
 u8 WPADGetSensorBarPosition(void);
 
 void WPADGetAccGravityUnit(s32 chan, u32 type, WPADAccGravityUnit* pAcc);
@@ -329,11 +323,8 @@ BOOL WPADCanSendStreamData(s32 chan);
 s32 WPADSendStreamData(s32 chan, void* pData, u16 len);
 
 u8 WPADGetDpdSensitivity(void);
-BOOL WPADSetSensorBarPower(BOOL enable);
 BOOL WPADIsDpdEnabled(s32 chan);
 s32 WPADControlDpd(s32 chan, u32 command, WPADCallback pCallback);
-
-void WPADRecalibrate(s32 chan);
 
 //! /////////////////////////////////
 
