@@ -33,6 +33,11 @@
 #include "btu.h"
 #include "btm_api.h"
 #include "btm_int.h"
+
+#ifdef REVOLUTION
+/* Retail BTM only has this inlined into BTM_SecDeleteDevice. */
+static void btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec);
+#endif
 #include "hcidefs.h"
 #include "l2c_api.h"
 static tBTM_SEC_DEV_REC *btm_find_oldest_dev (void);
@@ -56,13 +61,32 @@ static tBTM_SEC_DEV_REC *btm_find_oldest_dev (void);
 ** Returns          TRUE if added OK, else FALSE
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class, BD_NAME bd_name,
+                          BD_FEATURES features, UINT32 trusted_mask[],
+                          LINK_KEY link_key)
+#else
 BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class, BD_NAME bd_name,
                           BD_FEATURES features, UINT32 trusted_mask[],
                           LINK_KEY link_key, UINT8 key_type, tBTM_IO_CAP io_cap)
+#endif
 {
     tBTM_SEC_DEV_REC  *p_dev_rec;
     int               i;
 
+#ifdef REVOLUTION
+    p_dev_rec = btm_find_dev (bd_addr);
+    if (!p_dev_rec)
+    {
+        p_dev_rec = btm_sec_alloc_dev (bd_addr);
+        if (!p_dev_rec)
+            return(FALSE);
+    }
+    else
+    {
+        p_dev_rec->timestamp = btm_cb.dev_rec_count++;
+    }
+#else
     p_dev_rec = btm_find_dev (bd_addr);
     if (!p_dev_rec)
     {
@@ -94,6 +118,7 @@ BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class, BD_NAME bd_name,
     }
 
     p_dev_rec->timestamp = btm_cb.dev_rec_count++;
+#endif
 
     if (dev_class)
         memcpy (p_dev_rec->dev_class, dev_class, DEV_CLASS_LEN);
@@ -116,19 +141,25 @@ BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class, BD_NAME bd_name,
 
     if (link_key)
     {
+#ifndef REVOLUTION
         BTM_TRACE_EVENT6 ("BTM_SecAddDevice()  BDA: %02x:%02x:%02x:%02x:%02x:%02x",
                           bd_addr[0], bd_addr[1], bd_addr[2],
                           bd_addr[3], bd_addr[4], bd_addr[5]);
+#endif
         p_dev_rec->sec_flags |= BTM_SEC_LINK_KEY_KNOWN;
         memcpy (p_dev_rec->link_key, link_key, LINK_KEY_LEN);
+#ifndef REVOLUTION
         p_dev_rec->link_key_type = key_type;
+#endif
     }
 
+#if !defined(REVOLUTION)
 #if defined(BTIF_MIXED_MODE_INCLUDED) && (BTIF_MIXED_MODE_INCLUDED == TRUE)
     p_dev_rec->sm4 = BTM_SM4_KNOWN;
 #endif
 
     p_dev_rec->rmt_io_caps = io_cap;
+#endif
 
     return(TRUE);
 }
@@ -149,11 +180,13 @@ BOOLEAN BTM_SecDeleteDevice (BD_ADDR bd_addr)
 {
     tBTM_SEC_DEV_REC  *p_dev_rec;
 
+#ifndef REVOLUTION
     if (BTM_IsAclConnectionUp(bd_addr))
     {
         BTM_TRACE_WARNING0("BTM_SecDeleteDevice FAILED: Cannot Delete when connection is active");
         return(FALSE);
     }
+#endif
 
     if ((p_dev_rec = btm_find_dev (bd_addr)) == NULL)
         return(FALSE);
@@ -202,7 +235,9 @@ tBTM_SEC_DEV_REC *btm_sec_alloc_dev (BD_ADDR bd_addr)
     tBTM_SEC_DEV_REC *p_dev_rec = NULL;
     tBTM_INQ_INFO    *p_inq_info;
     int               i;
+#ifndef REVOLUTION
     BTM_TRACE_EVENT0 ("btm_sec_alloc_dev");
+#endif
     for (i = 0; i < BTM_SEC_MAX_DEVICE_RECORDS; i++)
     {
         if (!(btm_cb.sec_dev_rec[i].sec_flags & BTM_SEC_IN_USE))
@@ -218,6 +253,9 @@ tBTM_SEC_DEV_REC *btm_sec_alloc_dev (BD_ADDR bd_addr)
     memset (p_dev_rec, 0, sizeof (tBTM_SEC_DEV_REC));
 
     p_dev_rec->sec_flags = BTM_SEC_IN_USE;
+#ifdef REVOLUTION
+    p_dev_rec->conn_cmpl_rcvd = FALSE;
+#endif
 
     /* Check with the BT manager if details about remote device are known */
     /* outgoing connection */
@@ -250,7 +288,9 @@ tBTM_SEC_DEV_REC *btm_sec_alloc_dev (BD_ADDR bd_addr)
         memset(&p_dev_rec->conn_params, 0xff, sizeof(tBTM_LE_CONN_PRAMS));
 #endif
 
+#ifndef REVOLUTION
         if (!memcmp (bd_addr, btm_cb.connecting_bda, BD_ADDR_LEN))
+#endif
             memcpy (p_dev_rec->dev_class, btm_cb.connecting_dc, DEV_CLASS_LEN);
     }
 
@@ -270,7 +310,11 @@ tBTM_SEC_DEV_REC *btm_sec_alloc_dev (BD_ADDR bd_addr)
 ** Description      Mark device record as not used
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+static void btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec)
+#else
 void btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec)
+#endif
 {
     p_dev_rec->sec_flags = 0;
 
@@ -282,6 +326,7 @@ void btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec)
 
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_dev_support_switch
@@ -336,6 +381,8 @@ BOOLEAN btm_dev_support_switch (BD_ADDR bd_addr)
     return(FALSE);
 }
 
+#endif
+
 /*******************************************************************************
 **
 ** Function         btm_find_dev_by_handle
@@ -375,7 +422,9 @@ tBTM_SEC_DEV_REC *btm_find_dev (BD_ADDR bd_addr)
     tBTM_SEC_DEV_REC *p_dev_rec = &btm_cb.sec_dev_rec[0];
     int i;
 
+#ifndef REVOLUTION
     if (bd_addr)
+#endif
     {
         for (i = 0; i < BTM_SEC_MAX_DEVICE_RECORDS; i++, p_dev_rec++)
         {
@@ -387,6 +436,7 @@ tBTM_SEC_DEV_REC *btm_find_dev (BD_ADDR bd_addr)
     return(NULL);
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_find_or_alloc_dev
@@ -409,6 +459,8 @@ tBTM_SEC_DEV_REC *btm_find_or_alloc_dev (BD_ADDR bd_addr)
     }
     return(p_dev_rec);
 }
+
+#endif
 
 /*******************************************************************************
 **

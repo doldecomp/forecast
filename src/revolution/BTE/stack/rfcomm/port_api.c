@@ -37,11 +37,13 @@
 /* duration of break in 200ms units */
 #define PORT_BREAK_DURATION     1
 
+#ifndef REVOLUTION
 #include <cutils/log.h>
 #define info(fmt, ...)  ALOGI ("%s: " fmt,__FUNCTION__,  ## __VA_ARGS__)
 #define debug(fmt, ...) ALOGD ("%s: " fmt,__FUNCTION__,  ## __VA_ARGS__)
 #define error(fmt, ...) ALOGE ("## ERROR : %s: " fmt "##",__FUNCTION__,  ## __VA_ARGS__)
 #define asrt(s) if(!(s)) ALOGE ("## %s assert %s failed at line:%d ##",__FUNCTION__, #s, __LINE__)
+#endif
 
 /*******************************************************************************
 **

@@ -82,7 +82,9 @@ void BTA_HhEnable(tBTA_SEC sec_mask, BOOLEAN ucd_enabled, tBTA_HH_CBACK *p_cback
     bta_sys_register(BTA_ID_HH, &bta_hh_reg);
     GKI_sched_unlock();
 
+#ifndef REVOLUTION
     APPL_TRACE_ERROR0("Calling BTA_HhEnable");
+#endif
     p_buf = (tBTA_HH_API_ENABLE *)GKI_getbuf((UINT16)sizeof(tBTA_HH_API_ENABLE));
 
     if (p_buf != NULL)
@@ -111,7 +113,9 @@ void BTA_HhDisable(void)
 {
     BT_HDR  *p_buf;
 
+#ifndef REVOLUTION
     bta_sys_deregister(BTA_ID_HH);
+#endif
     if ((p_buf = (BT_HDR *)GKI_getbuf(sizeof(BT_HDR))) != NULL)
     {
         p_buf->event = BTA_HH_API_DISABLE_EVT;
@@ -202,6 +206,7 @@ static void bta_hh_snd_write_dev(UINT8 dev_handle, UINT8 t_type, UINT8 param,
         bta_sys_sendmsg(p_buf);
     }
 }
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTA_HhSetReport
@@ -301,6 +306,7 @@ void BTA_HhSendCtrl(UINT8 dev_handle, tBTA_HH_TRANS_CTRL_TYPE c_type)
 {
     bta_hh_snd_write_dev(dev_handle, HID_TRANS_CONTROL, (UINT8)c_type, 0, 0, NULL);
 }
+#endif
 /*******************************************************************************
 **
 ** Function         BTA_HhSendData
@@ -319,6 +325,7 @@ void BTA_HhSendData(UINT8 dev_handle, BD_ADDR dev_bda, BT_HDR  *p_data)
     bta_hh_snd_write_dev(dev_handle, HID_TRANS_DATA, BTA_HH_RPTT_OUTPUT, 0, 0, p_data);
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTA_HhGetDscpInfo
@@ -341,6 +348,7 @@ void BTA_HhGetDscpInfo(UINT8 dev_handle)
         bta_sys_sendmsg(p_buf);
     }
 }
+#endif
 
 /*******************************************************************************
 **
@@ -357,10 +365,31 @@ void BTA_HhGetDscpInfo(UINT8 dev_handle)
 #ifdef REVOLUTION
 void BTA_HhAddDev(BD_ADDR bda, tBTA_HH_ATTR_MASK attr_mask, UINT8 sub_class,
                   UINT8 app_id, tBTA_HH_DEV_DESCR dscp_info)
+{
+    tBTA_HH_MAINT_DEV    *p_buf;
+
+    p_buf = (tBTA_HH_MAINT_DEV *)GKI_getbuf(sizeof(tBTA_HH_MAINT_DEV));
+
+    if (p_buf != NULL)
+    {
+        memset(p_buf, 0, sizeof(tBTA_HH_MAINT_DEV));
+
+        p_buf->hdr.event            = BTA_HH_API_MAINT_DEV_EVT;
+        p_buf->sub_event            = BTA_HH_ADD_DEV_EVT;
+        p_buf->hdr.layer_specific   = BTA_HH_INVALID_HANDLE;
+
+        p_buf->attr_mask            = (UINT16) attr_mask;
+        p_buf->sub_class            = sub_class;
+        p_buf->app_id               = app_id;
+        memcpy(&p_buf->dscp_info, &dscp_info, sizeof(tBTA_HH_DEV_DESCR));
+        bdcpy(p_buf->bda, bda);
+
+        bta_sys_sendmsg(p_buf);
+    }
+}
 #else
 void BTA_HhAddDev(BD_ADDR bda, tBTA_HH_ATTR_MASK attr_mask, UINT8 sub_class,
                   UINT8 app_id, tBTA_HH_DEV_DSCP_INFO dscp_info)
-#endif
 {
     tBTA_HH_MAINT_DEV    *p_buf;
     UINT16  len = sizeof(tBTA_HH_MAINT_DEV) + dscp_info.descriptor.dl_len;
@@ -396,6 +425,7 @@ void BTA_HhAddDev(BD_ADDR bda, tBTA_HH_ATTR_MASK attr_mask, UINT8 sub_class,
         bta_sys_sendmsg(p_buf);
     }
 }
+#endif
 /*******************************************************************************
 **
 ** Function         BTA_HhRemoveDev
@@ -423,10 +453,35 @@ void BTA_HhRemoveDev(UINT8 dev_handle )
     }
 }
 
+#ifdef REVOLUTION
+/*******************************************************************************
+**
+** Function         BTA_HhGetAclQueueInfo
+**
+** Description      
+**
+** Returns          void
+**
+*******************************************************************************/
+void BTA_HhGetAclQueueInfo(void)
+{
+    BT_HDR    *p_buf;
+
+    if ((p_buf = (BT_HDR *)GKI_getbuf((UINT16)sizeof(BT_HDR))) != NULL)
+    {
+        memset(p_buf, 0, sizeof(BT_HDR));
+        p_buf->event            = BTA_HH_API_GET_ACL_Q_EVT;
+
+        bta_sys_sendmsg(p_buf);
+    }
+}
+#endif
+
 /*******************************************************************************/
 /*                          Utility Function                                   */
 /*******************************************************************************/
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTA_HhParseBootRpt
@@ -468,5 +523,6 @@ void BTA_HhParseBootRpt(tBTA_HH_BOOT_RPT *p_data, UINT8 *p_report,
 
     return;
 }
+#endif
 
 #endif /* BTA_HH_INCLUDED */

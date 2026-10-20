@@ -35,9 +35,16 @@
 #include "btu.h"
 #include "btm_api.h"
 #include "btm_int.h"
+
+#ifdef REVOLUTION
+static tBTM_STATUS BTM_SetLinkSuperTout (BD_ADDR remote_bda, UINT16 timeout);
+#endif
 #include "l2c_int.h"
 #include "hcidefs.h"
 static void btm_establish_continue (tACL_CONN *p_acl_cb);
+#ifdef REVOLUTION
+static tBTM_STATUS btm_set_packet_types (tACL_CONN *p, UINT16 pkt_types);
+#endif
 
 #define BTM_DEV_REPLY_TIMEOUT   3       /* 3 second timeout waiting for responses */
 
@@ -52,7 +59,9 @@ static void btm_establish_continue (tACL_CONN *p_acl_cb);
 *******************************************************************************/
 void btm_acl_init (void)
 {
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_acl_init");
+    #endif
 #if 0  /* cleared in btm_init; put back in if called from anywhere else! */
     memset (&btm_cb.acl_db, 0, sizeof (btm_cb.acl_db));
 #if RFCOMM_INCLUDED == TRUE
@@ -81,22 +90,28 @@ void btm_acl_init (void)
 **                  NULL if not found.
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+/* Retail BTM only has this inlined. */
+static tACL_CONN *btm_bda_to_acl (BD_ADDR bda)
+#else
 tACL_CONN *btm_bda_to_acl (BD_ADDR bda)
+#endif
 {
     tACL_CONN   *p = &btm_cb.acl_db[0];
     UINT16       xx;
-    if (bda)
+    for (xx = 0; xx < MAX_L2CAP_LINKS; xx++, p++)
     {
-        for (xx = 0; xx < MAX_L2CAP_LINKS; xx++, p++)
+        if ((p->in_use) && (!memcmp (p->remote_addr, bda, BD_ADDR_LEN)))
         {
-            if ((p->in_use) && (!memcmp (p->remote_addr, bda, BD_ADDR_LEN)))
-            {
-                BTM_TRACE_DEBUG0 ("btm_bda_to_acl found");
-                return(p);
-            }
+#ifndef REVOLUTION
+            BTM_TRACE_DEBUG0 ("btm_bda_to_acl found");
+#endif
+            return(p);
         }
     }
+#ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_bda_to_acl Not found");
+#endif
 
     /* If here, no BD Addr found */
     return((tACL_CONN *)NULL);
@@ -115,7 +130,9 @@ UINT8 btm_handle_to_acl_index (UINT16 hci_handle)
 {
     tACL_CONN   *p = &btm_cb.acl_db[0];
     UINT8       xx;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_handle_to_acl_index");
+    #endif
     for (xx = 0; xx < MAX_L2CAP_LINKS; xx++, p++)
     {
         if ((p->in_use) && (p->hci_handle == hci_handle))
@@ -147,8 +164,10 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
     tACL_CONN        *p;
     UINT8             xx;
 
+#ifndef REVOLUTION
     BTM_TRACE_DEBUG3 ("btm_acl_created hci_handle=%d link_role=%d  is_le_link=%d",
                       hci_handle,link_role, is_le_link);
+#endif
     /* Ensure we don't have duplicates */
     p = btm_bda_to_acl(bda);
     if (p != (tACL_CONN *)NULL)
@@ -158,9 +177,11 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
 #if BLE_INCLUDED == TRUE
         p->is_le_link = is_le_link;
 #endif
-        BTM_TRACE_DEBUG6 ("Duplicate btm_acl_created: RemBdAddr: %02x%02x%02x%02x%02x%02x",
+        BTM_TRACE_EVENT6 ("Duplicate btm_acl_created: RemBdAddr: %02x%02x%02x%02x%02x%02x",
                           bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+#ifndef REVOLUTION
         BTM_SetLinkPolicy(p->remote_addr, &btm_cb.btm_def_link_policy);
+#endif
         return;
     }
 
@@ -172,12 +193,16 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
             p->in_use            = TRUE;
             p->hci_handle        = hci_handle;
             p->link_role         = link_role;
+#if (defined(BTM_BUSY_LEVEL_CHANGE_INCLUDED) && BTM_BUSY_LEVEL_CHANGE_INCLUDED == TRUE)
             p->link_up_issued    = FALSE;
+#endif
 #if BLE_INCLUDED == TRUE
             p->is_le_link        = is_le_link;
 #endif
             p->restore_pkt_types = 0;   /* Only exists while SCO is active */
+#ifndef REVOLUTION
             p->switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+#endif
 
 #if BTM_PWR_MGR_INCLUDED == FALSE
             p->mode             = BTM_ACL_MODE_NORMAL;
@@ -191,8 +216,10 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
                 memcpy (p->remote_dc, dc, DEV_CLASS_LEN);
 
             if (bdn)
-                memcpy (p->remote_name, bdn, BTM_MAX_REM_BD_NAME_LEN);
+                memcpy (p->remote_name, bdn, BD_NAME_LEN);
 
+            btsnd_hcic_read_rmt_clk_offset (p->hci_handle);
+            btsnd_hcic_rmt_ver_req (p->hci_handle);
 
             /* Check if we already know features for this device */
             p_dev_rec = btm_find_dev_by_handle (hci_handle);
@@ -211,16 +238,12 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
 #endif
                )
             {
-
-                /* if BR/EDR do something more */
-                btsnd_hcic_read_rmt_clk_offset (p->hci_handle);
-                btsnd_hcic_rmt_ver_req (p->hci_handle);
-
                 for (yy = 0; yy < BD_FEATURES_LEN; yy++)
                 {
                     if (p_dev_rec->features[yy])
                     {
                         memcpy (p->features, p_dev_rec->features, BD_FEATURES_LEN);
+#ifndef REVOLUTION
                         if (BTM_SEC_MODE_SP == btm_cb.security_mode &&
                             HCI_SIMPLE_PAIRING_SUPPORTED(p->features))
                         {
@@ -232,6 +255,7 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
                         }
                         /* peer does not support SSP */
                         p_dev_rec->sm4 |= BTM_SM4_KNOWN;
+#endif
 
                         btm_establish_continue (p);
                         return;
@@ -275,6 +299,7 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
 ** Returns          void
 **
 *******************************************************************************/
+#ifndef REVOLUTION
 void btm_acl_report_role_change (UINT8 hci_status, BD_ADDR bda)
 {
     tBTM_ROLE_SWITCH_CMPL   ref_data;
@@ -289,6 +314,7 @@ void btm_acl_report_role_change (UINT8 hci_status, BD_ADDR bda)
         btm_cb.devcb.p_switch_role_cb = NULL;
     }
 }
+#endif
 
 /*******************************************************************************
 **
@@ -312,12 +338,18 @@ void btm_acl_removed (BD_ADDR bda)
     UINT16 combined_mode;
 #endif
 
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_acl_removed");
+    #endif
     p = btm_bda_to_acl(bda);
     if (p != (tACL_CONN *)NULL)
     {
         p->in_use = FALSE;
 
+#ifdef REVOLUTION
+        if (btm_cb.p_acl_changed_cb)
+            (*btm_cb.p_acl_changed_cb) (bda, NULL, NULL, NULL, FALSE);
+#else
         /* if the disconnected channel has a pending role switch, clear it now */
         btm_acl_report_role_change(HCI_ERR_NO_CONNECTION, bda);
 
@@ -342,6 +374,7 @@ void btm_acl_removed (BD_ADDR bda)
                 (*btm_cb.p_acl_changed_cb) (bda, NULL, NULL, NULL, FALSE);
 #endif
         }
+#endif
 
 #if (defined BLE_INCLUDED && BLE_INCLUDED == TRUE)
 
@@ -419,12 +452,16 @@ void btm_acl_device_down (void)
 {
     tACL_CONN   *p = &btm_cb.acl_db[0];
     UINT16      xx;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_acl_device_down");
+    #endif
     for (xx = 0; xx < MAX_L2CAP_LINKS; xx++, p++)
     {
         if (p->in_use)
         {
+#ifndef REVOLUTION
             BTM_TRACE_DEBUG1 ("hci_handle=%d HCI_ERR_HW_FAILURE ",p->hci_handle );
+#endif
             l2c_link_hci_disc_comp (p->hci_handle, HCI_ERR_HW_FAILURE);
         }
     }
@@ -517,6 +554,7 @@ void btm_acl_update_busy_level (tBTM_BLI_EVENT event)
 **                  BTM_UNKNOWN_ADDR if no active link with bd addr specified
 **
 *******************************************************************************/
+#ifndef REVOLUTION
 tBTM_STATUS BTM_GetRole (BD_ADDR remote_bd_addr, UINT8 *p_role)
 {
     tACL_CONN   *p;
@@ -531,6 +569,7 @@ tBTM_STATUS BTM_GetRole (BD_ADDR remote_bd_addr, UINT8 *p_role)
     *p_role = p->link_role;
     return(BTM_SUCCESS);
 }
+#endif
 
 
 /*******************************************************************************
@@ -550,6 +589,80 @@ tBTM_STATUS BTM_GetRole (BD_ADDR remote_bd_addr, UINT8 *p_role)
 **                  BTM_BUSY if the previous command is not completed
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+tBTM_STATUS BTM_SwitchRole (BD_ADDR remote_bd_addr, UINT8 new_role, tBTM_CMPL_CB *p_cb)
+{
+    tACL_CONN   *p;
+    tBTM_SEC_DEV_REC  *p_dev_rec = NULL;
+#if BTM_PWR_MGR_INCLUDED == TRUE
+    tBTM_STATUS  status;
+    tBTM_PM_MODE pwr_mode;
+    tBTM_PM_PWR_MD settings;
+#endif
+
+    /* Make sure the local device supports switching */
+    if (!(HCI_SWITCH_SUPPORTED(btm_cb.devcb.local_features)))
+        return(BTM_MODE_UNSUPPORTED);
+
+    if ((p = btm_bda_to_acl(remote_bd_addr)) == NULL)
+        return(BTM_UNKNOWN_ADDR);
+
+    /* Finished if already in desired role */
+    if (p->link_role == new_role)
+        return(BTM_SUCCESS);
+
+#if BTM_SCO_INCLUDED == TRUE
+    /* Check if there is any SCO Active on this BD Address */
+    if (btm_is_sco_active_by_bdaddr(remote_bd_addr) == TRUE)
+        return(BTM_NO_RESOURCES);
+#endif
+
+    /* Ignore role switch request if the previous request was not completed */
+    if (p->switch_role_state != BTM_ACL_SWKEY_STATE_IDLE)
+    {
+        BTM_TRACE_DEBUG0 ("Role change request declined since the previous request for this device is not completed ");
+        return(BTM_BUSY);
+    }
+
+    memset (&btm_cb.devcb.switch_role_ref_data, 0, sizeof(tBTM_ROLE_SWITCH_CMPL));
+
+    if ((status = BTM_ReadPowerMode(p->remote_addr, &pwr_mode)) != BTM_SUCCESS)
+        return(status);
+
+    /* Wake up the link if in sniff or park before attempting switch */
+    if (pwr_mode == BTM_PM_MD_PARK || pwr_mode == BTM_PM_MD_SNIFF)
+    {
+        settings.mode = BTM_PM_MD_ACTIVE;
+        status = BTM_SetPowerMode (BTM_PM_SET_ONLY_ID, p->remote_addr, &settings);
+        if (status != BTM_CMD_STARTED)
+            return(BTM_WRONG_MODE);
+
+        p->switch_role_state = BTM_ACL_SWKEY_STATE_MODE_CHANGE;
+    }
+    /* some devices do not support switch while encryption is on */
+    else if (((p_dev_rec = btm_find_dev (remote_bd_addr)) != NULL)
+             && ((p_dev_rec->sec_flags & BTM_SEC_ENCRYPTED) != 0))
+    {
+        if (!btsnd_hcic_set_conn_encrypt (p->hci_handle, FALSE))
+            return(BTM_NO_RESOURCES);
+
+        p->switch_role_state = BTM_ACL_SWKEY_STATE_ENCRYPTION_OFF;
+    }
+    else
+    {
+        if (!btsnd_hcic_switch_role (remote_bd_addr, new_role))
+            return(BTM_NO_RESOURCES);
+
+        p->switch_role_state = BTM_ACL_SWKEY_STATE_IN_PROGRESS;
+    }
+
+    memcpy (btm_cb.devcb.switch_role_ref_data.remote_bd_addr, remote_bd_addr, BD_ADDR_LEN);
+    btm_cb.devcb.switch_role_ref_data.role = new_role;
+    btm_cb.devcb.p_switch_role_cb = p_cb;
+
+    return(BTM_CMD_STARTED);
+}
+#else
 tBTM_STATUS BTM_SwitchRole (BD_ADDR remote_bd_addr, UINT8 new_role, tBTM_CMPL_CB *p_cb)
 {
     tACL_CONN   *p;
@@ -687,7 +800,9 @@ tBTM_STATUS BTM_SwitchRole (BD_ADDR remote_bd_addr, UINT8 new_role, tBTM_CMPL_CB
     }
     return(BTM_CMD_STARTED);
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_ChangeLinkKey
@@ -846,6 +961,7 @@ void btm_acl_link_key_change (UINT16 handle, UINT8 status)
     BTM_TRACE_ERROR2("Change Link Key Complete Event: Handle 0x%02x, HCI Status 0x%02x",
                      handle, p_data->hci_status);
 }
+#endif
 
 /*******************************************************************************
 **
@@ -859,6 +975,53 @@ void btm_acl_link_key_change (UINT16 handle, UINT8 status)
 ** Returns          void
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+void btm_acl_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
+{
+    tACL_CONN *p;
+    UINT8     xx;
+    xx = btm_handle_to_acl_index(handle);
+    /* don't assume that we can never get a bad hci_handle */
+    if (xx < MAX_L2CAP_LINKS)
+        p = &btm_cb.acl_db[xx];
+    else
+        return;
+
+    /* Process Role Switch if active */
+    if (p->switch_role_state == BTM_ACL_SWKEY_STATE_ENCRYPTION_OFF)
+    {
+        /* if encryption turn off failed we still will try to switch role */
+        if (encr_enable)
+        {
+            p->switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+        }
+        else
+        {
+            p->switch_role_state = BTM_ACL_SWKEY_STATE_SWITCHING;
+        }
+
+        if (!btsnd_hcic_switch_role (p->remote_addr, (UINT8)!p->link_role))
+        {
+            p->switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+            if (btm_cb.devcb.p_switch_role_cb)
+            {
+                (*btm_cb.devcb.p_switch_role_cb)(&btm_cb.devcb.switch_role_ref_data);
+                btm_cb.devcb.p_switch_role_cb = NULL;
+            }
+        }
+    }
+    /* Finished enabling Encryption after role switch */
+    else if (p->switch_role_state == BTM_ACL_SWKEY_STATE_ENCRYPTION_ON)
+    {
+        p->switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+        if (btm_cb.devcb.p_switch_role_cb)
+        {
+            (*btm_cb.devcb.p_switch_role_cb)(&btm_cb.devcb.switch_role_ref_data);
+            btm_cb.devcb.p_switch_role_cb = NULL;
+        }
+    }
+}
+#else
 void btm_acl_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
 {
     tACL_CONN *p;
@@ -984,6 +1147,7 @@ void btm_acl_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable)
         }
     }
 }
+#endif
 /*******************************************************************************
 **
 ** Function         BTM_SetLinkPolicy
@@ -997,7 +1161,9 @@ tBTM_STATUS BTM_SetLinkPolicy (BD_ADDR remote_bda, UINT16 *settings)
 {
     tACL_CONN   *p;
     UINT8       *localFeatures = BTM_ReadLocalFeatures();
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("BTM_SetLinkPolicy");
+    #endif
 /*    BTM_TRACE_API1 ("BTM_SetLinkPolicy: requested settings: 0x%04x", *settings ); */
 
     /* First, check if hold mode is supported */
@@ -1044,11 +1210,17 @@ tBTM_STATUS BTM_SetLinkPolicy (BD_ADDR remote_bda, UINT16 *settings)
 *******************************************************************************/
 void BTM_SetDefaultLinkPolicy (UINT16 settings)
 {
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("BTM_SetDefaultLinkPolicy");
+    #endif
     btm_cb.btm_def_link_policy = settings;
 }
 
 
+#ifdef REVOLUTION
+/* BTM_ReadLinkPolicy was dropped by the retail linker; its trace string stays in .data. */
+char btm_acl_read_link_policy_trace[56] = "BTM_ReadLinkPolicy: RemBdAddr: %02x%02x%02x%02x%02x%02x";
+#else
 /*******************************************************************************
 **
 ** Function         BTM_ReadLinkPolicy
@@ -1091,6 +1263,7 @@ tBTM_STATUS BTM_ReadLinkPolicy (BD_ADDR remote_bda, tBTM_CMPL_CB *p_cb)
     /* If here, no BD Addr found */
     return(BTM_UNKNOWN_ADDR);
 }
+#endif
 
 
 /*******************************************************************************
@@ -1110,7 +1283,9 @@ void btm_read_link_policy_complete (UINT8 *p)
     UINT16                   handle;
     tACL_CONN               *p_acl_cb = &btm_cb.acl_db[0];
     UINT16                   index;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_read_link_policy_complete");
+    #endif
     btu_stop_timer (&btm_cb.devcb.rlinkp_timer);
 
     /* If there was a callback address for read local version, call it */
@@ -1162,7 +1337,9 @@ void btm_read_remote_version_complete (UINT8 *p)
     UINT8             status;
     UINT16            handle;
     int               xx;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_read_remote_version_complete");
+    #endif
     STREAM_TO_UINT8  (status, p);
     if (status == HCI_SUCCESS)
     {
@@ -1201,7 +1378,9 @@ void btm_read_remote_features_complete (UINT8 *p)
     int               xx, yy;
     UINT8             req_pend;
     tBTM_SEC_DEV_REC *p_dev_rec;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_read_remote_features_complete");
+    #endif
     STREAM_TO_UINT8  (status, p);
     if (status == HCI_SUCCESS)
     {
@@ -1215,6 +1394,12 @@ void btm_read_remote_features_complete (UINT8 *p)
                 for (yy = 0; yy < BD_FEATURES_LEN; yy++)
                     STREAM_TO_UINT8 (p_acl_cb->features[yy], p);
 
+#ifdef REVOLUTION
+                if ((p_dev_rec = btm_find_dev_by_handle (handle)) != NULL)
+                {
+                    memcpy (p_dev_rec->features, p_acl_cb->features, BD_FEATURES_LEN);
+                }
+#else
                 p_dev_rec = btm_find_dev_by_handle (handle);
                 if (!p_dev_rec)
                 {
@@ -1223,7 +1408,9 @@ void btm_read_remote_features_complete (UINT8 *p)
                 }
 
                 memcpy (p_dev_rec->features, p_acl_cb->features, BD_FEATURES_LEN);
+#endif
 
+#ifndef REVOLUTION
                 if (BTM_SEC_MODE_SP == btm_cb.security_mode &&
                     HCI_SIMPLE_PAIRING_SUPPORTED(p_acl_cb->features))
                 {
@@ -1242,6 +1429,7 @@ void btm_read_remote_features_complete (UINT8 *p)
                         l2cu_resubmit_pending_sec_req (p_dev_rec->bd_addr);
                     }
                 }
+#endif
 
                 btm_establish_continue (p_acl_cb);
                 break;
@@ -1250,6 +1438,7 @@ void btm_read_remote_features_complete (UINT8 *p)
     }
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_read_remote_ext_features_complete
@@ -1332,6 +1521,7 @@ void btm_read_remote_ext_features_failed (UINT8 status)
 {
     BTM_TRACE_ERROR1 ("btm_read_remote_ext_features_failed (status 0x%02x)", status);
 }
+#endif
 
 /*******************************************************************************
 **
@@ -1348,7 +1538,9 @@ static void btm_establish_continue (tACL_CONN *p_acl_cb)
 #if (defined(BTM_BUSY_LEVEL_CHANGE_INCLUDED) && BTM_BUSY_LEVEL_CHANGE_INCLUDED == TRUE)
     tBTM_BL_EVENT_DATA  evt_data;
 #endif
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_establish_continue");
+    #endif
 #if (!defined(BTM_BYPASS_EXTRA_ACL_SETUP) || BTM_BYPASS_EXTRA_ACL_SETUP == FALSE)
 #if (defined BLE_INCLUDED && BLE_INCLUDED == TRUE)
     if (!p_acl_cb->is_le_link)
@@ -1365,10 +1557,10 @@ static void btm_establish_continue (tACL_CONN *p_acl_cb)
         BTM_SetLinkSuperTout (p_acl_cb->remote_addr, btm_cb.btm_def_link_super_tout);
     }
 #endif
+#if (defined(BTM_BUSY_LEVEL_CHANGE_INCLUDED) && BTM_BUSY_LEVEL_CHANGE_INCLUDED == TRUE)
     p_acl_cb->link_up_issued = TRUE;
 
     /* If anyone cares, tell him database changed */
-#if (defined(BTM_BUSY_LEVEL_CHANGE_INCLUDED) && BTM_BUSY_LEVEL_CHANGE_INCLUDED == TRUE)
     if (btm_cb.p_bl_changed_cb)
     {
         evt_data.event = BTM_BL_CONN_EVT;
@@ -1404,7 +1596,9 @@ static void btm_establish_continue (tACL_CONN *p_acl_cb)
 *******************************************************************************/
 void BTM_SetDefaultLinkSuperTout (UINT16 timeout)
 {
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("BTM_SetDefaultLinkSuperTout");
+    #endif
     btm_cb.btm_def_link_super_tout = timeout;
 }
 
@@ -1417,11 +1611,18 @@ void BTM_SetDefaultLinkSuperTout (UINT16 timeout)
 ** Returns          status of the operation
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+/* Retail BTM only has this inlined (the linker dropped the out-of-line copy). */
+static tBTM_STATUS BTM_SetLinkSuperTout (BD_ADDR remote_bda, UINT16 timeout)
+#else
 tBTM_STATUS BTM_SetLinkSuperTout (BD_ADDR remote_bda, UINT16 timeout)
+#endif
 {
     tACL_CONN   *p = btm_bda_to_acl(remote_bda);
 
+#ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("BTM_SetLinkSuperTout");
+#endif
     if (p != (tACL_CONN *)NULL)
     {
         p->link_super_tout = timeout;
@@ -1429,8 +1630,12 @@ tBTM_STATUS BTM_SetLinkSuperTout (BD_ADDR remote_bda, UINT16 timeout)
         /* Only send if current role is Master; 2.0 spec requires this */
         if (p->link_role == BTM_ROLE_MASTER)
         {
+#ifdef REVOLUTION
+            if (!btsnd_hcic_write_link_super_tout (p->hci_handle, timeout))
+#else
             if (!btsnd_hcic_write_link_super_tout (LOCAL_BR_EDR_CONTROLLER_ID,
                                                    p->hci_handle, timeout))
+#endif
                 return(BTM_NO_RESOURCES);
 
             return(BTM_CMD_STARTED);
@@ -1443,6 +1648,7 @@ tBTM_STATUS BTM_SetLinkSuperTout (BD_ADDR remote_bda, UINT16 timeout)
     return(BTM_UNKNOWN_ADDR);
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_RegForLstoEvt
@@ -1484,6 +1690,7 @@ void btm_proc_lsto_evt(UINT16 handle, UINT16 timeout)
         }
     }
 }
+#endif
 
 #if BTM_PWR_MGR_INCLUDED == FALSE
 /*******************************************************************************
@@ -1681,6 +1888,7 @@ tBTM_STATUS BTM_CancelParkMode (BD_ADDR remote_bda)
 ** Returns          status of the operation
 **
 *******************************************************************************/
+#ifndef REVOLUTION
 tBTM_STATUS BTM_SetPacketTypes (BD_ADDR remote_bda, UINT16 pkt_types)
 {
     tACL_CONN   *p;
@@ -1718,6 +1926,7 @@ UINT16 BTM_ReadPacketTypes (BD_ADDR remote_bda)
     /* If here, no BD Addr found */
     return(0);
 }
+#endif
 
 
 /*******************************************************************************
@@ -1761,6 +1970,7 @@ tBTM_STATUS BTM_ReadAclMode (BD_ADDR remote_bda, UINT8 *p_mode)
 }
 #endif /* BTM_PWR_MGR_INCLUDED == FALSE */
 
+#ifndef REVOLUTION /* dropped by the retail linker; BTM_IsAclConnectionUp keeps its trace string */
 /*******************************************************************************
 **
 ** Function         BTM_ReadClockOffset
@@ -1787,6 +1997,7 @@ UINT16 BTM_ReadClockOffset (BD_ADDR remote_bda)
     /* If here, no BD Addr found */
     return(0);
 }
+#endif
 
 /*******************************************************************************
 **
@@ -1833,7 +2044,9 @@ UINT16 BTM_GetNumAclLinks (void)
 #else
     tACL_CONN   *p = &btm_cb.acl_db[0];
     UINT16      xx, yy;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("BTM_GetNumAclLinks");
+    #endif
     for (xx = yy = 0; xx < MAX_L2CAP_LINKS; xx++, p++)
     {
         if (p->in_use)
@@ -1857,7 +2070,9 @@ UINT16 BTM_GetNumAclLinks (void)
 UINT16 btm_get_acl_disc_reason_code (void)
 {
     UINT8 res = btm_cb.acl_disc_reason;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_get_acl_disc_reason_code");
+    #endif
     return(res);
 }
 
@@ -1875,7 +2090,9 @@ UINT16 btm_get_acl_disc_reason_code (void)
 UINT16 BTM_GetHCIConnHandle (BD_ADDR remote_bda)
 {
     tACL_CONN   *p;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("BTM_GetHCIConnHandle");
+    #endif
     p = btm_bda_to_acl(remote_bda);
     if (p != (tACL_CONN *)NULL)
     {
@@ -1944,7 +2161,9 @@ void btm_process_mode_change (UINT8 hci_status, UINT16 hci_handle, UINT8 mode, U
 void btm_process_clk_off_comp_evt (UINT16 hci_handle, UINT16 clock_offset)
 {
     UINT8      xx;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_process_clk_off_comp_evt");
+    #endif
     /* Look up the connection by handle and set the current mode */
     if ((xx = btm_handle_to_acl_index(hci_handle)) < MAX_L2CAP_LINKS)
         btm_cb.acl_db[xx].clock_offset = clock_offset;
@@ -1962,6 +2181,62 @@ void btm_process_clk_off_comp_evt (UINT16 hci_handle, UINT16 clock_offset)
 ** Returns          void
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+void btm_acl_role_changed (UINT8 hci_status, BD_ADDR bd_addr, UINT8 new_role)
+{
+    UINT8                   *p_bda = (bd_addr) ? bd_addr : btm_cb.connecting_bda;
+    tACL_CONN               *p = btm_bda_to_acl(p_bda);
+    tBTM_ROLE_SWITCH_CMPL   *p_data = &btm_cb.devcb.switch_role_ref_data;
+
+    /* Ignore any stray events */
+    if (p == NULL)
+        return;
+
+    p_data->hci_status = hci_status;
+
+    if (hci_status == HCI_SUCCESS)
+    {
+        p_data->role = new_role;
+        memcpy(p_data->remote_bd_addr, p_bda, BD_ADDR_LEN);
+
+        /* Update cached value */
+        p->link_role = new_role;
+    }
+
+    /* Reload LSTO: link supervision timeout is reset in the LM after a role switch */
+    if (bd_addr)
+    {
+        BTM_SetLinkSuperTout (p->remote_addr, p->link_super_tout);
+    }
+
+    /* if switching state is switching we need to turn encryption on */
+    /* if idle, we did not change encryption */
+    if (p->switch_role_state == BTM_ACL_SWKEY_STATE_SWITCHING)
+    {
+        if (btsnd_hcic_set_conn_encrypt (p->hci_handle, TRUE))
+        {
+            p->switch_role_state = BTM_ACL_SWKEY_STATE_ENCRYPTION_ON;
+            return;
+        }
+    }
+
+    /* Set the switch_role_state to IDLE since the reply received from HCI */
+    /* regardless of its result either success or failed. */
+    if (p && p->switch_role_state == BTM_ACL_SWKEY_STATE_IN_PROGRESS)
+    {
+        p->switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+    }
+
+    if (btm_cb.devcb.p_switch_role_cb)
+    {
+        (*btm_cb.devcb.p_switch_role_cb)(p_data);
+        btm_cb.devcb.p_switch_role_cb = NULL;
+    }
+
+    BTM_TRACE_EVENT2("Role Switch Event: new_role 0x%02x, HCI Status 0x%02x",
+                      p_data->role, p_data->hci_status);
+}
+#else
 void btm_acl_role_changed (UINT8 hci_status, BD_ADDR bd_addr, UINT8 new_role)
 {
     UINT8                   *p_bda = (bd_addr) ? bd_addr : btm_cb.devcb.switch_role_ref_data.remote_bd_addr;
@@ -1973,7 +2248,9 @@ void btm_acl_role_changed (UINT8 hci_status, BD_ADDR bd_addr, UINT8 new_role)
 #if BTM_DISC_DURING_RS == TRUE
     tBTM_SEC_DEV_REC  *p_dev_rec;
 #endif
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_acl_role_changed");
+    #endif
     /* Ignore any stray events */
     if (p == NULL)
     {
@@ -2069,9 +2346,9 @@ void btm_acl_role_changed (UINT8 hci_status, BD_ADDR bd_addr, UINT8 new_role)
     }
 
 #endif
+#endif
 
-}
-
+#ifndef REVOLUTION
 #if (RFCOMM_INCLUDED==TRUE)
 /*******************************************************************************
 **
@@ -2166,6 +2443,7 @@ BOOLEAN BTM_FreeSCN(UINT8 scn)
 }
 
 #endif
+#endif
 
 
 /*******************************************************************************
@@ -2181,7 +2459,9 @@ void btm_acl_timeout (TIMER_LIST_ENT  *p_tle)
 {
     UINT32 timer_type = p_tle->param;
 
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_acl_timeout");
+    #endif
     if (timer_type == TT_DEV_RLNKP)
     {
         tBTM_CMPL_CB            *p_cb = btm_cb.devcb.p_rlinkp_cmpl_cb;
@@ -2208,10 +2488,16 @@ void btm_acl_timeout (TIMER_LIST_ENT  *p_tle)
 ** Returns          status of the operation
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+static tBTM_STATUS btm_set_packet_types (tACL_CONN *p, UINT16 pkt_types)
+#else
 tBTM_STATUS btm_set_packet_types (tACL_CONN *p, UINT16 pkt_types)
+#endif
 {
     UINT16 temp_pkt_types;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_set_packet_types");
+    #endif
     /* Save in the ACL control blocks, types that we support */
     temp_pkt_types = (pkt_types & BTM_ACL_SUPPORTED_PKTS_MASK &
                       btm_cb.btm_acl_pkt_types_supported);
@@ -2227,10 +2513,12 @@ tBTM_STATUS btm_set_packet_types (tACL_CONN *p, UINT16 pkt_types)
         temp_pkt_types &= (~BTM_ACL_EXCEPTION_PKTS_MASK);
     }
 
+#ifndef REVOLUTION
     /* Exclude packet types not supported by the peer */
     btm_acl_chk_peer_pkt_type_support (p, &temp_pkt_types);
+#endif
 
-    BTM_TRACE_DEBUG1 ("SetPacketType Mask -> 0x%04x", temp_pkt_types);
+    BTM_TRACE_EVENT1 ("SetPacketType Mask -> 0x%04x", temp_pkt_types);
 
     if (!btsnd_hcic_change_conn_type (p->hci_handle, temp_pkt_types))
     {
@@ -2255,7 +2543,9 @@ UINT16 btm_get_max_packet_size (BD_ADDR addr)
     tACL_CONN   *p = btm_bda_to_acl(addr);
     UINT16      pkt_types = 0;
     UINT16      pkt_size = 0;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_get_max_packet_size");
+    #endif
     if (p != NULL)
     {
         pkt_types = p->pkt_types_mask;
@@ -2297,7 +2587,7 @@ UINT16 btm_get_max_packet_size (BD_ADDR addr)
             pkt_size = HCI_DM1_PACKET_SIZE;
     }
 
-#ifdef BRCM_VS
+#if defined(BRCM_VS) || defined(REVOLUTION)
     /* Using HCI size 1017 instead of 1021 */
     if ((pkt_size == HCI_EDR3_DH5_PACKET_SIZE)
         && (btu_cb.hcit_acl_data_size == 1017))
@@ -2314,6 +2604,7 @@ UINT16 btm_get_max_packet_size (BD_ADDR addr)
 ** Returns          If connected report peer device info
 **
 *******************************************************************************/
+#ifndef REVOLUTION
 tBTM_STATUS BTM_ReadRemoteVersion (BD_ADDR addr, UINT8 *lmp_version,
                                    UINT16 *manufacturer, UINT16 *lmp_sub_version)
 {
@@ -2352,6 +2643,7 @@ UINT8 *BTM_ReadRemoteFeatures (BD_ADDR addr)
 
     return(p->features);
 }
+#endif
 
 /*******************************************************************************
 **
@@ -2393,7 +2685,9 @@ tBTM_STATUS BTM_RegBusyLevelNotif (tBTM_BL_CHANGE_CB *p_cb, UINT8 *p_level,
 *******************************************************************************/
 tBTM_STATUS BTM_AclRegisterForChanges (tBTM_ACL_DB_CHANGE_CB *p_cb)
 {
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("BTM_AclRegisterForChanges");
+    #endif
     if (!p_cb)
         btm_cb.p_acl_changed_cb = NULL;
     else if (btm_cb.p_acl_changed_cb)
@@ -2405,6 +2699,10 @@ tBTM_STATUS BTM_AclRegisterForChanges (tBTM_ACL_DB_CHANGE_CB *p_cb)
 }
 #endif
 
+#ifdef REVOLUTION
+/* BTM_SetQoS was dropped by the retail linker; its trace string stays in .data. */
+char btm_acl_set_qos_trace[45] = "BTM_SetQoS: BdAddr: %02x%02x%02x%02x%02x%02x";
+#else
 /*******************************************************************************
 **
 ** Function         BTM_SetQoS
@@ -2445,6 +2743,7 @@ tBTM_STATUS BTM_SetQoS (BD_ADDR bd, FLOW_SPEC *p_flow, tBTM_CMPL_CB *p_cb)
     /* If here, no BD Addr found */
     return(BTM_UNKNOWN_ADDR);
 }
+#endif
 
 /*******************************************************************************
 **
@@ -2460,14 +2759,15 @@ void btm_qos_setup_complete (UINT8 status, UINT16 handle, FLOW_SPEC *p_flow)
 {
     tBTM_CMPL_CB            *p_cb = btm_cb.devcb.p_qossu_cmpl_cb;
     tBTM_QOS_SETUP_CMPL     qossu;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_qos_setup_complete");
+    #endif
     btu_stop_timer (&btm_cb.devcb.qossu_timer);
 
     btm_cb.devcb.p_qossu_cmpl_cb = NULL;
 
     if (p_cb)
     {
-        memset(&qossu, 0, sizeof(tBTM_QOS_SETUP_CMPL));
         qossu.status = status;
         qossu.handle = handle;
         if (p_flow != NULL)
@@ -2480,7 +2780,7 @@ void btm_qos_setup_complete (UINT8 status, UINT16 handle, FLOW_SPEC *p_flow)
             qossu.flow.delay_variation = p_flow->delay_variation;
         }
         BTM_TRACE_DEBUG1 ("BTM: p_flow->delay_variation: 0x%02x",
-                          qossu.flow.delay_variation);
+                          p_flow->delay_variation);
         (*p_cb)(&qossu);
     }
 }
@@ -2575,6 +2875,7 @@ tBTM_STATUS BTM_ReadLinkQuality (BD_ADDR remote_bda, tBTM_CMPL_CB *p_cb)
     return(BTM_UNKNOWN_ADDR);
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_ReadTxPower
@@ -2696,6 +2997,7 @@ void btm_read_tx_power_complete (UINT8 *p, BOOLEAN is_ble)
         (*p_cb)(&results);
     }
 }
+#endif
 
 /*******************************************************************************
 **
@@ -2714,7 +3016,9 @@ void btm_read_rssi_complete (UINT8 *p)
     UINT16                   handle;
     tACL_CONN               *p_acl_cb = &btm_cb.acl_db[0];
     UINT16                   index;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_read_rssi_complete");
+    #endif
     btu_stop_timer (&btm_cb.devcb.rssi_timer);
 
     /* If there was a callback registered for read rssi, call it */
@@ -2731,7 +3035,7 @@ void btm_read_rssi_complete (UINT8 *p)
             STREAM_TO_UINT16 (handle, p);
 
             STREAM_TO_UINT8 (results.rssi, p);
-            BTM_TRACE_DEBUG2 ("BTM RSSI Complete: rssi %d, hci status 0x%02x",
+            BTM_TRACE_EVENT2 ("BTM RSSI Complete: rssi %d, hci status 0x%02x",
                               results.rssi, results.hci_status);
 
             /* Search through the list of active channels for the correct BD Addr */
@@ -2768,7 +3072,9 @@ void btm_read_link_quality_complete (UINT8 *p)
     UINT16                   handle;
     tACL_CONN               *p_acl_cb = &btm_cb.acl_db[0];
     UINT16                   index;
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_read_link_quality_complete");
+    #endif
     btu_stop_timer (&btm_cb.devcb.rssi_timer);
 
     /* If there was a callback registered for read rssi, call it */
@@ -2785,7 +3091,7 @@ void btm_read_link_quality_complete (UINT8 *p)
             STREAM_TO_UINT16 (handle, p);
 
             STREAM_TO_UINT8 (results.link_quality, p);
-            BTM_TRACE_DEBUG2 ("BTM Link Quality Complete: Link Quality %d, hci status 0x%02x",
+            BTM_TRACE_EVENT2 ("BTM Link Quality Complete: Link Quality %d, hci status 0x%02x",
                               results.link_quality, results.hci_status);
 
             /* Search through the list of active channels for the correct BD Addr */
@@ -2817,32 +3123,80 @@ void btm_read_link_quality_complete (UINT8 *p)
 tBTM_STATUS btm_remove_acl (BD_ADDR bd_addr)
 {
     UINT16  hci_handle = BTM_GetHCIConnHandle(bd_addr);
-    tBTM_STATUS status = BTM_SUCCESS;
 
+    #ifndef REVOLUTION
     BTM_TRACE_DEBUG0 ("btm_remove_acl");
-#if BTM_DISC_DURING_RS == TRUE
-    tBTM_SEC_DEV_REC  *p_dev_rec = btm_find_dev (bd_addr);
+    #endif
 
-    /* Role Switch is pending, postpone until completed */
-    if (p_dev_rec && (p_dev_rec->rs_disc_pending == BTM_SEC_RS_PENDING))
-    {
-        p_dev_rec->rs_disc_pending = BTM_SEC_DISC_PENDING;
-    }
-    else    /* otherwise can disconnect right away */
-#endif
+    if (!btsnd_hcic_disconnect (hci_handle, HCI_ERR_PEER_USER))
+        return (BTM_NO_RESOURCES);
 
-    if (hci_handle != 0xFFFF)
-    {
-        if (!btsnd_hcic_disconnect (hci_handle, HCI_ERR_PEER_USER))
-            status = BTM_NO_RESOURCES;
-    }
-    else
-        status = BTM_UNKNOWN_ADDR;
-
-    return status;
+    return (BTM_SUCCESS);
 }
 
+#ifdef REVOLUTION
+/*******************************************************************************
+**
+** Function         btm_chg_all_acl_pkt_types
+**
+** Description      This function changes packet types for all ACL connections.
+**
+** Returns          void
+**
+*******************************************************************************/
+void btm_chg_all_acl_pkt_types (BOOLEAN allow_multislot)
+{
+    UINT8 xx;
+    tACL_CONN *p = &btm_cb.acl_db[0];
+    UINT16 pkt_types;
+    tBTM_PM_MODE mode;
+    tBTM_PM_PWR_MD pwr_mode;
 
+    if (allow_multislot)
+    {
+        for (xx = 0; xx < MAX_L2CAP_LINKS; xx++, p++)
+        {
+            if (p->in_use)
+            {
+                BTM_TRACE_DEBUG1("btm BEFORE SCO setting to 1 slot; hci hdl 0x%x", p->hci_handle);
+                p->restore_pkt_types = p->pkt_types_mask;
+                pkt_types = BTM_ACL_PKT_TYPES_MASK_DM1 | BTM_ACL_PKT_TYPES_MASK_DH1;
+                if (btm_cb.devcb.local_version.hci_version >= HCI_PROTO_VERSION_2_0)
+                {
+                    pkt_types |= 0x3300;
+                }
+                btm_set_packet_types(p, pkt_types);
+            }
+        }
+    }
+    else
+    {
+        for (xx = 0; xx < MAX_L2CAP_LINKS; xx++, p++)
+        {
+            if (p->in_use && p->restore_pkt_types != 0)
+            {
+                if (BTM_ReadPowerMode(p->remote_addr, &mode) == BTM_SUCCESS)
+                {
+                    if (mode == BTM_PM_MD_SNIFF)
+                    {
+                        BTM_TRACE_DEBUG1("btm last SCO removed; unsniffing hci hdl 0x%x", p->hci_handle);
+                        pwr_mode.mode = BTM_PM_MD_ACTIVE;
+                        BTM_SetPowerMode(BTM_PM_SET_ONLY_ID, p->remote_addr, &pwr_mode);
+                    }
+                    else
+                    {
+                        BTM_TRACE_DEBUG2("btm last SCO removed; hci hdl 0x%x, types 0x%02x", p->hci_handle, p->pkt_types_mask);
+                        btm_set_packet_types(p, p->restore_pkt_types);
+                        p->restore_pkt_types = 0;
+                    }
+                }
+            }
+        }
+    }
+}
+#endif
+
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_SetTraceLevel
@@ -3139,3 +3493,4 @@ void btm_acl_chk_peer_pkt_type_support (tACL_CONN *p, UINT16 *p_pkt_type)
         }
     }
 }
+#endif

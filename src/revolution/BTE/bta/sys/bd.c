@@ -29,9 +29,11 @@
 **  Constants
 *****************************************************************************/
 
+#ifndef REVOLUTION
 /* global constant for "any" bd addr */
 const BD_ADDR bd_addr_any = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const BD_ADDR bd_addr_null= {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+#endif
 
 /*****************************************************************************
 **  Functions
@@ -81,6 +83,7 @@ int bdcmp(const BD_ADDR a, const BD_ADDR b)
     return 0;
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         bdcmpany
@@ -110,3 +113,4 @@ void bdsetany(BD_ADDR a)
 {
     bdcpy(a, bd_addr_any);
 }
+#endif

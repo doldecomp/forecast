@@ -38,9 +38,14 @@
 ** Returns          void.
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+BTA_API extern void bta_hh_co_data(UINT8 dev_handle, UINT8 *p_rpt, UINT16 len,
+                                   tBTA_HH_PROTO_MODE mode, UINT8 sub_class, UINT8 app_id);
+#else
 BTA_API extern void bta_hh_co_data(UINT8 dev_handle, UINT8 *p_rpt, UINT16 len,
                                    tBTA_HH_PROTO_MODE  mode, UINT8 sub_class,
                                    UINT8 ctry_code, BD_ADDR peer_addr, UINT8 app_id);
+#endif
 
 /*******************************************************************************
 **

@@ -424,26 +424,26 @@ config.libs = [
             Object(Matching, "revolution/BASE/PPCArch.c"),
 
             # BTE/bta/dm
-            Object(NonMatching, "revolution/BTE/bta/dm/bta_dm_act.c"),
-            Object(NonMatching, "revolution/BTE/bta/dm/bta_dm_api.c"),
-            Object(NonMatching, "revolution/BTE/bta/dm/bta_dm_cfg.c"),
-            Object(NonMatching, "revolution/BTE/bta/dm/bta_dm_main.c"),
-            Object(NonMatching, "revolution/BTE/bta/dm/bta_dm_pm.c"),
+            Object(Matching, "revolution/BTE/bta/dm/bta_dm_act.c"),
+            Object(Matching, "revolution/BTE/bta/dm/bta_dm_api.c"),
+            Object(Matching, "revolution/BTE/bta/dm/bta_dm_cfg.c"),
+            Object(Matching, "revolution/BTE/bta/dm/bta_dm_main.c"),
+            Object(Matching, "revolution/BTE/bta/dm/bta_dm_pm.c"),
 
             # BTE/bta/hh
-            Object(NonMatching, "revolution/BTE/bta/hh/bta_hh_act.c"),
-            Object(NonMatching, "revolution/BTE/bta/hh/bta_hh_api.c"),
-            Object(NonMatching, "revolution/BTE/bta/hh/bta_hh_cfg.c"),
-            Object(NonMatching, "revolution/BTE/bta/hh/bta_hh_main.c"),
-            Object(NonMatching, "revolution/BTE/bta/hh/bta_hh_utils.c"),
+            Object(Matching, "revolution/BTE/bta/hh/bta_hh_act.c"),
+            Object(Matching, "revolution/BTE/bta/hh/bta_hh_api.c"),
+            Object(Matching, "revolution/BTE/bta/hh/bta_hh_cfg.c"),
+            Object(Matching, "revolution/BTE/bta/hh/bta_hh_main.c"),
+            Object(Matching, "revolution/BTE/bta/hh/bta_hh_utils.c"),
 
             # BTE/bta/sys
-            Object(NonMatching, "revolution/BTE/bta/sys/bd.c"),
-            Object(NonMatching, "revolution/BTE/bta/sys/bta_sys_cfg.c"),
+            Object(Matching, "revolution/BTE/bta/sys/bd.c"),
+            Object(Matching, "revolution/BTE/bta/sys/bta_sys_cfg.c"),
             Object(Matching, "revolution/BTE/bta/sys/bta_sys_conn.c"),
-            Object(NonMatching, "revolution/BTE/bta/sys/bta_sys_main.c"),
+            Object(Matching, "revolution/BTE/bta/sys/bta_sys_main.c"),
             Object(Matching, "revolution/BTE/bta/sys/ptim.c"),
-            Object(NonMatching, "revolution/BTE/bta/sys/utl.c"),
+            Object(Matching, "revolution/BTE/bta/sys/utl.c"),
 
             # BTE/btif/co
             Object(NonMatching, "revolution/BTE/btif/co/bta_dm_co.c"),
@@ -460,6 +460,7 @@ config.libs = [
             Object(Matching, "revolution/BTE/main/bte_hcisu.c"),
             Object(Matching, "revolution/BTE/main/bte_init.c"),
             Object(Matching, "revolution/BTE/main/bte_logmsg.c"),
+            Object(Matching, "revolution/BTE/main/bte_main.c"),
 
             # BTE/rvl
             Object(Matching, "revolution/BTE/rvl/gki_ppc.c"),
@@ -468,19 +469,23 @@ config.libs = [
             Object(Matching, "revolution/BTE/rvl/uusb_ppc.c", mw_version="GC/3.0a5.2"),
 
             # BTE/stack/btm
-            Object(NonMatching, "revolution/BTE/stack/btm/btm_acl.c"),
-            Object(NonMatching, "revolution/BTE/stack/btm/btm_dev.c"),
-            Object(NonMatching, "revolution/BTE/stack/btm/btm_devctl.c"),
-            Object(NonMatching, "revolution/BTE/stack/btm/btm_inq.c"),
-            Object(NonMatching, "revolution/BTE/stack/btm/btm_main.c"),
-            Object(NonMatching, "revolution/BTE/stack/btm/btm_pm.c"),
-            Object(NonMatching, "revolution/BTE/stack/btm/btm_sco.c"),
-            Object(NonMatching, "revolution/BTE/stack/btm/btm_sec.c"),
+            Object(Matching, "revolution/BTE/stack/btm/btm_acl.c"),
+            Object(Matching, "revolution/BTE/stack/btm/btm_dev.c"),
+            Object(Matching, "revolution/BTE/stack/btm/btm_devctl.c"),
+            Object(Matching, "revolution/BTE/stack/btm/btm_inq.c"),
+            Object(Matching, "revolution/BTE/stack/btm/btm_main.c"),
+            Object(Matching, "revolution/BTE/stack/btm/btm_pm.c"),
+            Object(Matching, "revolution/BTE/stack/btm/btm_sco.c"),
+            Object(Matching, "revolution/BTE/stack/btm/btm_sec.c"),
 
             # BTE/stack/btu
             Object(NonMatching, "revolution/BTE/stack/btu/btu_hcif.c"),
-            Object(NonMatching, "revolution/BTE/stack/btu/btu_init.c"),
-            Object(NonMatching, "revolution/BTE/stack/btu/btu_task.c"),
+            Object(Matching, "revolution/BTE/stack/btu/btu_init.c"),
+            Object(Matching, "revolution/BTE/stack/btu/btu_task.c"),
+
+            # BTE/stack/gap (only their data is split so far)
+            Object(NonMatching, "revolution/BTE/stack/gap/gap_conn.c"),
+            Object(NonMatching, "revolution/BTE/stack/gap/gap_utils.c"),
 
             # BTE/stack/hcic
             Object(NonMatching, "revolution/BTE/stack/hcic/hcicmds.c"),
@@ -497,20 +502,20 @@ config.libs = [
             Object(NonMatching, "revolution/BTE/stack/l2cap/l2c_utils.c"),
 
             # BTE/stack/rfcomm
-            Object(NonMatching, "revolution/BTE/stack/rfcomm/port_api.c"),
-            Object(NonMatching, "revolution/BTE/stack/rfcomm/port_rfc.c"),
-            Object(NonMatching, "revolution/BTE/stack/rfcomm/port_utils.c"),
-            Object(NonMatching, "revolution/BTE/stack/rfcomm/rfc_l2cap_if.c"),
-            Object(NonMatching, "revolution/BTE/stack/rfcomm/rfc_mx_fsm.c"),
+            Object(Matching, "revolution/BTE/stack/rfcomm/port_api.c"),
+            Object(Matching, "revolution/BTE/stack/rfcomm/port_rfc.c"),
+            Object(Matching, "revolution/BTE/stack/rfcomm/port_utils.c"),
+            Object(Matching, "revolution/BTE/stack/rfcomm/rfc_l2cap_if.c"),
+            Object(Matching, "revolution/BTE/stack/rfcomm/rfc_mx_fsm.c"),
             Object(Matching, "revolution/BTE/stack/rfcomm/rfc_port_fsm.c"),
-            Object(NonMatching, "revolution/BTE/stack/rfcomm/rfc_port_if.c"),
+            Object(Matching, "revolution/BTE/stack/rfcomm/rfc_port_if.c"),
             Object(Matching, "revolution/BTE/stack/rfcomm/rfc_ts_frames.c"),
             Object(Matching, "revolution/BTE/stack/rfcomm/rfc_utils.c"),
 
             # BTE/stack/sdp
             Object(NonMatching, "revolution/BTE/stack/sdp/sdp_api.c"),
             Object(NonMatching, "revolution/BTE/stack/sdp/sdp_db.c"),
-            Object(NonMatching, "revolution/BTE/stack/sdp/sdp_discovery.c", extra_cflags=[
+            Object(Matching, "revolution/BTE/stack/sdp/sdp_discovery.c", extra_cflags=[
                 "-Iinclude/revolution/BTE/gki/platform",
                 "-Iinclude/revolution/BTE/gki/common",
                 "-Iinclude/revolution/BTE/include",

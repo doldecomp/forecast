@@ -834,17 +834,29 @@
 #define HCI_DEF_PAGESCAN_INTERVAL       0x0800  /* 1.28 sec */
 
 /* Parameter for pagescan window is passed to LC and is kept in slots */
+#ifdef REVOLUTION
+#define HCI_MIN_PAGESCAN_WINDOW         0x12    /* 11.25 ms (RVL) */
+#else
 #define HCI_MIN_PAGESCAN_WINDOW         0x11    /* 10.625 ms */
+#endif
 #define HCI_MAX_PAGESCAN_WINDOW         0x1000  /* 2.56  sec */
 #define HCI_DEF_PAGESCAN_WINDOW         0x12    /* 11.25 ms  */
 
 /* Inquiryscan timer definitions in 0.625 ms */
 #define HCI_MIN_INQUIRYSCAN_INTERVAL    0x12    /* 11.25 ms */
 #define HCI_MAX_INQUIRYSCAN_INTERVAL    0x1000  /* 2.56 sec */
+#ifdef REVOLUTION
+#define HCI_DEF_INQUIRYSCAN_INTERVAL    0x800   /* 1.28 sec */
+#else
 #define HCI_DEF_INQUIRYSCAN_INTERVAL    0x1000  /* 2.56 sec */
+#endif
 
 /* Parameter for inquiryscan window is passed to LC and is kept in slots */
+#ifdef REVOLUTION
+#define HCI_MIN_INQUIRYSCAN_WINDOW      0x12    /* 11.25 ms (RVL) */
+#else
 #define HCI_MIN_INQUIRYSCAN_WINDOW      0x11    /* 10.625 ms */
+#endif
 #define HCI_MAX_INQUIRYSCAN_WINDOW      0x1000  /* 2.56 sec */
 #define HCI_DEF_INQUIRYSCAN_WINDOW      0x12    /* 11.25 ms */
 

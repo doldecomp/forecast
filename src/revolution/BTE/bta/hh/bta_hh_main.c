@@ -145,6 +145,9 @@ const tBTA_HH_ST_TBL bta_hh_st_tbl[] =
     bta_hh_st_idle,
     bta_hh_st_w4_conn,
     bta_hh_st_connected
+#ifdef REVOLUTION
+    , NULL
+#endif
 };
 
 /*****************************************************************************
@@ -157,7 +160,12 @@ tBTA_HH_CB  bta_hh_cb;
 ** Static functions
 *****************************************************************************/
 #if BTA_HH_DEBUG == TRUE
+#ifdef REVOLUTION
+/* RVL: evt_code is global (referenced by name in the retail DOL) */
+char *bta_hh_evt_code(tBTA_HH_INT_EVT evt_code);
+#else
 static char *bta_hh_evt_code(tBTA_HH_INT_EVT evt_code);
+#endif
 static char *bta_hh_state_code(tBTA_HH_STATE state_code);
 #endif
 
@@ -179,7 +187,9 @@ void bta_hh_sm_execute(tBTA_HH_DEV_CB *p_cb, UINT16 event, tBTA_HH_DATA * p_data
     tBTA_HH_EVT     cback_event = 0;
 #if BTA_HH_DEBUG == TRUE
     tBTA_HH_STATE   in_state ;
+#ifndef REVOLUTION
     UINT16          debug_event = event;
+#endif
 #endif
 
     memset(&cback_data, 0, sizeof(tBTA_HH));
@@ -256,9 +266,15 @@ void bta_hh_sm_execute(tBTA_HH_DEV_CB *p_cb, UINT16 event, tBTA_HH_DATA * p_data
     {
 #if BTA_HH_DEBUG == TRUE
         in_state = p_cb->state;
+#ifdef REVOLUTION
+        APPL_TRACE_EVENT3("bta_hh_sm_execute: State 0x%02x [%s], Event [%s]",
+                          in_state, bta_hh_state_code(in_state),
+                          bta_hh_evt_code(event));
+#else
         APPL_TRACE_EVENT3("bta_hh_sm_execute: State 0x%02x [%s], Event [%s]",
                           in_state, bta_hh_state_code(in_state),
                           bta_hh_evt_code(debug_event));
+#endif
 #endif
 
         state_table = bta_hh_st_tbl[p_cb->state - 1];
@@ -275,10 +291,17 @@ void bta_hh_sm_execute(tBTA_HH_DEV_CB *p_cb, UINT16 event, tBTA_HH_DATA * p_data
 #if BTA_HH_DEBUG == TRUE
         if (in_state != p_cb->state)
         {
+#ifdef REVOLUTION
+            APPL_TRACE_DEBUG3("HH State Change: [%s] -> [%s] after Event [%s]",
+                          bta_hh_state_code(in_state),
+                          bta_hh_state_code(p_cb->state),
+                          bta_hh_evt_code(event));
+#else
             APPL_TRACE_DEBUG3("HH State Change: [%s] -> [%s] after Event [%s]",
                           bta_hh_state_code(in_state),
                           bta_hh_state_code(p_cb->state),
                           bta_hh_evt_code(debug_event));
+#endif
         }
 #endif
     }
@@ -314,6 +337,12 @@ BOOLEAN bta_hh_hdl_event(BT_HDR *p_msg)
             bta_hh_disc_cmpl();
             break;
 
+#ifdef REVOLUTION
+        case BTA_HH_API_GET_ACL_Q_EVT:
+            bta_hh_get_acl_q_info();
+            break;
+#endif
+
         default:
             /* all events processed in state machine need to find corresponding
                 CB before proceed */
@@ -331,6 +360,9 @@ BOOLEAN bta_hh_hdl_event(BT_HDR *p_msg)
                 else /* else remove device by handle */
                 {
                     index = bta_hh_cb.cb_index[p_msg->layer_specific];
+#ifdef REVOLUTION
+                    /* RVL has no VIRTUAL_UNPLUG cleanup check here */
+#else
 // btla-specific ++
                     /* If BT disable is done while the HID device is connected and Link_Key uses unauthenticated combination
                       * then we can get into a situation where remove_bonding is called with the index set to 0 (without getting
@@ -342,6 +374,7 @@ BOOLEAN bta_hh_hdl_event(BT_HDR *p_msg)
                            index = BTA_HH_MAX_KNOWN;
                     }
 // btla-specific --
+#endif
                 }
             }
             else if (p_msg->layer_specific < BTA_HH_MAX_KNOWN )
@@ -371,7 +404,11 @@ BOOLEAN bta_hh_hdl_event(BT_HDR *p_msg)
 ** Returns          void
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+char *bta_hh_evt_code(tBTA_HH_INT_EVT evt_code)
+#else
 static char *bta_hh_evt_code(tBTA_HH_INT_EVT evt_code)
+#endif
 {
   switch(evt_code)
     {
@@ -405,6 +442,10 @@ static char *bta_hh_evt_code(tBTA_HH_INT_EVT evt_code)
         return "BTA_HH_API_GET_DSCP_EVT";
     case BTA_HH_OPEN_CMPL_EVT:
         return "BTA_HH_OPEN_CMPL_EVT";
+#ifdef REVOLUTION
+    case BTA_HH_API_GET_ACL_Q_EVT:
+        return "BTA_HH_API_GET_ACL_Q_EVT";
+#endif
     default:
         return "unknown HID Host event code";
     }

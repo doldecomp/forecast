@@ -555,7 +555,11 @@ static void btu_hcif_inquiry_comp_evt (UINT8 *p, UINT16 evt_len)
     STREAM_TO_UINT8    (status, p);
 
     /* Tell inquiry processing that we are done */
+#ifdef REVOLUTION
+    btm_process_inq_complete(status);
+#else
     btm_process_inq_complete(status, BTM_BR_INQUIRY_MASK);
+#endif
 }
 
 
@@ -1256,7 +1260,11 @@ static void btu_hcif_hdl_command_status (UINT16 opcode, UINT8 status, UINT8 *p_c
                 {
                     case HCI_INQUIRY:
                         /* Tell inquiry processing that we are done */
+#ifdef REVOLUTION
+                        btm_process_inq_complete(status);
+#else
                         btm_process_inq_complete(status, BTM_BR_INQUIRY_MASK);
+#endif
                         break;
 
                     case HCI_RMT_NAME_REQUEST:

@@ -44,6 +44,7 @@ typedef struct TPLPalette {
 
 void TPLBind(TPLPalette* pal);
 TPLDescriptor* TPLGet(TPLPalette* pal, u32 id);
+void TPLGetGXTexObjFromPalette(TPLPalette* pal, GXTexObj* texObj, u32 id);
 
 #ifdef __cplusplus
 }

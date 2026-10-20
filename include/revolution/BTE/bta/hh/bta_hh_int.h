@@ -53,6 +53,9 @@ enum
     /* not handled by execute state machine */
     BTA_HH_API_ENABLE_EVT,
     BTA_HH_API_DISABLE_EVT,
+#ifdef REVOLUTION
+    BTA_HH_API_GET_ACL_Q_EVT,
+#endif
     BTA_HH_DISC_CMPL_EVT
 };
 typedef UINT16 tBTA_HH_INT_EVT;         /* HID host internal events */
@@ -121,8 +124,12 @@ typedef struct
     UINT16              sub_event;
     UINT8               sub_class;
     UINT8               app_id;
+#ifdef REVOLUTION
+    tBTA_HH_DEV_DESCR          dscp_info;
+#else
     tBTA_HH_DEV_DSCP_INFO      dscp_info;
-}tBTA_HH_MAINT_DEV;
+#endif
+} tBTA_HH_MAINT_DEV;
 
 /* union of all event data types */
 typedef union
@@ -139,7 +146,11 @@ typedef union
 /* device control block */
 typedef struct
 {
+#ifdef REVOLUTION
+    tBTA_HH_DEV_DESCR      dscp_info;      /* report descriptor */
+#else
     tBTA_HH_DEV_DSCP_INFO  dscp_info;      /* report descriptor and DI information */
+#endif
     BD_ADDR             addr;           /* BD-Addr of the HID device */
     UINT16              attr_mask;      /* attribute mask */
     UINT16              w4_evt;         /* W4_handshake event name */
@@ -220,6 +231,10 @@ extern void bta_hh_open_cmpl_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data);
 
 /* utility functions */
 extern UINT8  bta_hh_find_cb(BD_ADDR bda);
+#ifdef REVOLUTION
+/* RVL-only action: answer an ACL queue info request (no 2012 counterpart) */
+extern void bta_hh_get_acl_q_info(void);
+#endif
 extern void bta_hh_parse_keybd_rpt(tBTA_HH_BOOT_RPT *p_kb_data,
              UINT8 *p_report, UINT16 report_len);
 extern void bta_hh_parse_mice_rpt(tBTA_HH_BOOT_RPT *p_kb_data,
@@ -227,10 +242,17 @@ extern void bta_hh_parse_mice_rpt(tBTA_HH_BOOT_RPT *p_kb_data,
 extern BOOLEAN bta_hh_tod_spt(tBTA_HH_DEV_CB *p_cb,UINT8 sub_class);
 extern void bta_hh_clean_up_kdev(tBTA_HH_DEV_CB *p_cb);
 
+#ifdef REVOLUTION
+extern void bta_hh_add_device_to_list(tBTA_HH_DEV_CB *p_cb, UINT8 handle,
+                                      UINT16 attr_mask,
+                                      tHID_DEV_DSCP_INFO *p_dscp_info,
+                                      UINT8 sub_class, UINT8 app_id);
+#else
 extern void bta_hh_add_device_to_list(tBTA_HH_DEV_CB *p_cb, UINT8 handle,
                                       UINT16 attr_mask,
                                       tHID_DEV_DSCP_INFO *p_dscp_info,
                                       UINT8 sub_class, UINT16 max_latency, UINT16 min_tout, UINT8 app_id);
+#endif
 extern void bta_hh_update_di_info(tBTA_HH_DEV_CB *p_cb, UINT16 vendor_id, UINT16 product_id,
                            UINT16 version);
 

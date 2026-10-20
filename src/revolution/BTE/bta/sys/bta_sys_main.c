@@ -682,7 +682,11 @@ void bta_sys_stop_timer(TIMER_LIST_ENT *p_tle)
 ** Returns          void
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+void bta_sys_disable(void)
+#else
 void bta_sys_disable(tBTA_SYS_HW_MODULE module)
+#endif
 {
     int bta_id = 0;
     int bta_id_max = 0;
@@ -743,10 +747,12 @@ void bta_sys_disable(tBTA_SYS_HW_MODULE module)
 ** Returns          void
 **
 *******************************************************************************/
+#ifndef REVOLUTION
 void bta_sys_disable_timers(void)
 {
     bta_sys_cb.timers_disabled = TRUE;
 }
+#endif
 
 /*******************************************************************************
 **

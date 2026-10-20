@@ -107,7 +107,9 @@ typedef UINT8 tBTA_STATUS;
 #define BTA_HDP_SERVICE_ID      27          /* Health Device Profile */
 #define BTA_PCE_SERVICE_ID      28          /* PhoneBook Access Client*/
 
-#if BLE_INCLUDED == TRUE && BTA_GATT_INCLUDED == TRUE
+#ifdef REVOLUTION
+#define BTA_MAX_SERVICE_ID      23
+#elif BLE_INCLUDED == TRUE && BTA_GATT_INCLUDED == TRUE
 /* BLE profile service ID */
 #define BTA_BLE_SERVICE_ID      29          /* GATT profile */
 
@@ -556,9 +558,13 @@ typedef struct
     BD_NAME         bd_name;            /* Name of peer device. */
     BOOLEAN         key_present;        /* Valid link key value in key element */
     LINK_KEY        key;                /* Link key associated with peer device. */
+#ifndef REVOLUTION
     UINT8           key_type;           /* The type of Link Key */
+#endif
     BOOLEAN         success;            /* TRUE of authentication succeeded, FALSE if failed. */
+#ifndef REVOLUTION
     UINT8           fail_reason;        /* The HCI reason/error code for when success=FALSE */
+#endif
 
 } tBTA_DM_AUTH_CMPL;
 
@@ -570,7 +576,9 @@ typedef struct
     BD_NAME         bd_name;            /* Name of peer device. */
     tBTA_SERVICE_ID service;            /* Service ID to authorize. */
 // btla-specific ++
+#ifndef REVOLUTION
     DEV_CLASS      dev_class;
+#endif
 // btla-specific --
 } tBTA_DM_AUTHORIZE;
 
@@ -712,6 +720,7 @@ typedef union
     tBTA_DM_LINK_DOWN   link_down;       /* ACL connection down event */
     tBTA_DM_SIG_STRENGTH sig_strength;  /* rssi and link quality value */
     tBTA_DM_BUSY_LEVEL  busy_level;     /* System busy level */
+#ifndef REVOLUTION
     tBTA_DM_SP_CFM_REQ  cfm_req;        /* user confirm request */
     tBTA_DM_SP_KEY_NOTIF key_notif;     /* passkey notification */
     tBTA_DM_SP_RMT_OOB  rmt_oob;        /* remote oob */
@@ -722,6 +731,7 @@ typedef union
     tBTA_DM_BLE_KEY      ble_key;        /* BLE SMP keys used when pairing */
     tBTA_BLE_LOCAL_ID_KEYS  ble_id_keys;  /* IR event */
     BT_OCTET16              ble_er;       /* ER event data */
+#endif
 } tBTA_DM_SEC;
 
 /* Security callback */
@@ -756,11 +766,13 @@ typedef struct
 {
     BD_ADDR         bd_addr;                /* BD address peer device. */
     DEV_CLASS       dev_class;              /* Device class of peer device. */
-#ifndef REVOLUTION
+#ifdef REVOLUTION
+    INT8            rssi;                   /* The rssi value */
+    BOOLEAN         remt_name_not_required; /* Application sets this flag if it already knows the name of the device */
+#else
     BOOLEAN         remt_name_not_required; /* Application sets this flag if it already knows the name of the device */
                                             /* If the device name is known to application BTA skips the remote name request */
     BOOLEAN         is_limited;             /* TRUE, if the limited inquiry bit is set in the CoD */
-#endif
     INT8            rssi;                   /* The rssi value */
     UINT8           *p_eir;                 /* received EIR */
 #if (BLE_INCLUDED == TRUE)
@@ -768,6 +780,7 @@ typedef struct
     UINT8               ble_addr_type;
     tBTM_BLE_EVT_TYPE   ble_evt_type;
     tBT_DEVICE_TYPE     device_type;
+#endif
 #endif
 
 } tBTA_DM_INQ_RES;
@@ -793,11 +806,13 @@ typedef struct
     BD_NAME             bd_name;        /* Name of peer device. */
     tBTA_SERVICE_MASK   services;       /* Services found on peer device. */
 // btla-specific ++
+#ifndef REVOLUTION
     UINT8           *   p_raw_data;     /* Raw data for discovery DB */
     UINT32              raw_data_size;  /* size of raw data */
     tBT_DEVICE_TYPE     device_type;    /* device type in case it is BLE device */
     UINT32              num_uuids;
     UINT8               *p_uuid_list;
+#endif
 // btla-specific --
     tBTA_STATUS         result;
 } tBTA_DM_DISC_RES;
@@ -817,7 +832,9 @@ typedef union
     tBTA_DM_INQ_RES     inq_res;        /* Inquiry result for a peer device. */
     tBTA_DM_INQ_CMPL    inq_cmpl;       /* Inquiry complete. */
     tBTA_DM_DISC_RES    disc_res;       /* Discovery result for a peer device. */
+#ifndef REVOLUTION
     tBTA_DM_DISC_BLE_RES    disc_ble_res;   /* discovery result for GATT based service */
+#endif
     tBTA_DM_DI_DISC_CMPL    di_disc;        /* DI discovery result for a peer device */
 
 } tBTA_DM_SEARCH;

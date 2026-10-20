@@ -2697,9 +2697,10 @@ void WUDSecurityCallback(tBTA_DM_SEC_EVT event, tBTA_DM_SEC* pData) {
                    pAuthCmpl->key[12], pAuthCmpl->key[13], pAuthCmpl->key[14], pAuthCmpl->key[15]);
         // clang-format on
 
-        DEBUGPrint("  result = %d\n", pAuthCmpl->key_type);
+        /* RVL tBTA_DM_AUTH_CMPL has no key_type; this byte is success. */
+        DEBUGPrint("  result = %d\n", pAuthCmpl->success);
 
-        if (pAuthCmpl->key_type == HCI_LKEY_TYPE_COMBINATION) {
+        if (pAuthCmpl->success == HCI_LKEY_TYPE_COMBINATION) {
             break;
         }
 

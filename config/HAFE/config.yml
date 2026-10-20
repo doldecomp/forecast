@@ -37,6 +37,8 @@ block_relocations:
 # OS.c OSInit: the constant 0x80004000 happens to equal _f_init
 - source: 0x800E401C
 - source: 0x800E4094
+# WPAD data: the constant 0x801D0EB0 happens to equal a bta_hh_act jump-table entry
+- source: .data:0x801CDD5C
 
 # System.cpp: lis/addi pairs split by register spills, which analysis cannot pair
 add_relocations:

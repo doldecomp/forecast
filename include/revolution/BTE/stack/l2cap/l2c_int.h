@@ -382,6 +382,30 @@ typedef struct t_l2c_linkcb
     BOOLEAN             in_use;                     /* TRUE when in use, FALSE when not */
     tL2C_LINK_STATE     link_state;
 
+#ifdef REVOLUTION
+    tL2C_CCB_Q          ccb_queue;                  /* Queue of CCBs on this LCB        */
+    TIMER_LIST_ENT      timer_entry;                /* Timer list entry for timeout evt */
+    UINT16              handle;                     /* The handle used with LM          */
+    BD_ADDR             remote_bd_addr;             /* The BD address of the remote     */
+    UINT8               link_role;                  /* Master or slave                  */
+    UINT8               id;
+    UINT16              link_flush_tout;            /* Flush timeout used               */
+    UINT16              link_xmit_quota;            /* Num outstanding pkts allowed     */
+    UINT16              link_xmit_window;
+    UINT16              sent_not_acked;             /* Num packets sent but not acked   */
+    UINT16              link_cong_start;
+    UINT16              link_cong_end;
+    UINT16              link_cong_discard;
+    BOOLEAN             partial_segment_being_sent; /* Set TRUE when a partial segment  */
+                                                    /* is being sent.                   */
+    BOOLEAN             cong_sent;
+    BUFFER_Q            link_xmit_data_q;           /* Transmit data buffer queue       */
+    BT_HDR              *p_hcit_rcv_acl;            /* Current HCIT ACL buf being rcvd  */
+    tL2CA_ECHO_RSP_CB   *p_echo_rsp_cb;             /* Echo response callback           */
+    UINT16              idle_timeout;               /* Idle timeout                     */
+    UINT8               acl_priority;               /* L2C_PRIORITY_NORMAL or L2C_PRIORITY_HIGH */
+    BOOLEAN             is_bonding;                 /* True - link active only for bonding */
+#else
     TIMER_LIST_ENT      timer_entry;                /* Timer list entry for timeout evt */
     UINT16              handle;                     /* The handle used with LM          */
 
@@ -454,6 +478,7 @@ typedef struct t_l2c_linkcb
     tL2C_RR_SERV        rr_serv[L2CAP_NUM_CHNL_PRIORITY];
     UINT8               rr_pri;                             /* current serving priority group */
 #endif
+#endif /* REVOLUTION */
 
 } tL2C_LCB;
 
@@ -462,6 +487,29 @@ typedef struct t_l2c_linkcb
 typedef struct
 {
     UINT8           l2cap_trace_level;
+#ifdef REVOLUTION
+    UINT8           desire_role;                    /* desire to be master/slave when accepting a connection */
+    UINT16          num_lm_acl_bufs;                /* # of ACL buffers on controller   */
+    UINT16          controller_xmit_window;         /* Total ACL window for all links   */
+    BOOLEAN         check_round_robin;              /* Do a round robin check           */
+
+    tL2C_LCB        lcb_pool[MAX_L2CAP_LINKS];      /* Link Control Block pool          */
+    tL2C_CCB        ccb_pool[MAX_L2CAP_CHANNELS];   /* Channel Control Block pool       */
+    tL2C_RCB        rcb_pool[MAX_L2CAP_CLIENTS];    /* Registration info pool           */
+
+    tL2C_CCB        *p_free_ccb_first;              /* Pointer to first free CCB        */
+    tL2C_CCB        *p_free_ccb_last;               /* Pointer to last  free CCB        */
+
+    UINT16          num_links_active;               /* Number of links active           */
+    UINT16          idle_timeout;                   /* Idle timeout                     */
+
+    tL2C_LCB        *p_cur_hcit_lcb;                /* Current HCI Transport buffer     */
+
+    BUFFER_Q        rcv_hold_q;                     /* Recv pending queue               */
+    TIMER_LIST_ENT  rcv_hold_tle;                   /* Timer list entry for rcv hold    */
+
+    tL2CA_ECHO_DATA_CB      *p_echo_data_cb;        /* Echo data callback */
+#else
     UINT16          controller_xmit_window;         /* Total ACL window for all links   */
 
     UINT16          round_robin_quota;              /* Round-robin link quota           */
@@ -516,6 +564,7 @@ typedef struct
 #endif /* (L2CAP_HIGH_PRI_CHAN_QUOTA_IS_CONFIGURABLE == TRUE) */
 
     UINT16          dyn_psm;
+#endif /* REVOLUTION */
 } tL2C_CB;
 
 
@@ -578,7 +627,11 @@ extern void     l2c_process_held_packets (BOOLEAN timed_out);
 /* Functions provided by l2c_utils.c
 ************************************
 */
+#ifdef REVOLUTION
+extern tL2C_LCB *l2cu_allocate_lcb (BD_ADDR p_bd_addr);
+#else
 extern tL2C_LCB *l2cu_allocate_lcb (BD_ADDR p_bd_addr, BOOLEAN is_bonding);
+#endif
 extern BOOLEAN  l2cu_start_post_bond_timer (UINT16 handle);
 extern void     l2cu_release_lcb (tL2C_LCB *p_lcb);
 extern tL2C_LCB *l2cu_find_lcb_by_bd_addr (BD_ADDR p_bd_addr);

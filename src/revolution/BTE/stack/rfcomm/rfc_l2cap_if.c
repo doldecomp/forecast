@@ -165,7 +165,7 @@ void RFCOMM_ConfigCnf (UINT16 lcid, tL2CAP_CFG_INFO *p_cfg)
 
     if (!p_mcb)
     {
-        RFCOMM_TRACE_ERROR1 ("RFCOMM_ConfigCnf no MCB LCID:0x%x", lcid);
+        RFCOMM_TRACE_ERROR1 ("RFCOMM_ConfigCnf LCID:0x%x", lcid);
         return;
     }
 

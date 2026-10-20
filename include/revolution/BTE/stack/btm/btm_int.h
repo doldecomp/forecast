@@ -34,6 +34,9 @@
 #endif
 
 #include "btm_api.h"
+#ifdef REVOLUTION
+#include "sdp_api.h"
+#endif
 
 #if (BLE_INCLUDED == TRUE)
 #include "btm_ble_int.h"
@@ -93,23 +96,26 @@ typedef struct
     BD_FEATURES     features;           /* Features suported by the device    */
     UINT8           lmp_version;
 
-    BOOLEAN         in_use;
-    UINT8           link_role;
-    BOOLEAN         link_up_issued;     /* True if busy_level link up has been issued */
-
 #define BTM_ACL_SWKEY_STATE_IDLE                0
 #define BTM_ACL_SWKEY_STATE_MODE_CHANGE         1
 #define BTM_ACL_SWKEY_STATE_ENCRYPTION_OFF      2
 #define BTM_ACL_SWKEY_STATE_SWITCHING           3
 #define BTM_ACL_SWKEY_STATE_ENCRYPTION_ON       4
 #define BTM_ACL_SWKEY_STATE_IN_PROGRESS         5
-    UINT8           switch_role_state;
-    UINT8           change_key_state;
 
 #define BTM_ACL_ENCRYPT_STATE_IDLE              0
 #define BTM_ACL_ENCRYPT_STATE_ENCRYPT_OFF       1   /* encryption turning off */
 #define BTM_ACL_ENCRYPT_STATE_TEMP_FUNC         2   /* temporarily off for change link key or role switch */
 #define BTM_ACL_ENCRYPT_STATE_ENCRYPT_ON        3   /* encryption turning on */
+
+    BOOLEAN         in_use;
+    UINT8           link_role;
+#ifdef REVOLUTION
+    UINT8           switch_role_state;
+#else
+    BOOLEAN         link_up_issued;     /* True if busy_level link up has been issued */
+    UINT8           switch_role_state;
+    UINT8           change_key_state;
     UINT8           encrypt_state;                  /* overall BTM encryption state */
 
 #if BTM_PWR_MGR_INCLUDED == FALSE
@@ -117,6 +123,7 @@ typedef struct
 #endif /* BTM_PWR_MGR_INCLUDED */
 #if BLE_INCLUDED == TRUE
     UINT8           is_le_link;
+#endif
 #endif
 
 } tACL_CONN;
@@ -152,29 +159,41 @@ typedef struct
     TIMER_LIST_ENT       lnk_quality_timer;
     tBTM_CMPL_CB        *p_lnk_qual_cmpl_cb;/* Callback function to be called when  */
                                             /* read link quality function completes */
+#ifndef REVOLUTION
     TIMER_LIST_ENT       txpwer_timer;
     tBTM_CMPL_CB        *p_txpwer_cmpl_cb;    /* Callback function to be called when  */
                                             /* read inq tx power function completes  */
+#endif
 
     TIMER_LIST_ENT       qossu_timer;
     tBTM_CMPL_CB        *p_qossu_cmpl_cb;   /* Callback function to be called when  */
                                             /* qos setup function completes         */
 
+#ifdef REVOLUTION
+    tBTM_VSC_CMPL_CB    *p_vsc_cmpl_cb;
+    tBTM_CMPL_CB        *p_hci_reset_cmpl_cb;
+#endif
+
     tBTM_ROLE_SWITCH_CMPL switch_role_ref_data;
     tBTM_CMPL_CB        *p_switch_role_cb;  /* Callback function to be called when  */
                                             /* requested switch role is completed   */
 
+#ifndef REVOLUTION
     tBTM_CHANGE_KEY_CMPL chg_link_key_ref_data;
     tBTM_CMPL_CB        *p_chg_link_key_cb; /* Callback function to be called when  */
                                             /* change of link key is completed      */
 
     TIMER_LIST_ENT       tx_power_timer;
     tBTM_CMPL_CB        *p_tx_power_cmpl_cb;   /* Callback function to be called       */
+#endif
 
     BD_ADDR              local_addr;        /* BD_ADDR of the local device          */
     tBTM_VERSION_INFO    local_version;     /* Local Version Information            */
     BD_FEATURES          local_features;    /* Local features bit mask              */
     DEV_CLASS            dev_class;         /* Local device class                   */
+#ifdef REVOLUTION
+    UINT16               page_timeout;
+#endif
 #if BLE_INCLUDED == TRUE
     BD_ADDR                 read_tx_pwr_addr;   /* read TX power target address */
 
@@ -194,12 +213,24 @@ typedef struct
 
 #define BTM_DEV_STATE_WAIT_RESET_CMPLT  0
 #define BTM_DEV_STATE_WAIT_AFTER_RESET  1
+#ifdef REVOLUTION
+#define BTM_DEV_STATE_WAIT_HCI_BUF_SIZE 2
+#define BTM_DEV_STATE_WAIT_LOCAL_VER    3
+#define BTM_DEV_STATE_WAIT_LOCAL_FEAT   4
+#define BTM_DEV_STATE_READY             5
+#else
 #define BTM_DEV_STATE_READY             2
+#endif
 
     UINT8                state;
+#ifdef REVOLUTION
+    UINT8                reset_tries;
+    BOOLEAN              vsc_busy;
+#else
     tBTM_IO_CAP          loc_io_caps;       /* IO capability of the local device */
     BOOLEAN              loc_auth_req;      /* the auth_req flag  */
     BD_FEATURES          brcm_features;     /* Broadcom specific features bit mask  */
+#endif
 } tBTM_DEVCB;
 
 
@@ -303,8 +334,27 @@ typedef struct
 
     UINT8            state;             /* Current state that the inquiry process is in */
     UINT8            inq_active;        /* Bit Mask indicating type of inquiry is active */
+#ifndef REVOLUTION
     BOOLEAN          no_inc_ssp;        /* TRUE, to stop inquiry on incoming SSP */
+#endif
 } tBTM_INQUIRY_VAR_ST;
+
+#ifdef REVOLUTION
+/* RVL BTM keeps an SDP discovery database of its own (btm_discovery_db_*).
+   Its timer is serviced by btu_task (timer type 8). */
+#define BTM_DISC_DB_LEN             4000
+
+typedef struct
+{
+    TIMER_LIST_ENT   disc_timer_ent;
+    UINT16           num_uuid;
+    tSDP_UUID        uuid;
+    UINT8            unknown_30[0x48];
+    tBTM_CMPL_CB    *p_disc_cmpl_cb;
+    UINT8            db[BTM_DISC_DB_LEN];
+    BOOLEAN          busy;
+} tBTM_DISC_DB_CB;
+#endif
 
 /* The MSB of the clock offset field indicates that the offset is valid if TRUE */
 #define BTM_CLOCK_OFFSET_VALID      0x8000
@@ -368,17 +418,16 @@ typedef struct
 */
 typedef struct
 {
-    tBTM_ESCO_INFO   esco;              /* Current settings             */
-#if BTM_SCO_HCI_INCLUDED == TRUE
-    BUFFER_Q         xmit_data_q;       /* SCO data transmitting queue  */
-#endif
     tBTM_SCO_CB     *p_conn_cb;         /* Callback for when connected  */
     tBTM_SCO_CB     *p_disc_cb;         /* Callback for when disconnect */
     UINT16           state;             /* The state of the SCO link    */
     UINT16           hci_handle;        /* HCI Handle                   */
     BOOLEAN          is_orig;           /* TRUE if the originator       */
     BOOLEAN          rem_bd_known;      /* TRUE if remote BD addr known */
-
+    tBTM_ESCO_INFO   esco;              /* Current settings             */
+#if BTM_SCO_HCI_INCLUDED == TRUE
+    BUFFER_Q         xmit_data_q;       /* SCO data transmitting queue  */
+#endif
 } tSCO_CONN;
 
 /* SCO Management control block */
@@ -390,14 +439,16 @@ typedef struct
     UINT32               xmit_window_size; /* Total SCO window in bytes  */
 #endif
     tSCO_CONN            sco_db[BTM_MAX_SCO_LINKS];
-    tBTM_ESCO_PARAMS     def_esco_parms;
     BD_ADDR              xfer_addr;
     UINT16               sco_disc_reason;
+    tBTM_ESCO_PARAMS     def_esco_parms;
     BOOLEAN              esco_supported;    /* TRUE if 1.2 cntlr AND supports eSCO links */
     tBTM_SCO_TYPE        desired_sco_mode;
     tBTM_SCO_TYPE        xfer_sco_type;
+#ifndef REVOLUTION
     tBTM_SCO_PCM_PARAM   sco_pcm_param;
     tBTM_SCO_CODEC_TYPE  codec_in_use;      /* None, CVSD, MSBC, etc. */
+#endif
 #if BTM_SCO_HCI_INCLUDED == TRUE
 	tBTM_SCO_ROUTE_TYPE	 sco_path;
 #endif
@@ -422,6 +473,19 @@ extern void btm_sco_chk_pend_rolechange (UINT16 hci_handle);
 ** Define structure for Security Service Record.
 ** A record exists for each service registered with the Security Manager
 */
+#ifdef REVOLUTION
+typedef struct
+{
+    UINT32          mx_proto_id;        /* Service runs over this multiplexer protocol */
+    UINT32          orig_mx_chan_id;    /* Channel on the multiplexer protocol    */
+    UINT32          term_mx_chan_id;    /* Channel on the multiplexer protocol    */
+    UINT16          psm;                /* L2CAP PSM value */
+    UINT8           security_flags;     /* Bitmap of required security features */
+    UINT8           service_id;         /* Passed in authorization callback */
+    UINT8           orig_service_name[BTM_SEC_SERVICE_NAME_LEN + 1];
+    UINT8           term_service_name[BTM_SEC_SERVICE_NAME_LEN + 1];
+} tBTM_SEC_SERV_REC;
+#else
 typedef struct
 {
     UINT32          mx_proto_id;        /* Service runs over this multiplexer protocol */
@@ -438,6 +502,7 @@ typedef struct
     UINT8           term_service_name[BTM_SEC_SERVICE_NAME_LEN + 1];
 #endif
 } tBTM_SEC_SERV_REC;
+#endif
 
 #if BLE_INCLUDED == TRUE
 /* LE Security information of device in Slave Role */
@@ -509,12 +574,23 @@ typedef struct
 #define BTM_SEC_STATE_ENCRYPTING        2
 #define BTM_SEC_STATE_GETTING_NAME      3
 #define BTM_SEC_STATE_AUTHORIZING       4
+#ifdef REVOLUTION
+#define BTM_SEC_STATE_DISCONNECTING     5
+#else
 #define BTM_SEC_STATE_SWITCHING_ROLE    5
 #define BTM_SEC_STATE_DISCONNECTING     6
 #define BTM_SEC_STATE_DELAY_FOR_ENC     7   /* delay to check for encryption to work around controller problems */
+#endif
 
     UINT8       sec_state;              /* Operating state                    */
     BOOLEAN     is_originator;          /* TRUE if device is originating connection */
+#ifdef REVOLUTION
+    UINT8       security_required;      /* Security required for connection   */
+    BOOLEAN     link_key_not_sent;      /* link key notification has not been sent waiting for name */
+    UINT8       link_key_type;          /* Type of key used in pairing   */
+    BOOLEAN     link_key_changed;       /* Changed link key during current connection */
+    BOOLEAN     conn_cmpl_rcvd;         /* ACL connection complete seen; a bonding link key is reported only after it */
+#else
 #if (L2CAP_UCD_INCLUDED == TRUE)
     BOOLEAN     is_ucd;                 /* TRUE if device is sending or receiving UCD */
                                         /* if incoming security failed, received UCD will be discarded */
@@ -524,7 +600,9 @@ typedef struct
     BOOLEAN     link_key_not_sent;      /* link key notification has not been sent waiting for name */
     UINT8       link_key_type;          /* Type of key used in pairing   */
     BOOLEAN     link_key_changed;       /* Changed link key during current connection */
+#endif
 
+#ifndef REVOLUTION
 #define BTM_SM4_UNKNOWN     0x00
 #define BTM_SM4_KNOWN       0x10
 #define BTM_SM4_TRUE        0x11
@@ -552,6 +630,7 @@ typedef struct
     UINT8           rs_disc_pending;
 #endif
 // btla-specific --
+#endif
 } tBTM_SEC_DEV_REC;
 
 #define BTM_SEC_IS_SM4(sm) ((BOOLEAN)(BTM_SM4_TRUE == ((sm)&BTM_SM4_TRUE)))
@@ -621,7 +700,11 @@ typedef struct
 
 typedef struct
 {
+#ifdef REVOLUTION
+    tBTM_PM_PWR_MD req_mode[BTM_MAX_PM_RECORDS]; /* the desired mode and parameters of the connection*/
+#else
     tBTM_PM_PWR_MD req_mode[BTM_MAX_PM_RECORDS+1]; /* the desired mode and parameters of the connection*/
+#endif
     tBTM_PM_PWR_MD set_mode;  /* the mode and parameters sent down to the host controller. */
     UINT16         interval;  /* the interval from last mode change event. */
 #if (BTM_SSR_INCLUDED == TRUE)
@@ -745,14 +828,20 @@ typedef struct
     tBTM_ACL_DB_CHANGE_CB *p_acl_changed_cb;    /* Callback for when ACL DB changed */
 #endif
 
+#ifndef REVOLUTION
     tBTM_LSTO_CBACK       *p_lsto_cback;  /* for link supervision timeout change event */
+#endif
 
     /****************************************************
     **      Power Management
     ****************************************************/
 #if BTM_PWR_MGR_INCLUDED == TRUE
     tBTM_PM_MCB pm_mode_db[MAX_L2CAP_LINKS];   /* per ACL link */
+#ifdef REVOLUTION
+    tBTM_PM_RCB pm_reg_db[BTM_MAX_PM_RECORDS]; /* per application/module */
+#else
     tBTM_PM_RCB pm_reg_db[BTM_MAX_PM_RECORDS+1]; /* per application/module */
+#endif
     UINT8       pm_pend_link;  /* the index of acl_db, which has a pending PM cmd */
     UINT8       pm_pend_id;    /* the id pf the module, which has a pending PM cmd */
 #endif /* BTM_PWR_MGR_INCLUDED == TRUE */
@@ -777,6 +866,10 @@ typedef struct
                                             /* Packet types supported by the local device */
     UINT16      btm_acl_pkt_types_supported;
     UINT16      btm_sco_pkt_types_supported;
+#ifdef REVOLUTION
+    tBTM_DISC_DB_CB          disc_db;
+    tSDP_DISCOVERY_DB       *p_db;
+#endif
 
 
     /*****************************************************
@@ -799,6 +892,28 @@ typedef struct
     tBTM_APPL_INFO          api;
 
 #define BTM_SEC_MAX_RMT_NAME_CALLBACKS  2
+#ifdef REVOLUTION
+    tBTM_LINK_KEY_CALLBACK  *p_link_key_callback[BTM_SEC_MAX_RMT_NAME_CALLBACKS];
+    tBTM_RMT_NAME_CALLBACK  *p_rmt_name_callback[BTM_SEC_MAX_RMT_NAME_CALLBACKS];
+
+    tBTM_FILTER_CB          *p_conn_filter_cb;  /* Callback that can be set if host */
+                                                /* wants to verify connectability filters*/
+
+    tBTM_SEC_DEV_REC        *p_collided_dev_rec;
+    TIMER_LIST_ENT           pairing_tle;   /* PIN code request timer; param is the timeout function */
+    BD_ADDR                  pairing_bda;   /* The device currently pairing */
+    TIMER_LIST_ENT           sec_collision_tle;
+    UINT32                   dev_rec_count;      /* Counter used for device record timestamp */
+    UINT8                    security_mode;
+    BOOLEAN                  pairing_disabled;
+    BOOLEAN                  connect_only_paired;
+    BOOLEAN                  security_mode_changed;  /* mode changed during bonding */
+    BOOLEAN                  pin_type_changed;       /* pin type changed during bonding */
+    BOOLEAN                  sec_req_pending;       /*   TRUE if a request is pending */
+    UINT8                    disc_reason;   /* disconnect reason held back while bonding */
+    UINT8                    pin_code_len;  /* for legacy devices */
+    PIN_CODE                 pin_code;      /* for legacy devices */
+#else
     tBTM_RMT_NAME_CALLBACK  *p_rmt_name_callback[BTM_SEC_MAX_RMT_NAME_CALLBACKS];
 
     tBTM_FILTER_CB          *p_conn_filter_cb;  /* Callback that can be set if host */
@@ -808,7 +923,9 @@ typedef struct
     TIMER_LIST_ENT           sec_collision_tle;
     UINT32                   collision_start_time;
     UINT32                   max_collision_delay;
+#ifndef REVOLUTION
     UINT32                   dev_rec_count;      /* Counter used for device record timestamp */
+#endif
     UINT8                    security_mode;
     BOOLEAN                  pairing_disabled;
     BOOLEAN                  connect_only_paired;
@@ -824,14 +941,13 @@ typedef struct
     UINT8                    pin_code_len;  /* for legacy devices */
     PIN_CODE                 pin_code;      /* for legacy devices */
     tBTM_PAIRING_STATE       pairing_state; /* The current pairing state    */
-    UINT8                    pairing_flags; /* The current pairing flags    */
     BD_ADDR                  pairing_bda;   /* The device currently pairing */
-    TIMER_LIST_ENT           pairing_tle;   /* Timer for pairing process    */
-    UINT16                   disc_handle;   /* for legacy devices */
-    UINT8                    disc_reason;   /* for legacy devices */
+#endif
     tBTM_SEC_SERV_REC        sec_serv_rec[BTM_SEC_MAX_SERVICE_RECORDS];
     tBTM_SEC_DEV_REC         sec_dev_rec[BTM_SEC_MAX_DEVICE_RECORDS];
+#ifndef REVOLUTION
     tBTM_SEC_SERV_REC       *p_out_serv;
+#endif
     tBTM_MKEY_CALLBACK      *mkey_cback;
 
     BD_ADDR                  connecting_bda;
@@ -848,6 +964,7 @@ typedef struct
     BOOLEAN                 is_paging;  /* TRUE, if paging is in progess */
     BOOLEAN                 is_inquiry; /* TRUE, if inquiry is in progess */
 #endif
+#ifndef REVOLUTION /* RVL: tBTM_CB ends at trace_level (sizeof 0x27C4, see btm_init) */
     BUFFER_Q                page_queue;
     BOOLEAN                 paging;
     BOOLEAN                 discing;
@@ -855,6 +972,7 @@ typedef struct
 
 #if  (!defined(BT_TRACE_VERBOSE) || (BT_TRACE_VERBOSE == FALSE))
     char state_temp_buffer[BTM_STATE_BUFFER_SIZE];
+#endif
 #endif
 
 #if (defined(BTM_PCM2_INCLUDED) && BTM_PCM2_INCLUDED == TRUE)
@@ -896,6 +1014,19 @@ extern void         btm_process_remote_name (BD_ADDR bda, BD_NAME name, UINT16 e
 extern void         btm_inq_rmt_name_failed(void);
 
 /* Inquiry related functions */
+#ifdef REVOLUTION
+extern void         btm_discovery_db_init (void);
+extern void         btm_discovery_db_reset (void);
+extern void         btm_discovery_db_timeout (void);
+extern void         btm_inq_db_reset (void);
+extern void         btm_inq_db_init (void);
+extern tINQ_DB_ENT *btm_inq_db_new (BD_ADDR p_bda);
+extern tBTM_STATUS  btm_set_inq_event_filter (UINT8 filter_cond_type, tBTM_INQ_FILT_COND *p_filt_cond);
+extern void         btm_process_inq_results (UINT8 *p, UINT8 inq_res_mode);
+extern void         btm_process_inq_complete (UINT8 status);
+extern void         btm_event_filter_complete (UINT8 *p);
+extern BOOLEAN      btm_inq_find_bdaddr (BD_ADDR p_bda);
+#else
 extern void         btm_clr_inq_db (BD_ADDR p_bda);
 extern void         btm_inq_db_init (void);
 extern void         btm_process_inq_results (UINT8 *p, UINT8 inq_res_mode);
@@ -905,6 +1036,7 @@ extern void         btm_inq_stop_on_ssp(void);
 extern void         btm_inq_clear_ssp(void);
 extern tINQ_DB_ENT *btm_inq_db_find (BD_ADDR p_bda);
 extern BOOLEAN      btm_inq_find_bdaddr (BD_ADDR p_bda);
+#endif
 
 #if (BTM_EIR_CLIENT_INCLUDED == TRUE)
 extern BOOLEAN btm_lookup_eir(BD_ADDR_PTR p_rem_addr);
@@ -931,7 +1063,11 @@ extern void         btm_read_link_policy_complete (UINT8 *p);
 extern void         btm_read_rssi_complete (UINT8 *p);
 extern void         btm_read_tx_power_complete (UINT8 *p, BOOLEAN is_ble);
 extern void         btm_read_link_quality_complete (UINT8 *p);
+#ifdef REVOLUTION
+extern void         btm_chg_all_acl_pkt_types (BOOLEAN b_1_slot);
+#else
 extern tBTM_STATUS  btm_set_packet_types (tACL_CONN *p, UINT16 pkt_types);
+#endif
 extern void         btm_process_clk_off_comp_evt (UINT16 hci_handle, UINT16 clock_offset);
 extern void         btm_acl_role_changed (UINT8 hci_status, BD_ADDR bd_addr, UINT8 new_role);
 extern void         btm_acl_encrypt_change (UINT16 handle, UINT8 status, UINT8 encr_enable);
@@ -941,12 +1077,16 @@ extern void         btm_read_remote_features_complete (UINT8 *p);
 extern void         btm_read_remote_ext_features_complete (UINT8 *p);
 extern void         btm_read_remote_ext_features_failed (UINT8 status);
 extern void         btm_read_remote_version_complete (UINT8 *p);
+#ifndef REVOLUTION
 // btla-specific ++
 extern void         btm_acl_chk_peer_pkt_type_support (tACL_CONN *p, UINT16 *p_pkt_type);
 // btla-specific --
+#endif
 /* Read maximum data packet that can be sent over current connection */
 extern UINT16 btm_get_max_packet_size (BD_ADDR addr);
+#ifndef REVOLUTION
 extern tACL_CONN *btm_bda_to_acl (BD_ADDR bda);
+#endif
 extern BOOLEAN    btm_acl_notif_conn_collision (BD_ADDR bda);
 
 #if BTM_PWR_MGR_INCLUDED == FALSE
@@ -964,9 +1104,9 @@ extern void btm_pm_proc_mode_change (UINT8 hci_status, UINT16 hci_handle, UINT8 
                                      UINT16 interval);
 extern void btm_pm_proc_ssr_evt (UINT8 *p, UINT16 evt_len);
 #if BTM_SCO_INCLUDED == TRUE
-extern void btm_sco_chk_pend_unpark (UINT8 hci_status, UINT16 hci_handle);
+extern void btm_sco_chk_pend_unpark (UINT8 hci_status, UINT16 hci_handle, UINT8 mode);
 #else
-#define btm_sco_chk_pend_unpark(hci_status, hci_handle)
+#define btm_sco_chk_pend_unpark(hci_status, hci_handle, mode)
 #endif /* BTM_SCO_INCLUDED */
 #endif /* BTM_PWR_MGR_INCLUDED == FALSE */
 extern void btm_qos_setup_complete (UINT8 status, UINT16 handle, FLOW_SPEC *p_flow);
@@ -984,13 +1124,13 @@ extern void btm_esco_proc_conn_chg (UINT8 status, UINT16 handle, UINT8 tx_interv
 extern void btm_sco_conn_req (BD_ADDR bda,  DEV_CLASS dev_class, UINT8 link_type);
 extern void btm_sco_removed (UINT16 hci_handle, UINT8 reason);
 extern void btm_sco_acl_removed (BD_ADDR bda);
+extern UINT8 btm_num_sco_links_active (void);
 extern void btm_route_sco_data (BT_HDR *p_msg);
 extern BOOLEAN btm_is_sco_active (UINT16 handle);
 extern void btm_remove_sco_links (BD_ADDR bda);
 extern BOOLEAN btm_is_sco_active_by_bdaddr (BD_ADDR remote_bda);
 
 extern tBTM_SCO_TYPE btm_read_def_esco_mode (tBTM_ESCO_PARAMS *p_parms);
-extern UINT16  btm_find_scb_by_handle (UINT16 handle);
 extern void btm_sco_flush_sco_data(UINT16 sco_inx);
 
 /* Internal functions provided by btm_devctl.c
@@ -1016,8 +1156,12 @@ extern void btm_ble_clear_white_list_complete(UINT8 *p, UINT16 evt_len);
 #endif  /* BLE_INCLUDED */
 
 /* Vendor Specific Command complete evt handler */
+#ifdef REVOLUTION
+extern void btm_vsc_complete (UINT8 *p, UINT16 cc_opcode, UINT16 evt_len);
+#else
 extern void btm_vsc_complete (UINT8 *p, UINT16 cc_opcode, UINT16 evt_len,
                               tBTM_CMPL_CB *p_vsc_cplt_cback);
+#endif
 extern void btm_inq_db_reset (void);
 extern void btm_vendor_specific_evt (UINT8 *p, UINT8 evt_len);
 extern UINT8 btm_get_hci_version (void);
@@ -1035,7 +1179,9 @@ extern BOOLEAN btm_dev_support_switch (BD_ADDR bd_addr);
 extern UINT8 btm_get_voice_coding_support (void);
 
 extern tBTM_SEC_DEV_REC  *btm_sec_alloc_dev (BD_ADDR bd_addr);
+#ifndef REVOLUTION
 extern void               btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec);
+#endif
 extern tBTM_SEC_DEV_REC  *btm_find_dev (BD_ADDR bd_addr);
 extern tBTM_SEC_DEV_REC  *btm_find_or_alloc_dev (BD_ADDR bd_addr);
 extern tBTM_SEC_DEV_REC  *btm_find_dev_by_handle (UINT16 handle);
@@ -1044,12 +1190,25 @@ extern tBTM_SEC_DEV_REC  *btm_find_dev_by_handle (UINT16 handle);
 **********************************************
 */
 extern BOOLEAN btm_dev_support_switch (BD_ADDR bd_addr);
+#ifdef REVOLUTION
+extern tBTM_STATUS  btm_sec_l2cap_access_req (BD_ADDR bd_addr, UINT16 psm, UINT16 handle,
+                                              BOOLEAN is_originator, tBTM_SEC_CALLBACK *p_callback);
+extern void         btm_sec_mx_access_request (BD_ADDR bd_addr, UINT16 psm, BOOLEAN is_originator,
+                                               UINT32 mx_proto_id, UINT32 mx_chan_id,
+                                               tBTM_SEC_CALLBACK *p_callback, void *p_ref_data);
+extern BOOLEAN      btm_sec_is_bonding (UINT16 handle);
+extern tBTM_STATUS  btm_sec_execute_procedure (tBTM_SEC_DEV_REC *p_dev_rec);
+extern UINT8        btm_sec_start_authorization (tBTM_SEC_DEV_REC *p_dev_rec);
+extern void         btm_sec_collision_timeout (TIMER_LIST_ENT *p_tle);
+extern void         btm_sec_pin_code_request_timeout (TIMER_LIST_ENT *p_tle);
+#else
 extern tBTM_STATUS  btm_sec_l2cap_access_req (BD_ADDR bd_addr, UINT16 psm,
                                        UINT16 handle, CONNECTION_TYPE conn_type,
                                        tBTM_SEC_CALLBACK *p_callback, void *p_ref_data);
 extern tBTM_STATUS  btm_sec_mx_access_request (BD_ADDR bd_addr, UINT16 psm, BOOLEAN is_originator,
                                         UINT32 mx_proto_id, UINT32 mx_chan_id,
                                         tBTM_SEC_CALLBACK *p_callback, void *p_ref_data);
+#endif
 extern void  btm_sec_conn_req (UINT8 *bda, UINT8 *dc);
 extern void btm_create_conn_cancel_complete (UINT8 *p);
 extern void btm_proc_lsto_evt(UINT16 handle, UINT16 timeout);

@@ -787,7 +787,7 @@ static UINT8 *save_attr_seq (tCONN_CB *p_ccb, UINT8 *p, UINT8 *p_msg_end)
     p_rec = add_record (p_ccb->p_db, p_ccb->device_address);
     if (!p_rec)
     {
-        SDP_TRACE_WARNING0 ("SDP - DB full add_record");
+        SDP_TRACE_WARNING0 ("SDP - DB full");
         return (NULL);
     }
 
@@ -810,7 +810,7 @@ static UINT8 *save_attr_seq (tCONN_CB *p_ccb, UINT8 *p, UINT8 *p_msg_end)
 
         if (!p)
         {
-            SDP_TRACE_WARNING0 ("SDP - DB full add_attr");
+            SDP_TRACE_WARNING0 ("SDP - DB full");
             return (NULL);
         }
     }

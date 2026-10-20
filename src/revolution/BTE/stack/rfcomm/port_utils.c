@@ -1,5 +1,17 @@
 /******************************************************************************
  *
+ *  NOTICE OF CHANGES
+ *  2026/10/18:
+ *      - port_allocate_port: no debug trace
+ *      - port_select_mtu: credits are not clamped to the buffer watermarks
+ *
+ *  Compile with REVOLUTION defined to include these changes.
+ *
+ ******************************************************************************/
+
+
+/******************************************************************************
+ *
  *  Copyright (C) 1999-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,11 +45,13 @@
 #include "btm_int.h"
 #include "btu.h"
 
+#ifndef REVOLUTION
 #include <cutils/log.h>
 #define info(fmt, ...)  ALOGI ("%s: " fmt,__FUNCTION__,  ## __VA_ARGS__)
 #define debug(fmt, ...) ALOGD ("%s: " fmt,__FUNCTION__,  ## __VA_ARGS__)
 #define error(fmt, ...) ALOGE ("## ERROR : %s: " fmt "##",__FUNCTION__,  ## __VA_ARGS__)
 #define asrt(s) if(!(s)) ALOGE ("## %s assert %s failed at line:%d ##",__FUNCTION__, #s, __LINE__)
+#endif
 
 
 static const tPORT_STATE default_port_pars =
@@ -92,7 +106,9 @@ tPORT *port_allocate_port (UINT8 dlci, BD_ADDR bd_addr)
             port_set_defaults (p_port);
 
             rfc_cb.rfc.last_port = yy;
+#ifndef REVOLUTION
             debug("rfc_cb.port.port[%d] allocated, last_port:%d", yy, rfc_cb.rfc.last_port);
+#endif
             return (p_port);
         }
     }
@@ -186,6 +202,11 @@ void port_select_mtu (tPORT *p_port)
     {
         RFCOMM_TRACE_DEBUG1 ("port_select_mtu application selected %d", p_port->mtu);
     }
+#ifdef REVOLUTION
+    p_port->credit_rx_max  = (PORT_RX_HIGH_WM / p_port->mtu);
+    p_port->credit_rx_low  = (PORT_RX_LOW_WM / p_port->mtu);
+    p_port->rx_buf_critical = (PORT_RX_CRITICAL_WM / p_port->mtu);
+#else
     p_port->credit_rx_max  = (PORT_RX_HIGH_WM / p_port->mtu);
     if( p_port->credit_rx_max > PORT_RX_BUF_HIGH_WM )
         p_port->credit_rx_max = PORT_RX_BUF_HIGH_WM;
@@ -195,6 +216,7 @@ void port_select_mtu (tPORT *p_port)
     p_port->rx_buf_critical = (PORT_RX_CRITICAL_WM / p_port->mtu);
     if( p_port->rx_buf_critical > PORT_RX_BUF_CRITICAL_WM )
         p_port->rx_buf_critical = PORT_RX_BUF_CRITICAL_WM;
+#endif
     RFCOMM_TRACE_DEBUG3 ("port_select_mtu credit_rx_max %d, credit_rx_low %d, rx_buf_critical %d",
                           p_port->credit_rx_max, p_port->credit_rx_low, p_port->rx_buf_critical);
 }

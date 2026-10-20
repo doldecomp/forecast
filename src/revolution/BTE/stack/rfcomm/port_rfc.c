@@ -1,5 +1,17 @@
 /******************************************************************************
  *
+ *  NOTICE OF CHANGES
+ *  2026/10/18:
+ *      - RVL trace texts (port_open_continue, port_rfc_send_tx_data)
+ *      - PORT_PortNegInd: RVL copies the parameters before the reply to an unknown port
+ *
+ *  Compile with REVOLUTION defined to include these changes.
+ *
+ ******************************************************************************/
+
+
+/******************************************************************************
+ *
  *  Copyright (C) 1999-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,7 +100,9 @@ int port_open_continue (tPORT *p_port)
     {
         /* MX state machine ignores RFC_MX_EVENT_START_REQ in these states */
         /* When it enters RFC_MX_STATE_CONNECTED, it will check any openning ports */
+#ifndef REVOLUTION
         RFCOMM_TRACE_DEBUG1 ("port_open_continue: mx state(%d) mx channel is openning", p_mcb->state);
+#endif
     }
     return (PORT_SUCCESS);
 }
@@ -554,6 +568,10 @@ void PORT_PortNegInd (tRFC_MCB *p_mcb, UINT8 dlci, tPORT_STATE *p_pars,
         p_port = port_find_dlci_port (dlci);
         if (!p_port)
         {
+#ifdef REVOLUTION
+            /* RVL stores the parameters through the NULL port here. */
+            p_port->peer_port_pars = *p_pars;
+#endif
             RFCOMM_PortNegRsp (p_mcb, dlci, p_pars, 0);
             return;
         }
@@ -983,11 +1001,16 @@ UINT32 port_rfc_send_tx_data (tPORT *p_port)
 
             if ((p_buf = (BT_HDR *)GKI_dequeue (&p_port->tx.queue)) != NULL)
             {
+#ifdef REVOLUTION
+                RFCOMM_TRACE_EVENT0 ("Sending RFCOMM_DataReq");
+#endif
                 p_port->tx.queue_size -= p_buf->len;
 
                 PORT_SCHEDULE_UNLOCK;
 
+#ifndef REVOLUTION
                 RFCOMM_TRACE_DEBUG1 ("Sending RFCOMM_DataReq tx.queue_size=%d", p_port->tx.queue_size);
+#endif
 
                 RFCOMM_DataReq (p_port->rfc.p_mcb, p_port->dlci, p_buf);
 

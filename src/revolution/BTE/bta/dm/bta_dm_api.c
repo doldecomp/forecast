@@ -39,7 +39,14 @@
 #include "gki.h"
 #include "bd.h"
 #include "bta_sys.h"
+#ifdef REVOLUTION
+#define BTA_DisableBluetooth BTA_DisableBluetooth_unused
+#endif
 #include "bta_api.h"
+#ifdef REVOLUTION
+#undef BTA_DisableBluetooth
+BTA_API extern void BTA_DisableBluetooth(void);
+#endif
 #include "bta_dm_int.h"
 #include "bta_sys_int.h"
 #include "btm_api.h"
@@ -53,13 +60,23 @@
 static const tBTA_SYS_REG bta_dm_reg =
 {
     bta_dm_sm_execute,
+#ifdef REVOLUTION
+    /* RVL never deregisters DM (no bta_dm_sm_disable in retail) */
+    NULL
+#else
     bta_dm_sm_disable
+#endif
 };
 
 static const tBTA_SYS_REG bta_dm_search_reg =
 {
     bta_dm_search_sm_execute,
+#ifdef REVOLUTION
+    /* RVL never deregisters DM search (no bta_dm_search_sm_disable in retail) */
+    NULL
+#else
     bta_dm_search_sm_disable
+#endif
 };
 
 /*******************************************************************************
@@ -78,9 +95,11 @@ tBTA_STATUS BTA_EnableBluetooth(tBTA_DM_SEC_CBACK *p_cback)
 
     tBTA_DM_API_ENABLE    *p_msg;
 
+#ifndef REVOLUTION
     /* Bluetooth disabling is in progress */
     if (bta_dm_cb.disabling)
         return BTA_FAILURE;
+#endif
 
     memset(&bta_dm_cb, 0, sizeof(bta_dm_cb));
 
@@ -88,8 +107,10 @@ tBTA_STATUS BTA_EnableBluetooth(tBTA_DM_SEC_CBACK *p_cback)
     bta_sys_register (BTA_ID_DM, &bta_dm_reg );
     bta_sys_register (BTA_ID_DM_SEARCH, &bta_dm_search_reg );
 
+#ifndef REVOLUTION
     /* if UUID list is not provided as static data */
     bta_sys_eir_register(bta_dm_eir_update_uuid);
+#endif
 
     GKI_sched_unlock();
 
@@ -114,7 +135,11 @@ tBTA_STATUS BTA_EnableBluetooth(tBTA_DM_SEC_CBACK *p_cback)
 ** Returns          void
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+void BTA_DisableBluetooth(void)
+#else
 tBTA_STATUS BTA_DisableBluetooth(void)
+#endif
 {
 
     BT_HDR    *p_msg;
@@ -124,14 +149,17 @@ tBTA_STATUS BTA_DisableBluetooth(void)
         p_msg->event = BTA_DM_API_DISABLE_EVT;
         bta_sys_sendmsg(p_msg);
     }
+#ifndef REVOLUTION
     else
     {
         return BTA_FAILURE;
     }
 
     return BTA_SUCCESS;
+#endif
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTA_EnableTestMode
@@ -179,6 +207,7 @@ void BTA_DisableTestMode(void)
         bta_sys_sendmsg(p_msg);
     }
 }
+#endif
 
 /*******************************************************************************
 **
@@ -217,6 +246,14 @@ void BTA_DmSetDeviceName(char *p_name)
 
     tBTA_DM_API_SET_NAME    *p_msg;
 
+#ifdef REVOLUTION
+    if ((p_msg = (tBTA_DM_API_SET_NAME *) GKI_getbuf(0x28)) != NULL)
+    {
+        p_msg->hdr.event = BTA_DM_API_SET_NAME_EVT;
+        strncpy(p_msg->name, p_name, 0x20);
+        bta_sys_sendmsg(p_msg);
+    }
+#else
     if ((p_msg = (tBTA_DM_API_SET_NAME *) GKI_getbuf(sizeof(tBTA_DM_API_SET_NAME))) != NULL)
     {
         p_msg->hdr.event = BTA_DM_API_SET_NAME_EVT;
@@ -226,6 +263,7 @@ void BTA_DmSetDeviceName(char *p_name)
 
         bta_sys_sendmsg(p_msg);
     }
+#endif
 
 
 }
@@ -243,9 +281,23 @@ void BTA_DmSetDeviceName(char *p_name)
 *******************************************************************************/
 #ifdef REVOLUTION
 void BTA_DmSetVisibility(tBTA_DM_DISC disc_mode, tBTA_DM_CONN conn_mode)
+{
+
+    tBTA_DM_API_SET_VISIBILITY    *p_msg;
+
+    if ((p_msg = (tBTA_DM_API_SET_VISIBILITY *) GKI_getbuf(0x110)) != NULL)
+    {
+        p_msg->hdr.event = BTA_DM_API_SET_VISIBILITY_EVT;
+        ((UINT8 *)p_msg)[8] = (UINT8)disc_mode;
+        ((UINT8 *)p_msg)[9] = (UINT8)conn_mode;
+
+        bta_sys_sendmsg(p_msg);
+    }
+
+
+}
 #else
 void BTA_DmSetVisibility(tBTA_DM_DISC disc_mode, tBTA_DM_CONN conn_mode, UINT8 pairable_mode, UINT8 conn_filter )
-#endif
 {
 
     tBTA_DM_API_SET_VISIBILITY    *p_msg;
@@ -255,10 +307,8 @@ void BTA_DmSetVisibility(tBTA_DM_DISC disc_mode, tBTA_DM_CONN conn_mode, UINT8 p
         p_msg->hdr.event = BTA_DM_API_SET_VISIBILITY_EVT;
         p_msg->disc_mode = disc_mode;
         p_msg->conn_mode = conn_mode;
-#ifndef REVOLUTION
         p_msg->pair_mode = pairable_mode;
         p_msg->conn_paired_only = conn_filter;
-#endif
 
 
         bta_sys_sendmsg(p_msg);
@@ -266,7 +316,9 @@ void BTA_DmSetVisibility(tBTA_DM_DISC disc_mode, tBTA_DM_CONN conn_mode, UINT8 p
 
 
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTA_DmSetScanParam
@@ -381,6 +433,8 @@ tBTA_STATUS BTA_DmVendorSpecificCommand (UINT16 opcode, UINT8 param_len,
         return (BTA_SUCCESS);
     }
 }
+#endif
+
 /*******************************************************************************
 **
 ** Function         BTA_DmSearch
@@ -398,6 +452,16 @@ void BTA_DmSearch(tBTA_DM_INQ *p_dm_inq, tBTA_SERVICE_MASK services, tBTA_DM_SEA
 
     tBTA_DM_API_SEARCH    *p_msg;
 
+#ifdef REVOLUTION
+    if ((p_msg = (tBTA_DM_API_SEARCH *) GKI_getbuf(0x1c)) != NULL)
+    {
+        p_msg->hdr.event = BTA_DM_API_SEARCH_EVT;
+        memcpy(&p_msg->inq_params, p_dm_inq, 0xa);
+        p_msg->services = services;
+        p_msg->p_cback = p_cback;
+        bta_sys_sendmsg(p_msg);
+    }
+#else
     if ((p_msg = (tBTA_DM_API_SEARCH *) GKI_getbuf(sizeof(tBTA_DM_API_SEARCH))) != NULL)
     {
         memset(p_msg, 0, sizeof(tBTA_DM_API_SEARCH));
@@ -409,6 +473,7 @@ void BTA_DmSearch(tBTA_DM_INQ *p_dm_inq, tBTA_SERVICE_MASK services, tBTA_DM_SEA
         p_msg->rs_res  = BTA_DM_RS_NONE;
         bta_sys_sendmsg(p_msg);
     }
+#endif
 
 }
 
@@ -435,6 +500,7 @@ void BTA_DmSearchCancel(void)
 
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTA_DmDiscover
@@ -572,6 +638,7 @@ void BTA_DmBondCancel(BD_ADDR bd_addr)
 
 
 }
+#endif
 
 /*******************************************************************************
 **
@@ -604,6 +671,7 @@ void BTA_DmPinReply(BD_ADDR bd_addr, BOOLEAN accept, UINT8 pin_len, UINT8 *p_pin
 
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTA_DmLinkPolicy
@@ -701,6 +769,7 @@ void BTA_DmPasskeyCancel(BD_ADDR bd_addr)
     }
 }
 #endif
+#endif
 
 
 /*******************************************************************************
@@ -716,12 +785,39 @@ void BTA_DmPasskeyCancel(BD_ADDR bd_addr)
 *******************************************************************************/
 #ifdef REVOLUTION
 tBTA_STATUS BTA_DmAddDevice(BD_ADDR bd_addr, LINK_KEY link_key,
-    tBTA_SERVICE_MASK trusted_mask, BOOLEAN is_trusted);
+    tBTA_SERVICE_MASK trusted_mask, BOOLEAN is_trusted)
+{
+    UINT8 index = 0;
+    UINT8 btm_mask_index;
+    UINT32 trusted_services_mask[BTM_SEC_SERVICE_ARRAY_SIZE];
+    BOOLEAN result;
+
+    memset(trusted_services_mask, 0, sizeof(trusted_services_mask));
+
+    if (is_trusted)
+    {
+        while ((trusted_mask != 0) && (index < BTA_MAX_SERVICE_ID))
+        {
+            if (trusted_mask & (1 << index))
+            {
+                btm_mask_index = bta_service_id_to_btm_srv_id_lkup_tbl[index] / BTM_SEC_ARRAY_BITS;
+                trusted_services_mask[btm_mask_index] |= (UINT32)(1 << (bta_service_id_to_btm_srv_id_lkup_tbl[index] - (UINT32)(btm_mask_index * 32)));
+                trusted_mask &= ~(1 << index);
+            }
+            index++;
+        }
+    }
+
+    GKI_sched_lock();
+    result = BTM_SecAddDevice(bd_addr, NULL, NULL, NULL, trusted_services_mask, link_key);
+    GKI_sched_unlock();
+
+    return (result ? BTA_SUCCESS : BTA_FAILURE);
+}
 #else
 void BTA_DmAddDevice(BD_ADDR bd_addr, DEV_CLASS dev_class, LINK_KEY link_key,
     tBTA_SERVICE_MASK trusted_mask, BOOLEAN is_trusted,
     UINT8 key_type, tBTA_IO_CAP io_cap)
-#endif
 {
 
     tBTA_DM_API_ADD_DEVICE *p_msg;
@@ -756,6 +852,7 @@ void BTA_DmAddDevice(BD_ADDR bd_addr, DEV_CLASS dev_class, LINK_KEY link_key,
         bta_sys_sendmsg(p_msg);
     }
 }
+#endif
 
 
 /*******************************************************************************
@@ -771,6 +868,15 @@ void BTA_DmAddDevice(BD_ADDR bd_addr, DEV_CLASS dev_class, LINK_KEY link_key,
 *******************************************************************************/
 tBTA_STATUS BTA_DmRemoveDevice(BD_ADDR bd_addr)
 {
+#ifdef REVOLUTION
+    BOOLEAN status;
+
+    GKI_sched_lock();
+    status = BTM_SecDeleteDevice(bd_addr);
+    GKI_sched_unlock();
+
+    return (status ? BTA_SUCCESS : BTA_FAILURE);
+#else
     tBTA_DM_API_REMOVE_DEVICE *p_msg;
 
     if ((p_msg = (tBTA_DM_API_REMOVE_DEVICE *) GKI_getbuf(sizeof(tBTA_DM_API_REMOVE_DEVICE))) != NULL)
@@ -787,8 +893,10 @@ tBTA_STATUS BTA_DmRemoveDevice(BD_ADDR bd_addr)
     }
 
     return BTA_SUCCESS;
+#endif
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTA_DmAddDevWithName
@@ -1638,6 +1746,7 @@ void BTA_DmSetEncryption(BD_ADDR bd_addr, tBTA_DM_ENCRYPT_CBACK *p_callback,
         bta_sys_sendmsg(p_msg);
     }
 }
+#endif
 
 #ifdef REVOLUTION
 /*******************************************************************************
@@ -1647,7 +1756,14 @@ void BTA_DmSetEncryption(BD_ADDR bd_addr, tBTA_DM_ENCRYPT_CBACK *p_callback,
 ** Returns          void
 **
 *******************************************************************************/
-void BTA_DmSendHciReset(void) {
-    ;
+void BTA_DmSendHciReset(void)
+{
+    BT_HDR *p_msg;
+
+    if ((p_msg = (BT_HDR *) GKI_getbuf(sizeof(BT_HDR))) != NULL)
+    {
+        p_msg->event = 0x10c;
+        bta_sys_sendmsg(p_msg);
+    }
 }
 #endif

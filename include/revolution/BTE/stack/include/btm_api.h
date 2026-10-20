@@ -101,12 +101,21 @@ typedef struct
 } tBTM_VERSION_INFO;
 
 /* Structure returned with Vendor Specific Command complete callback */
+#ifdef REVOLUTION
+typedef struct
+{
+    UINT16  opcode;
+    UINT16  length;
+    UINT8   param[0x10C]; /* retail size (HCI command size in the 2006 stack) */
+} tBTM_VSC_CMPL;
+#else
 typedef struct
 {
     UINT16  opcode;
     UINT16  param_len;
     UINT8   *p_param_buf;
 } tBTM_VSC_CMPL;
+#endif
 
 #define  BTM_VSC_CMPL_DATA_SIZE  (BTM_MAX_VENDOR_SPECIFIC_LEN + sizeof(tBTM_VSC_CMPL))
 /**************************************************
@@ -196,10 +205,17 @@ typedef UINT8 (tBTM_FILTER_CB) (BD_ADDR bd_addr, DEV_CLASS dc);
 /* BTM_IsInquiryActive return values (Bit Mask)
  * Note: These bit masks are associated with the inquiry modes (BTM_*_INQUIRY) */
 #define BTM_INQUIRY_INACTIVE        0x0     /* no inquiry in progress */
+#ifdef REVOLUTION
+/* RVL bit values: limited 1, general 2, periodic 4 (btm_inq tests these bits). */
+#define BTM_LIMITED_INQUIRY_ACTIVE  0x1     /* a limited inquiry is in progress */
+#define BTM_GENERAL_INQUIRY_ACTIVE  0x2     /* a general inquiry is in progress */
+#define BTM_PERIODIC_INQUIRY_ACTIVE 0x4     /* a periodic inquiry is active */
+#else
 #define BTM_GENERAL_INQUIRY_ACTIVE  0x1     /* a general inquiry is in progress */
 #define BTM_LIMITED_INQUIRY_ACTIVE  0x2     /* a limited inquiry is in progress */
 #define BTM_PERIODIC_INQUIRY_ACTIVE 0x8     /* a periodic inquiry is active */
 #define BTM_SSP_INQUIRY_ACTIVE      0x4     /* SSP is active, so inquiry is disallowed (work around for FW bug) */
+#endif
 
 /* Define scan types */
 #define BTM_SCAN_TYPE_STANDARD      0
@@ -565,7 +581,9 @@ typedef struct              /* contains the parameters passed to the inquiry fun
     UINT8   mode;                       /* general or limited */
     UINT8   duration;                   /* duration of the inquiry (1.28 sec increments) */
     UINT8   max_resps;                  /* maximum number of responses to return */
+#ifndef REVOLUTION
     BOOLEAN report_dup;                 /* report duplicated inquiry response with higher RSSI value */
+#endif
     UINT8   filter_cond_type;           /* new devices, BD ADDR, COD, or No filtering */
     tBTM_INQ_FILT_COND  filter_cond;    /* filter value based on filter cond type */
 } tBTM_INQ_PARMS;
@@ -668,7 +686,11 @@ typedef void (tBTM_INQ_DB_CHANGE_CB) (void *p1, BOOLEAN is_new);
 /* Callback function for notifications when the BTM gets inquiry response.
 ** First param is inquiry results database, second is pointer of EIR.
 */
+#ifdef REVOLUTION
+typedef void (tBTM_INQ_RESULTS_CB) (tBTM_INQ_RESULTS *p_inq_results);
+#else
 typedef void (tBTM_INQ_RESULTS_CB) (tBTM_INQ_RESULTS *p_inq_results, UINT8 *p_eir);
+#endif
 
 /*****************************************************************************
 **  ACL CHANNEL MANAGEMENT
@@ -1695,6 +1717,7 @@ typedef struct
     tBTM_LINK_KEY_REQ_CALLBACK  *p_link_key_req_callback;
     tBTM_AUTH_COMPLETE_CALLBACK *p_auth_complete_callback;
     tBTM_ABORT_CALLBACK         *p_abort_callback;
+#ifndef REVOLUTION
     tBTM_BOND_CANCEL_CMPL_CALLBACK *p_bond_cancel_cmpl_callback;
     tBTM_SP_CALLBACK            *p_sp_callback;
 #if BLE_INCLUDED == TRUE
@@ -1702,6 +1725,7 @@ typedef struct
     tBTM_LE_CALLBACK            *p_le_callback;
 #endif
     tBTM_LE_KEY_CALLBACK        *p_le_key_callback;
+#endif
 #endif
 } tBTM_APPL_INFO;
 
@@ -1723,7 +1747,9 @@ enum
     BTM_PM_STS_HOLD   = HCI_MODE_HOLD,
     BTM_PM_STS_SNIFF  = HCI_MODE_SNIFF,
     BTM_PM_STS_PARK   = HCI_MODE_PARK,
+#if BTM_SSR_INCLUDED == TRUE
     BTM_PM_STS_SSR,     /* report the SSR parameters in HCI_SNIFF_SUB_RATE_EVT */
+#endif
     BTM_PM_STS_PENDING,   /* when waiting for status from controller */
     BTM_PM_STS_ERROR   /* when HCI command status returns error */
 };
@@ -2920,8 +2946,10 @@ BTM_API extern BOOLEAN BTM_TryAllocateSCN(UINT8 scn);
 ** Returns          BTM_CMD_STARTED if successfully initiated, otherwise error
 **
 *******************************************************************************/
+#ifndef REVOLUTION /* RVL: file-local in btm_acl.c */
     BTM_API extern tBTM_STATUS BTM_SetLinkSuperTout (BD_ADDR remote_bda,
                                                      UINT16 timeout);
+#endif
 
 /*******************************************************************************
 **
@@ -3727,10 +3755,16 @@ BTM_API extern tBTM_STATUS BTM_SetWBSCodec (tBTM_SCO_CODEC_TYPE codec_type);
 ** Returns          TRUE if added OK, else FALSE
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+    BTM_API extern BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class,
+                                             BD_NAME bd_name, BD_FEATURES features,
+                                             UINT32 trusted_mask[], LINK_KEY link_key);
+#else
     BTM_API extern BOOLEAN BTM_SecAddDevice (BD_ADDR bd_addr, DEV_CLASS dev_class,
                                              BD_NAME bd_name, BD_FEATURES features,
                                              UINT32 trusted_mask[], LINK_KEY link_key,
                                              UINT8 key_type, tBTM_IO_CAP io_cap);
+#endif
 
 
 /*******************************************************************************

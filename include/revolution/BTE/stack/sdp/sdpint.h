@@ -181,21 +181,19 @@ typedef struct
 
     BD_ADDR           device_address;
     TIMER_LIST_ENT    timer_entry;
-    UINT16            rem_mtu_size;
-    UINT16            connection_id;
-    UINT16            list_len;                 /* length of the response in the GKI buffer */
-    UINT8             *rsp_list;                /* pointer to GKI buffer holding response */
+    UINT16            rem_mtu_size;             /* at 0x20 */
+    UINT16            connection_id;            /* at 0x22 */
+    UINT16            list_len;                 /* at 0x24, length of the response in the GKI buffer */
+    UINT8             rsp_list[SDP_MAX_LIST_BYTE_COUNT]; /* at 0x26, response data */
 
 #if SDP_CLIENT_ENABLED == TRUE
-    tSDP_DISCOVERY_DB *p_db;                    /* Database to save info into   */
-    tSDP_DISC_CMPL_CB *p_cb;                    /* Callback for discovery done  */
-    tSDP_DISC_CMPL_CB2 *p_cb2;                   /* Callback for discovery done piggy back with the user data */
-    void               *user_data;              /* piggy back user data */
-    UINT32            handles[SDP_MAX_DISC_SERVER_RECS]; /* Discovered server record handles */
-    UINT16            num_handles;              /* Number of server handles     */
-    UINT16            cur_handle;               /* Current handle being processed */
-    UINT16            transaction_id;
-    UINT16            disconnect_reason;        /* Disconnect reason            */
+    tSDP_DISCOVERY_DB *p_db;                    /* at 0x410, database to save info into */
+    tSDP_DISC_CMPL_CB *p_cb;                    /* at 0x414, callback for discovery done */
+    UINT32            handles[SDP_MAX_DISC_SERVER_RECS]; /* at 0x418, discovered server record handles */
+    UINT16            num_handles;              /* at 0x46C, number of server handles */
+    UINT16            cur_handle;               /* at 0x46E, current handle being processed */
+    UINT16            transaction_id;           /* at 0x470 */
+    UINT16            disconnect_reason;        /* at 0x472, disconnect reason */
 #if (defined(SDP_BROWSE_PLUS) && SDP_BROWSE_PLUS == TRUE)
     UINT16            cur_uuid_idx;
 #endif
@@ -207,16 +205,15 @@ typedef struct
 #define SDP_DISC_WAIT_PASS_THRU     4    /* only when SDP_FOR_JV_INCLUDED == TRUE */
 #define SDP_DISC_WAIT_CANCEL        5
 
-    UINT8             disc_state;
-    UINT8             is_attr_search;
+    UINT8             disc_state;               /* at 0x474 */
+    UINT8             is_attr_search;           /* at 0x475 */
 #endif  /* SDP_CLIENT_ENABLED == TRUE */
 
 #if SDP_SERVER_ENABLED == TRUE
-    UINT16            cont_offset;              /* Continuation state data in the server response */
-    tSDP_CONT_INFO    cont_info;                /* structure to hold continuation information for the server response */
+    UINT16            cont_offset;              /* at 0x476, continuation state in the server response */
 #endif  /* SDP_SERVER_ENABLED == TRUE */
 
-} tCONN_CB;
+} tCONN_CB;                                     /* size 0x478 */
 
 
 /*  The main SDP control block */

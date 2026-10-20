@@ -137,7 +137,12 @@ typedef void (*tBTU_EVENT_CALLBACK)(BT_HDR *p_hdr);
 #define BTU_TTYPE_L2CAP_INFO        79
 
 /* BTU internal for BR/EDR and AMP HCI command timeout (reserve up to 3 AMP controller) */
+#ifdef REVOLUTION
+/* RVL runs a single controller and uses 60 for its command timeout */
+#define BTU_TTYPE_BTU_CMD_CMPL                      60
+#else
 #define BTU_TTYPE_BTU_CMD_CMPL                      80
+#endif
 #define BTU_TTYPE_BTU_AMP1_CMD_CMPL                 81
 #define BTU_TTYPE_BTU_AMP2_CMD_CMPL                 82
 #define BTU_TTYPE_BTU_AMP3_CMD_CMPL                 83
@@ -243,10 +248,12 @@ typedef struct
     BOOLEAN   reset_complete;               /* TRUE after first ack from device received */
     UINT8     trace_level;                  /* Trace level for HCI layer */
 
+#ifndef REVOLUTION
     /* Fields used by the bluedroid sources in this tree that are not part of
        the retail structure; kept so those sources still build. */
     TIMER_LIST_Q  quick_timer_queue;        /* Timer queue for transport level (100/10 msec)*/
     tHCI_CMD_CB hci_cmd_cb[BTU_MAX_LOCAL_CTRLS]; /* including BR/EDR */
+#endif
 } tBTU_CB;
 
 #ifdef __cplusplus
@@ -266,6 +273,12 @@ BTU_API extern const BD_ADDR        BT_BD_ANY;
 /* Functions provided by btu_task.c
 ************************************
 */
+#ifdef REVOLUTION
+BTU_API extern void btu_task_init (void);
+BTU_API extern void btu_task_msg_handler (void);
+BTU_API extern void BTE_InitStack (void);
+#endif
+
 BTU_API extern void btu_start_timer (TIMER_LIST_ENT *p_tle, UINT16 type, UINT32 timeout);
 BTU_API extern void btu_stop_timer (TIMER_LIST_ENT *p_tle);
 BTU_API extern void btu_register_timer (TIMER_LIST_ENT *p_tle, UINT16 type, UINT32 timeout, tBTU_TIMER_CALLBACK timer_cb);
@@ -296,10 +309,19 @@ BTU_API extern void btu_check_bt_sleep (void);
 /* Functions provided by btu_hcif.c
 ************************************
 */
+#ifdef REVOLUTION
+BTU_API extern void  btu_hcif_process_event (BT_HDR *p_buf);
+BTU_API extern void  btu_hcif_send_cmd (BT_HDR *p_msg);
+#else
 BTU_API extern void  btu_hcif_process_event (UINT8 controller_id, BT_HDR *p_buf);
 BTU_API extern void  btu_hcif_send_cmd (UINT8 controller_id, BT_HDR *p_msg);
+#endif
 BTU_API extern void  btu_hcif_send_host_rdy_for_data(void);
+#ifdef REVOLUTION
+BTU_API extern void  btu_hcif_cmd_timeout (void);
+#else
 BTU_API extern void  btu_hcif_cmd_timeout (UINT8 controller_id);
+#endif
 
 /* Functions provided by btu_core.c
 ************************************

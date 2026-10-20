@@ -69,7 +69,11 @@ BOOLEAN l2c_link_hci_conn_req (BD_ADDR bd_addr)
     /* If we don't have one, create one and accept the connection. */
     if (!p_lcb)
     {
+#ifdef REVOLUTION
+        p_lcb = l2cu_allocate_lcb (bd_addr);
+#else
         p_lcb = l2cu_allocate_lcb (bd_addr, FALSE);
+#endif
         if (!p_lcb)
         {
             btsnd_hcic_reject_conn (bd_addr, HCI_ERR_HOST_REJECT_RESOURCES);

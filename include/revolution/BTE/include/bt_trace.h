@@ -315,7 +315,12 @@ EXPORT_API extern void BTTRC_StackTrace6(tBTTRC_LAYER_ID layer_id,
 #endif
 
 #ifndef RFCOMM_INITIAL_TRACE_LEVEL
+#ifdef REVOLUTION
+/* The retail channel starts RFCOMM with debug traces enabled. */
+#define RFCOMM_INITIAL_TRACE_LEVEL          BT_TRACE_LEVEL_DEBUG
+#else
 #define RFCOMM_INITIAL_TRACE_LEVEL          BT_TRACE_LEVEL_WARNING
+#endif
 #endif
 
 #ifndef OBX_INITIAL_TRACE_LEVEL
@@ -323,7 +328,12 @@ EXPORT_API extern void BTTRC_StackTrace6(tBTTRC_LAYER_ID layer_id,
 #endif
 
 #ifndef SDP_INITIAL_TRACE_LEVEL
+#ifdef REVOLUTION
+/* RVL starts with SDP tracing off: sdp_init stores 0 in sdp_cb.trace_level. */
+#define SDP_INITIAL_TRACE_LEVEL             BT_TRACE_LEVEL_NONE
+#else
 #define SDP_INITIAL_TRACE_LEVEL             BT_TRACE_LEVEL_WARNING
+#endif
 #endif
 
 #ifndef TCS_INITIAL_TRACE_LEVEL

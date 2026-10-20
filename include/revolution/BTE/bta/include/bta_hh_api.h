@@ -66,6 +66,9 @@
 #define BTA_HH_RMV_DEV_EVT      12      /* remove device finished */
 #define BTA_HH_VC_UNPLUG_EVT    13      /* virtually unplugged */
 #define BTA_HH_UPDATE_UCD_EVT   14
+#ifdef REVOLUTION
+#define BTA_HH_ACL_QUEUE_INFO_EVT 15
+#endif
 #define BTA_HH_API_ERR_EVT      15      /* API error is caught */
 
 typedef UINT16 tBTA_HH_EVT;
@@ -181,6 +184,22 @@ typedef tHID_DEV_DSCP_INFO tBTA_HH_DEV_DESCR;
 
 
 /* report descriptor information */
+#ifdef REVOLUTION
+/* RVL sizeof(tBTA_HH) is 0x20 (proven by the memset in bta_hh_sm_execute), so
+   this member is 32 bytes. Exact field split is TBD (bta_hh_act will prove it
+   via field offsets); vendor/product/version/ctry_code/descriptor offsets are
+   kept compatible with the 2012 layout. */
+typedef struct
+{
+    UINT16              vendor_id;      /* vendor ID */
+    UINT16              product_id;     /* product ID */
+    UINT16              version;        /* version */
+    UINT8               ctry_code;      /*Country Code.*/
+    UINT8               pad1;
+    tBTA_HH_DEV_DESCR   descriptor;
+    UINT8               rsvd[16];
+}tBTA_HH_DEV_DSCP_INFO;
+#else
 typedef struct
 {
     UINT16              vendor_id;      /* vendor ID */
@@ -191,6 +210,7 @@ typedef struct
     UINT8               ctry_code;      /*Country Code.*/
     tBTA_HH_DEV_DESCR   descriptor;
 }tBTA_HH_DEV_DSCP_INFO;
+#endif
 
 /* callback event data for BTA_HH_OPEN_EVT */
 typedef struct
@@ -256,14 +276,40 @@ typedef struct
 {
     tBTA_HH_STATUS  status;                 /* handshake status */
     UINT8           handle;                 /* device handle    */
+#ifdef REVOLUTION
+    /* RVL rsp_data is 8 inline bytes (GET_RPT memcpys the BT_HDR here);
+       exact field split TBD */
+    union
+    {
+        tBTA_HH_PROTO_MODE      proto_mode; /* GET_PROTO_EVT :protocol mode */
+        UINT8                   idle_rate;  /* GET_IDLE_EVT  : idle rate    */
+        UINT8                   raw[8];     /* GET_RPT_EVT   : raw bytes    */
+    }               rsp_data;
+#else
     union
     {
         tBTA_HH_PROTO_MODE      proto_mode; /* GET_PROTO_EVT :protocol mode */
         BT_HDR                  *p_rpt_data;   /* GET_RPT_EVT   : report data  */
         UINT8                   idle_rate;  /* GET_IDLE_EVT  : idle rate    */
     }               rsp_data;
+#endif
 
 }tBTA_HH_HSDATA;
+
+#ifdef REVOLUTION
+typedef struct
+{
+    UINT16              num_avail_buffs;
+    UINT16              num_buffs;
+    UINT16              num_links;
+    struct
+    {
+        UINT8           handle;
+        UINT16          num_queued;
+        UINT16          num_not_acked;
+    }                   queue_info[4];
+} tBTA_HH_ACL_QUEUE_INFO;
+#endif
 
 /* union of data associated with HD callback */
 typedef union
@@ -281,6 +327,9 @@ typedef union
                                                    BTA_HH_GET_RPT_EVT
                                                    BTA_HH_GET_PROTO_EVT
                                                    BTA_HH_GET_IDLE_EVT */
+#ifdef REVOLUTION
+    tBTA_HH_ACL_QUEUE_INFO  acl_queue_info;
+#endif
 } tBTA_HH;
 
 /* BTA HH callback function */

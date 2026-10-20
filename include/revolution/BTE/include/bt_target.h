@@ -3,6 +3,9 @@
  *  NOTICE OF CHANGES
  *  2024/03/25:
  *      - Add #defines for RVL target
+ *  2026/10/18:
+ *      - RVL initial trace levels for BTM, RFCOMM and HID, no HID host retries
+ *      - RVL RFCOMM port watermarks, no scheduler lock
  *
  *  Compile with REVOLUTION defined to include these changes.
  *
@@ -48,11 +51,72 @@
 
 #define BT_USE_TRACES           TRUE
 
+/* The RVL build has BTA HH debug traces compiled in (they are gated at runtime
+   by appl_trace_level); bta_hh_trace_dev_db() is present in the retail DOL. */
+#define BTA_HH_DEBUG            TRUE
+
+/* RVL keeps 16 known HH devices (16 x 0x20 kdev entries); 2012 default is 7. */
+#define HID_HOST_MAX_DEVICES      16
+
 #define BTM_SSR_INCLUDED        FALSE
 #define BTM_EIR_SERVER_INCLUDED FALSE
+#define BTM_EIR_CLIENT_INCLUDED FALSE
+#define L2CAP_NON_FLUSHABLE_PB_INCLUDED FALSE
+#define BTM_BUSY_LEVEL_CHANGE_INCLUDED FALSE
+#define BTM_SEC_MAX_SERVICES    46
+#define BTM_SEC_MAX_SERVICE_RECORDS 24
+#define BTM_SEC_MAX_DEVICE_RECORDS 16
+#define BTM_MAX_REM_BD_NAME_LEN 64
+
+#define MAX_L2CAP_LINKS         4
+#define BTM_MAX_LOC_BD_NAME_LEN 31
+
+#define BTM_DISC_DURING_RS      FALSE
+
+/* RVL SDP response scratchpad is 1000 bytes: sdp_discovery rejects a response
+   whose accumulated length would exceed 0x3E8 (2012 uses 4096). */
+#define SDP_MAX_LIST_BYTE_COUNT 1000
+
+/* RVL keeps 12 attribute filters (SDP_InitDiscoveryDb rejects num_attr > 12);
+   tSDP_DISCOVERY_DB::attr_filters sits at 0x4E and p_free_mem at 0x68. */
+#define SDP_MAX_ATTR_FILTERS    12
+
+/* RVL pads each server record with 350 bytes, so tSDP_RECORD is 0x298 and the
+   20-record server database is 0x33E8: sdp_cb.reg_info lands on 0x4604. */
+#define SDP_MAX_PAD_LEN         350
+
+/* RVL bounds an attribute at 80 bytes: sdp_db's SDP_AddUuidSequence checks
+   SDP_MAX_ATTR_LEN - 3 == 0x4D and uses an 0x80-byte scratch buffer. */
+#define SDP_MAX_ATTR_LEN        80
 
 #define BTA_DM_COD              {0x40, 0x02, 0x04}
 #define BTA_SYS_TIMER_PERIOD    1000
+
+#define BTM_MAX_VSE_CALLBACKS   1
+
+/* RVL inquiry database holds 12 entries (btm_inq loops stop at 0xC). */
+#define BTM_INQ_DB_SIZE         12
+
+/* RVL initial trace levels (btm_init stores 0, RFCOMM_Init stores 5). */
+#define BTM_INITIAL_TRACE_LEVEL     BT_TRACE_LEVEL_NONE
+#define RFCOMM_INITIAL_TRACE_LEVEL  BT_TRACE_LEVEL_DEBUG
+#define HID_INITIAL_TRACE_LEVEL     BT_TRACE_LEVEL_NONE
+
+/* RVL HID host never retries a page (no repage timer in hidh_conn). */
+#define HID_HOST_MAX_CONN_RETRY     (0)
+
+/* RVL RFCOMM port receive/transmit watermarks (fixed byte counts, not MTU based). */
+#define PORT_RX_LOW_WM              5000
+#define PORT_RX_HIGH_WM             8000
+#define PORT_RX_CRITICAL_WM         12000
+#define PORT_RX_BUF_LOW_WM          8
+#define PORT_RX_BUF_HIGH_WM         16
+#define PORT_TX_HIGH_WM             8000
+#define PORT_TX_BUF_HIGH_WM         16
+
+/* RVL RFCOMM does not lock the scheduler around queue updates. */
+#define PORT_SCHEDULE_LOCK
+#define PORT_SCHEDULE_UNLOCK
 
 #endif
 
@@ -1086,7 +1150,7 @@ and USER_HW_DISABLE_API macros */
 
 /* The number of SCO links. */
 #ifndef BTM_MAX_SCO_LINKS
-#define BTM_MAX_SCO_LINKS           2
+#define BTM_MAX_SCO_LINKS           3
 #endif
 
 /* The preferred type of SCO links (2-eSCO, 0-SCO). */
@@ -1277,10 +1341,12 @@ and USER_HW_DISABLE_API macros */
 #endif
 
 /* The maximum number of simultaneous links that L2CAP can support. */
+#ifndef MAX_L2CAP_LINKS
 #ifndef MAX_ACL_CONNECTIONS
 #define MAX_L2CAP_LINKS             7
 #else
 #define MAX_L2CAP_LINKS             MAX_ACL_CONNECTIONS
+#endif
 #endif
 
 /* The maximum number of simultaneous channels that L2CAP can support. */

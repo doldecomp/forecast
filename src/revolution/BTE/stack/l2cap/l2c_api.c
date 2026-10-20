@@ -254,7 +254,11 @@ UINT16 L2CA_ErtmConnectReq (UINT16 psm, BD_ADDR p_bd_addr, tL2CAP_ERTM_INFO *p_e
     if ((p_lcb = l2cu_find_lcb_by_bd_addr (p_bd_addr)) == NULL)
     {
         /* No link. Get an LCB and start link establishment */
+#ifdef REVOLUTION
+        if ( ((p_lcb = l2cu_allocate_lcb (p_bd_addr)) == NULL)
+#else
         if ( ((p_lcb = l2cu_allocate_lcb (p_bd_addr, FALSE)) == NULL)
+#endif
          ||  (l2cu_create_conn(p_lcb) == FALSE) )
         {
             L2CAP_TRACE_WARNING2 ("L2CAP - conn not started for PSM: 0x%04x  p_lcb: 0x%08x", psm, p_lcb);
@@ -597,7 +601,11 @@ BOOLEAN  L2CA_Ping (BD_ADDR p_bd_addr, tL2CA_ECHO_RSP_CB *p_callback)
     if ((p_lcb = l2cu_find_lcb_by_bd_addr (p_bd_addr)) == NULL)
     {
         /* No link. Get an LCB and start link establishment */
+#ifdef REVOLUTION
+        if ((p_lcb = l2cu_allocate_lcb (p_bd_addr)) == NULL)
+#else
         if ((p_lcb = l2cu_allocate_lcb (p_bd_addr, FALSE)) == NULL)
+#endif
         {
             L2CAP_TRACE_WARNING0 ("L2CAP - no LCB for L2CA_ping");
             return (FALSE);
@@ -880,7 +888,11 @@ UINT16 L2CA_LocalLoopbackReq (UINT16 psm, UINT16 handle, BD_ADDR p_bd_addr)
         return (0);
     }
 
+#ifdef REVOLUTION
+    if ((p_lcb = l2cu_allocate_lcb (p_bd_addr)) == NULL)
+#else
     if ((p_lcb = l2cu_allocate_lcb (p_bd_addr, FALSE)) == NULL)
+#endif
     {
         L2CAP_TRACE_WARNING0 ("L2CAP - no LCB for L2CA_conn_req");
         return (0);
@@ -1354,7 +1366,11 @@ BOOLEAN L2CA_ConnectFixedChnl (UINT16 fixed_cid, BD_ADDR rem_bda)
     }
 
     /* No link. Get an LCB and start link establishment */
+#ifdef REVOLUTION
+    if ((p_lcb = l2cu_allocate_lcb (rem_bda)) == NULL)
+#else
     if ((p_lcb = l2cu_allocate_lcb (rem_bda, FALSE)) == NULL)
+#endif
     {
         L2CAP_TRACE_WARNING1 ("L2CA_ConnectFixedChnl(0x%04x) - no LCB", fixed_cid);
         return (FALSE);

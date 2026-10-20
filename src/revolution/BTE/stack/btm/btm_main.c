@@ -1,5 +1,16 @@
 /******************************************************************************
  *
+ *  NOTICE OF CHANGES
+ *  2026/10/18:
+ *      - btm_init: start the security manager in BTM_SEC_MODE_SERVICE
+ *
+ *  Compile with REVOLUTION defined to include these changes.
+ *
+ ******************************************************************************/
+
+
+/******************************************************************************
+ *
  *  Copyright (C) 2002-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,7 +70,11 @@ void btm_init (void)
     /* Initialize BTM component structures */
     btm_inq_db_init();                  /* Inquiry Database and Structures */
     btm_acl_init();                     /* ACL Database and Structures */
+#ifdef REVOLUTION
+    btm_sec_init(BTM_SEC_MODE_SERVICE); /* Security Manager Database and Structures */
+#else
     btm_sec_init(BTM_SEC_MODE_SP);      /* Security Manager Database and Structures */
+#endif
 #if BTM_SCO_INCLUDED == TRUE
     btm_sco_init();                     /* SCO Database and Structures (If included) */
 #endif

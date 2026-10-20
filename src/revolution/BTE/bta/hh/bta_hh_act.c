@@ -33,10 +33,23 @@
 #include "l2c_api.h"
 #include "bta_hh_int.h"
 #include "bta_hh_co.h"
+#ifdef REVOLUTION
+#include "l2c_int.h"
+#include "hidh_int.h"
+#endif
 
 /*****************************************************************************
 **  Constants
 *****************************************************************************/
+
+#ifdef REVOLUTION
+/* Empty service name handed to HID_HostSetSecurityLevel; the retail build
+   keeps this as an 8-byte .sdata object (0x803308F0), not a pooled literal.
+   explicit_zero_data keeps the all-zero initializer in .sdata (not .sbss). */
+#pragma explicit_zero_data on
+static char bta_hh_sec_serv_name[8] = "";
+#pragma explicit_zero_data reset
+#endif
 
 
 /*****************************************************************************
@@ -74,7 +87,11 @@ void bta_hh_api_enable(tBTA_HH_DATA *p_data)
 
     memset(&bta_hh_cb, 0, sizeof(tBTA_HH_CB));
 
+#ifdef REVOLUTION
+    HID_HostSetSecurityLevel(bta_hh_sec_serv_name, p_data->api_enable.sec_mask);
+#else
     HID_HostSetSecurityLevel("", p_data->api_enable.sec_mask);
+#endif
 
     /* Register with L2CAP */
     if ( HID_HostRegister (bta_hh_cback) == HID_SUCCESS)
@@ -162,7 +179,11 @@ void bta_hh_disc_cmpl(void)
     /* free buffer in CB holding report descriptors */
     for(xx = 0; xx < BTA_HH_MAX_KNOWN; xx ++)
     {
+#ifdef REVOLUTION
+        utl_freebuf((void **)&bta_hh_cb.kdev[xx].dscp_info.dsc_list);
+#else
         utl_freebuf((void **)&bta_hh_cb.kdev[xx].dscp_info.descriptor.dsc_list);
+#endif
     }
     utl_freebuf((void **)&bta_hh_cb.p_disc_db);
 
@@ -184,7 +205,12 @@ static void bta_hh_sdp_cback(UINT16 result, UINT16 attr_mask,
 {
     tBTA_HH_DEV_CB     *p_cb = bta_hh_cb.p_cur;
     UINT8              hdl;
+#ifdef REVOLUTION
+    /* RVL initializes status to 0x10 (dead: overwritten on all paths below) */
+    tBTA_HH_STATUS    status = 0x10;
+#else
     tBTA_HH_STATUS    status = BTA_HH_ERR_SDP;
+#endif
 
     if (result == SDP_SUCCESS)
     {
@@ -201,6 +227,26 @@ static void bta_hh_sdp_cback(UINT16 result, UINT16 attr_mask,
         /* check to see type of device is supported , and should not been added before */
         if (bta_hh_tod_spt(p_cb, sdp_rec->sub_class))
         {
+#ifdef REVOLUTION
+            /* RVL: HID_HostAddDev's result is the status, and the device is
+               only added to the list after a fresh successful add */
+            if (p_cb->hid_handle == BTA_HH_INVALID_HANDLE)
+            {
+                if((status = HID_HostAddDev (p_cb->addr, attr_mask, &hdl)) == HID_SUCCESS)
+                {
+                    /* update cb_index[] map */
+                    bta_hh_cb.cb_index[hdl] = p_cb->index;
+                    bta_hh_add_device_to_list(p_cb,  hdl, attr_mask,
+                                                &sdp_rec->dscp_info,
+                                                sdp_rec->sub_class,
+                                                p_cb->app_id);
+                }
+                else
+                {
+                    p_cb->app_id = 0;
+                }
+            }
+#else
             /* if not added before */
             if (p_cb->hid_handle == BTA_HH_INVALID_HANDLE)
             {
@@ -220,7 +266,6 @@ static void bta_hh_sdp_cback(UINT16 result, UINT16 attr_mask,
 
             if (p_cb->app_id != 0)
             {
-                /* update cb information with attr_mask, dscp_info etc. */
                 bta_hh_add_device_to_list(p_cb,  hdl, attr_mask,
                                             &sdp_rec->dscp_info,
                                             sdp_rec->sub_class,
@@ -232,10 +277,16 @@ static void bta_hh_sdp_cback(UINT16 result, UINT16 attr_mask,
 
                 status = BTA_HH_OK;
             }
+#endif
 
         }
         else /* type of device is not supported */
+#ifdef REVOLUTION
+            /* RVL reports 0xFF here; bta_hh_sdp_cmpl maps it to TOD_UNSPT */
+            status = BTA_HH_INVALID_HANDLE;
+#else
             status = BTA_HH_ERR_TOD_UNSPT;
+#endif
     }
 
     /* free disc_db when SDP is completed */
@@ -256,6 +307,7 @@ static void bta_hh_sdp_cback(UINT16 result, UINT16 attr_mask,
 ** Returns          void
 **
 *******************************************************************************/
+#if BTA_DI_INCLUDED == TRUE
 static void bta_hh_di_sdp_cback(UINT16 result)
 {
     tBTA_HH_DEV_CB     *p_cb = bta_hh_cb.p_cur;
@@ -311,6 +363,7 @@ static void bta_hh_di_sdp_cback(UINT16 result)
     return;
 
 }
+#endif /* BTA_DI_INCLUDED == TRUE */
 
 
 /*******************************************************************************
@@ -327,7 +380,12 @@ static void bta_hh_di_sdp_cback(UINT16 result)
 *******************************************************************************/
 void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
 {
+#ifdef REVOLUTION
+    /* RVL initializes status to 0x10 (dead: overwritten on all paths below) */
+    tBTA_HH_STATUS          status = 0x10;
+#else
     tBTA_HH_STATUS          status = BTA_HH_ERR_SDP;
+#endif
     UINT8                   hdl;
 
     p_cb->sec_mask  = p_data->api_conn.sec_mask;
@@ -340,12 +398,24 @@ void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
 #if BTA_HH_DEBUG
         APPL_TRACE_DEBUG0("bta_hh_start_sdp:: skip SDP for known devices");
 #endif
+#ifdef REVOLUTION
+        if (p_cb->hid_handle == BTA_HH_INVALID_HANDLE)
+        {
+            if ((status = HID_HostAddDev(p_cb->addr, p_cb->attr_mask, &hdl)) == HID_SUCCESS)
+            {
+                bta_hh_add_device_to_list(p_cb,  hdl, p_cb->attr_mask, NULL,
+                                          p_cb->sub_class,
+                                          p_cb->app_id);
+                /* update cb_index[] map */
+                bta_hh_cb.cb_index[hdl] = p_cb->index;
+            }
+        }
+#else
         if (p_cb->hid_handle == BTA_HH_INVALID_HANDLE)
         {
             if ((HID_HostAddDev (p_cb->addr, p_cb->attr_mask, &hdl)) \
                 == HID_SUCCESS)
             {
-                /* update device CB with newly register device handle */
                 bta_hh_add_device_to_list(p_cb,  hdl, p_cb->attr_mask, NULL,
                                           p_cb->sub_class,
                                           p_cb->dscp_info.ssr_max_latency,
@@ -359,6 +429,7 @@ void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
                 status = BTA_HH_ERR_SDP;
             }
         }
+#endif
         bta_hh_sm_execute(p_cb, BTA_HH_SDP_CMPL_EVT, (tBTA_HH_DATA *)&status);
 
         return;
@@ -368,6 +439,21 @@ void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     {
         bta_hh_cb.p_disc_db = (tSDP_DISCOVERY_DB *) GKI_getbuf(p_bta_hh_cfg->sdp_db_size);
 
+#ifdef REVOLUTION
+        /* RVL does no NULL check and no DI discovery here */
+        bta_hh_cb.p_cur = p_cb;
+        if ((status = HID_HostGetSDPRecord(p_data->api_conn.bd_addr,
+                                           bta_hh_cb.p_disc_db,
+                                           p_bta_hh_cfg->sdp_db_size,
+                                           bta_hh_sdp_cback)) != HID_SUCCESS)
+        {
+#if BTA_HH_DEBUG
+            APPL_TRACE_DEBUG1 ("bta_hh_start_sdp:  HID_HostGetSDPRecord failed:                 Status 0x%2X",status);
+#endif
+            status = BTA_HH_ERR_SDP;
+            utl_freebuf((void **)&bta_hh_cb.p_disc_db);
+        }
+#else
         if (bta_hh_cb.p_disc_db == NULL)
         {
             status = BTA_HH_ERR_NO_RES;
@@ -391,6 +477,7 @@ void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
             else
                 status = BTA_HH_OK;
         }
+#endif
     }
 
     if (status != BTA_HH_OK)
@@ -413,7 +500,11 @@ void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
 void bta_hh_sdp_cmpl(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
 {
     tBTA_HH_CONN            conn_dat;
+#ifdef REVOLUTION
+    tBTA_HH_STATUS          status;
+#else
     tBTA_HH_STATUS          status = p_data->status;
+#endif
 
 #if BTA_HH_DEBUG
     APPL_TRACE_DEBUG1 ("bta_hh_sdp_cmpl:  status 0x%2X",p_data->status);
@@ -424,7 +515,60 @@ void bta_hh_sdp_cmpl(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     conn_dat.handle = p_cb->hid_handle;
     bdcpy(conn_dat.bda, p_cb->addr);
 
+#ifdef REVOLUTION
+    status = p_data->status;
+#endif
     /* if SDP compl success */
+#ifdef REVOLUTION
+    if ( status == BTA_HH_OK)
+    {
+        /* not incoming connection doing SDP, initiate a HID connection */
+        if (!p_cb->incoming_conn)
+        {
+            /* set security level */
+            HID_HostSetSecurityLevel(bta_hh_sec_serv_name, p_cb->sec_mask);
+
+            /* open HID connection */
+            if ((status = HID_HostOpenDev (p_cb->hid_handle)) != HID_SUCCESS)
+            {
+#if BTA_HH_DEBUG
+                APPL_TRACE_DEBUG1 ("bta_hh_sdp_cmpl:  HID_HostOpenDev failed:                     Status 0x%2X",status);
+#endif
+                /* open fail, remove device from management device list */
+                HID_HostRemoveDev( p_cb->hid_handle);
+            }
+        }
+        else /* incoming connection SDP finish */
+        {
+            bta_hh_sm_execute(p_cb, BTA_HH_OPEN_CMPL_EVT, NULL);
+        }
+    }
+
+    if (status != BTA_HH_OK)
+    {
+        /* RVL maps an invalid-handle status to TOD_UNSPT */
+        if (p_data->status == BTA_HH_INVALID_HANDLE)
+            conn_dat.status = BTA_HH_ERR_TOD_UNSPT;
+        else
+            conn_dat.status = BTA_HH_ERR_SDP;
+
+        (* bta_hh_cb.p_cback)(BTA_HH_OPEN_EVT, (tBTA_HH *)&conn_dat);
+
+        /* move state machine W4_CONN ->IDLE */
+        bta_hh_sm_execute(p_cb, BTA_HH_API_CLOSE_EVT, NULL);
+
+        /* if this is an outgoing connection to an unknown device, clean up cb */
+        if (p_cb->app_id == 0 && !p_cb->incoming_conn)
+        {
+            /* clean up device control block */
+            bta_hh_clean_up_kdev(p_cb);
+        }
+
+#if BTA_HH_DEBUG
+        bta_hh_trace_dev_db();
+#endif
+    }
+#else
     if ( status == BTA_HH_OK)
     {
         /* not incoming connection doing SDP, initiate a HID connection */
@@ -432,7 +576,7 @@ void bta_hh_sdp_cmpl(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
         {
             tHID_STATUS ret;
             /* set security level */
-            HID_HostSetSecurityLevel("", p_cb->sec_mask);
+            HID_HostSetSecurityLevel(bta_hh_sec_serv_name, p_cb->sec_mask);
 
             /* open HID connection */
             if ((ret = HID_HostOpenDev (p_cb->hid_handle)) != HID_SUCCESS)
@@ -476,6 +620,7 @@ void bta_hh_sdp_cmpl(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
         bta_hh_trace_dev_db();
 #endif
     }
+#endif
 
     return;
 }
@@ -533,14 +678,31 @@ void bta_hh_open_cmpl_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     bta_hh_co_open(p_cb->hid_handle, p_cb->sub_class,
                    p_cb->attr_mask,  p_cb->app_id);
 
+#ifndef REVOLUTION
     /* update SSR settings */
     bta_sys_chg_ssr_config(BTA_ID_HH ,p_cb->app_id, p_cb->dscp_info.ssr_max_latency, p_cb->dscp_info.ssr_min_tout);
+#endif
     /* inform role manager */
     bta_sys_conn_open( BTA_ID_HH ,p_cb->app_id, p_cb->addr);
 
     /* set protocol mode when not default report mode */
     if (p_cb->mode != BTA_HH_PROTO_RPT_MODE)
     {
+#ifdef REVOLUTION
+        if ((conn.status = HID_HostWriteDev(dev_handle,
+                                            HID_TRANS_SET_PROTOCOL, p_cb->mode,
+                                            0,
+                                            0, NULL)) != HID_SUCCESS)
+        {
+            /* HID connection is up, while SET_PROTO fail */
+            conn.status = BTA_HH_ERR_PROTO;
+            (* bta_hh_cb.p_cback)(BTA_HH_OPEN_EVT, (tBTA_HH *)&conn);
+        }
+        else
+        {
+            p_cb->w4_evt = BTA_HH_OPEN_EVT;
+        }
+#else
         if ((HID_HostWriteDev(dev_handle,
                               HID_TRANS_SET_PROTOCOL, HID_PAR_PROTOCOL_BOOT_MODE,
                               0,
@@ -555,9 +717,15 @@ void bta_hh_open_cmpl_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
             conn.status = BTA_HH_OK;
             p_cb->w4_evt = BTA_HH_OPEN_EVT;
         }
+#endif
     }
     else
+    {
+#ifdef REVOLUTION
+        p_cb->opened = TRUE;
+#endif
         (* bta_hh_cb.p_cback)(BTA_HH_OPEN_EVT, (tBTA_HH *)&conn);
+    }
 
     p_cb->incoming_conn = FALSE;
 
@@ -618,8 +786,13 @@ void bta_hh_data_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA * p_data)
     BT_HDR  *pdata = p_data->hid_cback.p_data;
     UINT8   *p_rpt = (UINT8 *)(pdata + 1) + pdata->offset;
 
+#ifdef REVOLUTION
+    bta_hh_co_data((UINT8)p_data->hid_cback.hdr.layer_specific, p_rpt, pdata->len,
+                    p_cb->mode, p_cb->sub_class, p_cb->app_id);
+#else
     bta_hh_co_data((UINT8)p_data->hid_cback.hdr.layer_specific, p_rpt, pdata->len,
                     p_cb->mode, p_cb->sub_class, p_cb->dscp_info.ctry_code, p_cb->addr, p_cb->app_id);
+#endif
 
     utl_freebuf((void **)&pdata);
 }
@@ -646,20 +819,33 @@ void bta_hh_handsk_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA * p_data)
         bta_hh_get_w4_event(p_cb->w4_evt), p_data->hid_cback.data);
 #endif
 
+#ifndef REVOLUTION
     memset(&hs_data, 0, sizeof(tBTA_HH_HSDATA));
+#endif
 
     switch (p_cb->w4_evt)
     {
         /* GET_ transsaction, handshake indicate unsupported request */
         case BTA_HH_GET_PROTO_EVT:
+#ifdef REVOLUTION
+            /* RVL does not set proto_mode here */
+#else
             hs_data.rsp_data.proto_mode = BTA_HH_PROTO_UNKNOWN;
+#endif
             /* fall through */
         case BTA_HH_GET_RPT_EVT:
         case BTA_HH_GET_IDLE_EVT :
+#ifdef REVOLUTION
+            memset(&hs_data, 0, sizeof(tBTA_HH_HSDATA));
+            hs_data.handle = p_cb->hid_handle;
+            /* RVL reports the translated status as-is (no OK -> UNSUPT fixup) */
+            hs_data.status = bta_hh_get_trans_status(p_data->hid_cback.data);
+#else
             hs_data.handle = p_cb->hid_handle;
             /* if handshake gives an OK code for these transaction, fill in UNSUPT */
             if ((hs_data.status = bta_hh_get_trans_status(p_data->hid_cback.data)) == BTA_HH_OK)
                  hs_data.status = BTA_HH_HS_TRANS_NOT_SPT;
+#endif
 
             (* bta_hh_cb.p_cback)(p_cb->w4_evt, (tBTA_HH *)&hs_data);
             p_cb->w4_evt = 0;
@@ -685,6 +871,10 @@ void bta_hh_handsk_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA * p_data)
             bta_hh_trace_dev_db();
 #endif
             p_cb->w4_evt = 0;
+#ifdef REVOLUTION
+            if (conn.status == BTA_HH_OK)
+                p_cb->opened = TRUE;
+#endif
             break;
 
         default:
@@ -726,13 +916,21 @@ void bta_hh_ctrl_dat_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA * p_data)
         hs_data.rsp_data.idle_rate = *data;
         break;
     case BTA_HH_GET_RPT_EVT:
+#ifdef REVOLUTION
+        memcpy(hs_data.rsp_data.raw, pdata, 8);
+#else
         hs_data.rsp_data.p_rpt_data = pdata;
+#endif
         break;
     case BTA_HH_GET_PROTO_EVT:
         /* match up BTE/BTA report/boot mode def*/
+#ifdef REVOLUTION
+        hs_data.rsp_data.proto_mode = *data;
+#else
         hs_data.rsp_data.proto_mode = ((*data) == HID_PAR_PROTOCOL_REPORT)? \
                     BTA_HH_PROTO_RPT_MODE : BTA_HH_PROTO_BOOT_MODE;
-#if BTA_HH_DEBUG
+#endif
+#if BTA_HH_DEBUG && !defined(REVOLUTION)
         APPL_TRACE_DEBUG1("GET_PROTOCOL Mode = [%s]",
             (hs_data.rsp_data.proto_mode == BTA_HH_PROTO_RPT_MODE)? "Report" : "Boot");
 #endif
@@ -786,9 +984,16 @@ void bta_hh_close_act (tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     disc_dat.status = p_data->hid_cback.data;
 
     /* Check reason for closing */
+#ifdef REVOLUTION
+    if ((reason & (HID_L2CAP_CONN_FAIL|HID_L2CAP_REQ_FAIL|HID_L2CAP_CFG_FAIL)) ||
+        (reason == HID_ERR_AUTH_FAILED) ||
+        (reason == HID_ERR_L2CAP_FAILED) ||
+        !p_cb->opened)
+#else
     if ((reason & (HID_L2CAP_CONN_FAIL|HID_L2CAP_REQ_FAIL)) ||  /* Failure to initialize connection (page timeout or l2cap error) */
         (reason == HID_ERR_AUTH_FAILED) ||                      /* Authenication error (while initiating) */
         (reason == HID_ERR_L2CAP_FAILED))                       /* Failure creating l2cap connection */
+#endif
     {
         /* Failure in opening connection */
         conn_dat.handle = p_cb->hid_handle;
@@ -813,6 +1018,9 @@ void bta_hh_close_act (tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
         bta_sys_conn_close( BTA_ID_HH ,p_cb->app_id, p_cb->addr);
         /* update total conn number */
         bta_hh_cb.cnt_num --;
+#ifdef REVOLUTION
+        p_cb->opened = FALSE;
+#endif
 
         if (disc_dat.status)
             disc_dat.status = BTA_HH_ERR;
@@ -891,6 +1099,16 @@ void bta_hh_maint_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
                 dev_info.handle   = dev_handle;
                 dev_info.status   = BTA_HH_OK;
 
+#ifdef REVOLUTION
+                /* add to BTA device list */
+                bta_hh_add_device_to_list(p_cb, dev_handle,
+                                          p_dev_info->attr_mask,
+                                          NULL,
+                                          p_dev_info->sub_class,
+                                          p_dev_info->app_id);
+                /* update cb_index[] map */
+                bta_hh_cb.cb_index[dev_handle] = p_cb->index;
+#else
                 /* update DI information */
                 bta_hh_update_di_info(p_cb,
                                       p_dev_info->dscp_info.vendor_id,
@@ -907,6 +1125,7 @@ void bta_hh_maint_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
                                           p_dev_info->app_id);
                 /* update cb_index[] map */
                 bta_hh_cb.cb_index[dev_handle] = p_cb->index;
+#endif
             }
         }
         else    /* device already been added */
@@ -942,6 +1161,51 @@ void bta_hh_maint_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
 
     (* bta_hh_cb.p_cback)(p_dev_info->sub_event, (tBTA_HH *)&dev_info);
 }
+
+#ifdef REVOLUTION
+/*******************************************************************************
+**
+** Function         bta_hh_get_acl_q_info
+**
+** Description      Get ACL queue information
+**
+** Returns          void
+**
+*******************************************************************************/
+void bta_hh_get_acl_q_info(void)
+{
+    tBTA_HH_ACL_QUEUE_INFO q_info;
+    tBTA_HH_DEV_CB *p_cb;
+    UINT8 num_links = 0;
+    UINT8 xx;
+    tL2C_CCB *p_ccb;
+    tL2C_LCB *p_lcb;
+
+    memset(&q_info, 0, sizeof(tBTA_HH_ACL_QUEUE_INFO));
+
+    for (xx = 0; xx < BTA_HH_MAX_KNOWN; xx++)
+    {
+        p_cb = &bta_hh_cb.kdev[xx];
+        if (p_cb->in_use && p_cb->state == BTA_HH_CONN_ST)
+        {
+            q_info.queue_info[num_links].handle = p_cb->hid_handle;
+            p_ccb = l2cu_find_ccb_by_cid(NULL, hh_cb.devices[p_cb->hid_handle].conn.intr_cid);
+            if (p_ccb && (p_lcb = p_ccb->p_lcb) != NULL && p_lcb->in_use)
+            {
+                q_info.queue_info[num_links].num_queued = p_lcb->link_xmit_data_q.count;
+                q_info.queue_info[num_links].num_not_acked = p_lcb->sent_not_acked;
+            }
+            num_links++;
+        }
+    }
+
+    q_info.num_avail_buffs = l2cb.controller_xmit_window;
+    q_info.num_buffs = l2cb.num_lm_acl_bufs;
+    q_info.num_links = num_links;
+
+    (*bta_hh_cb.p_cback)(BTA_HH_ACL_QUEUE_INFO_EVT, (tBTA_HH *)&q_info);
+}
+#endif
 /*******************************************************************************
 **
 ** Function         bta_hh_write_dev_act
@@ -953,6 +1217,9 @@ void bta_hh_maint_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
 *******************************************************************************/
 void bta_hh_write_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
 {
+#ifdef REVOLUTION
+    tHID_STATUS ret;
+#endif
     tBTA_HH_CBDATA     cbdata = {BTA_HH_OK, 0};
     UINT16  event = (p_data->api_sndcmd.t_type - BTA_HH_FST_BTE_TRANS_EVT) +
                         BTA_HH_FST_TRANS_CB_EVT;
@@ -960,12 +1227,24 @@ void bta_hh_write_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     cbdata.handle = p_cb->hid_handle;
 
     /* match up BTE/BTA report/boot mode def */
+#ifndef REVOLUTION
     if (p_data->api_sndcmd.t_type == HID_TRANS_SET_PROTOCOL)
     {
         p_data->api_sndcmd.param = ( p_data->api_sndcmd.param == BTA_HH_PROTO_RPT_MODE) ?\
                         HID_PAR_PROTOCOL_REPORT :HID_PAR_PROTOCOL_BOOT_MODE;
     }
+#endif
 
+#ifdef REVOLUTION
+    if ((ret = HID_HostWriteDev (p_cb->hid_handle,
+                       p_data->api_sndcmd.t_type,
+                       p_data->api_sndcmd.param,
+                       p_data->api_sndcmd.data,
+                       p_data->api_sndcmd.rpt_id,
+                       p_data->api_sndcmd.p_data)) != HID_SUCCESS)
+    {
+        APPL_TRACE_ERROR1("HID_HostWriteDev Error %d", ret);
+#else
     if (HID_HostWriteDev (p_cb->hid_handle,
                        p_data->api_sndcmd.t_type,
                        p_data->api_sndcmd.param,
@@ -974,6 +1253,7 @@ void bta_hh_write_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
                        p_data->api_sndcmd.p_data) != HID_SUCCESS)
     {
         APPL_TRACE_ERROR0("HID_HostWriteDev Error ");
+#endif
         cbdata.status = BTA_HH_ERR;
 
         if (p_data->api_sndcmd.t_type != HID_TRANS_CONTROL &&

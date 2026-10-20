@@ -2,4 +2,6 @@
 #include <size_t.h>
 
 typedef unsigned long uintptr_t;
+#ifndef offsetof
 #define offsetof(type, member) ((__std(size_t)) &(((type *) 0)->member))
+#endif

@@ -41,6 +41,11 @@
 #endif
 
 extern void PLATFORM_DisableHciTransport(UINT8 bDisable);
+
+#ifdef REVOLUTION
+/* Provided by btm_discovery.c */
+extern void btm_discovery_db_init(void);
+#endif
 /*****************************************************************************
 **                          V A R I A B L E S                                *
 ******************************************************************************/
@@ -68,6 +73,10 @@ void btu_init_core(void)
 
     sdp_init();
 
+#ifdef REVOLUTION
+    btm_discovery_db_init();
+#endif
+
 #if BLE_INCLUDED == TRUE
     gatt_init();
 #if (defined(SMP_INCLUDED) && SMP_INCLUDED == TRUE)
@@ -92,20 +101,27 @@ void btu_init_core(void)
 ******************************************************************************/
 void BTE_Init(void)
 {
+#ifndef REVOLUTION
     int i = 0;
+#endif
 
     memset (&btu_cb, 0, sizeof (tBTU_CB));
     btu_cb.hcit_acl_pkt_size = BTU_DEFAULT_DATA_SIZE + HCI_DATA_PREAMBLE_SIZE;
 #if (BLE_INCLUDED == TRUE)
     btu_cb.hcit_ble_acl_pkt_size = BTU_DEFAULT_BLE_DATA_SIZE + HCI_DATA_PREAMBLE_SIZE;
 #endif
+#ifdef REVOLUTION
+    btu_cb.controller_cmd_window = 1;
+#else
     btu_cb.trace_level = HCI_INITIAL_TRACE_LEVEL;
 
     for ( i = 0; i < BTU_MAX_LOCAL_CTRLS; i++ ) /* include BR/EDR */
         btu_cb.hci_cmd_cb[i].cmd_window = 1;
+#endif
 }
 
 
+#ifndef REVOLUTION
 /*****************************************************************************
 **
 ** Function         BTU_AclPktSize
@@ -155,3 +171,4 @@ void btu_uipc_rx_cback(BT_HDR *p_msg)
 
 }
 
+#endif /* !REVOLUTION */

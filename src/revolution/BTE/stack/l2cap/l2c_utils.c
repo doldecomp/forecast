@@ -46,7 +46,11 @@
 ** Returns          LCB address or NULL if none found
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+tL2C_LCB *l2cu_allocate_lcb (BD_ADDR p_bd_addr)
+#else
 tL2C_LCB *l2cu_allocate_lcb (BD_ADDR p_bd_addr, BOOLEAN is_bonding)
+#endif
 {
     int         xx;
     tL2C_LCB    *p_lcb = &l2cb.lcb_pool[0];
@@ -67,7 +71,9 @@ tL2C_LCB *l2cu_allocate_lcb (BD_ADDR p_bd_addr, BOOLEAN is_bonding)
             p_lcb->info_timer_entry.param = (TIMER_PARAM_TYPE)p_lcb;
             p_lcb->idle_timeout    = l2cb.idle_timeout;
             p_lcb->id              = 1;                     /* spec does not allow '0' */
+#ifndef REVOLUTION
             p_lcb->is_bonding      = is_bonding;
+#endif
 
             l2cb.num_links_active++;
 

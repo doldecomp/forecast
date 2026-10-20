@@ -61,15 +61,15 @@
 
 /* Usage:  (ptr_features[ offset ] & mask )?TRUE:FALSE */
 /* offset to supported feature */
-const UINT8 btm_pm_mode_off[BTM_PM_NUM_SET_MODES] = {0,    0,    1};
+const UINT8 btm_pm_mode_off[BTM_PM_NUM_SET_MODES+1] = {0,    0,    1,    0};
 /* mask to supported feature */
-const UINT8 btm_pm_mode_msk[BTM_PM_NUM_SET_MODES] = {0x40, 0x80, 0x01};
+const UINT8 btm_pm_mode_msk[BTM_PM_NUM_SET_MODES+1] = {0x40, 0x80, 0x01, 0x00};
 
 #define BTM_PM_GET_MD1      1
 #define BTM_PM_GET_MD2      2
 #define BTM_PM_GET_COMP     3
 
-const UINT8 btm_pm_md_comp_matrix[BTM_PM_NUM_SET_MODES*BTM_PM_NUM_SET_MODES] =
+const UINT8 btm_pm_md_comp_matrix[16] =
 {
     BTM_PM_GET_COMP,
     BTM_PM_GET_MD2,
@@ -81,7 +81,8 @@ const UINT8 btm_pm_md_comp_matrix[BTM_PM_NUM_SET_MODES*BTM_PM_NUM_SET_MODES] =
 
     BTM_PM_GET_MD1,
     BTM_PM_GET_MD2,
-    BTM_PM_GET_COMP
+    BTM_PM_GET_COMP,
+    0, 0, 0, 0, 0, 0, 0
 };
 
 /* function prototype */
@@ -185,87 +186,55 @@ tBTM_STATUS BTM_PmRegister (UINT8 mask, UINT8 *p_pm_id, tBTM_PM_STATUS_CBACK *p_
 tBTM_STATUS BTM_SetPowerMode (UINT8 pm_id, BD_ADDR remote_bda, tBTM_PM_PWR_MD *p_mode)
 {
     UINT8               *p_features;
-    int               ind, acl_ind;
-    tBTM_PM_MCB *p_cb = NULL;   /* per ACL link */
+    int                 ind, acl_ind;
+    tBTM_PM_MCB         *p_cb = NULL;   /* per ACL link */
     tBTM_PM_MODE        mode;
-    int                 temp_pm_id;
 
-
-    if(pm_id >= BTM_MAX_PM_RECORDS)
+    if (pm_id >= BTM_MAX_PM_RECORDS)
         pm_id = BTM_PM_SET_ONLY_ID;
 
-    if(p_mode == NULL)
+    if (p_mode == NULL)
         return BTM_ILLEGAL_VALUE;
-
-    BTM_TRACE_API3( "BTM_SetPowerMode: pm_id %d BDA: %08x mode:0x%x", pm_id,
-                   (remote_bda[2]<<24)+(remote_bda[3]<<16)+(remote_bda[4]<<8)+remote_bda[5], p_mode->mode);
 
     /* take out the force bit */
     mode = p_mode->mode & ~BTM_PM_MD_FORCE;
 
     acl_ind = btm_pm_find_acl_ind(remote_bda);
-    if(acl_ind == MAX_L2CAP_LINKS)
+    if (acl_ind == MAX_L2CAP_LINKS)
         return (BTM_UNKNOWN_ADDR);
 
     p_cb = &(btm_cb.pm_mode_db[acl_ind]);
 
-    if(mode != BTM_PM_MD_ACTIVE)
+    if (mode != BTM_PM_MD_ACTIVE)
     {
         /* check if the requested mode is supported */
         ind = mode - BTM_PM_MD_HOLD; /* make it base 0 */
         p_features = BTM_ReadLocalFeatures();
-        if( !(p_features[ btm_pm_mode_off[ind] ] & btm_pm_mode_msk[ind] ) )
+        if (!(p_features[btm_pm_mode_off[ind]] & btm_pm_mode_msk[ind]))
             return BTM_MODE_UNSUPPORTED;
     }
 
-    if(mode == p_cb->state) /* the requested mode is current mode */
+    if (mode == p_cb->state) /* the requested mode is current mode */
     {
         /* already in the requested mode and the current interval has less latency than the max */
-        if( (mode == BTM_PM_MD_ACTIVE) ||
-            ((p_mode->mode & BTM_PM_MD_FORCE) && (p_mode->max >= p_cb->interval) && (p_mode->min <= p_cb->interval)) ||
-            ((p_mode->mode & BTM_PM_MD_FORCE)==0 && (p_mode->max >= p_cb->interval)) )
-        {
-            BTM_TRACE_DEBUG4( "BTM_SetPowerMode: mode:0x%x interval %d max:%d, min:%d", p_mode->mode, p_cb->interval, p_mode->max, p_mode->min);
+        if ((mode == BTM_PM_MD_ACTIVE) ||
+            ((p_mode->max >= p_cb->interval) && (p_mode->min <= p_cb->interval)))
             return BTM_SUCCESS;
-        }
     }
 
-    temp_pm_id = pm_id;
-    if(pm_id == BTM_PM_SET_ONLY_ID)
-        temp_pm_id = BTM_MAX_PM_RECORDS;
-
     /* update mode database */
-    if( ((pm_id != BTM_PM_SET_ONLY_ID) &&
-         (btm_cb.pm_reg_db[pm_id].mask & BTM_PM_REG_SET))
-       || ((pm_id == BTM_PM_SET_ONLY_ID) && (btm_cb.pm_pend_link != MAX_L2CAP_LINKS)) )
+    if ((pm_id != BTM_PM_SET_ONLY_ID) &&
+        (btm_cb.pm_reg_db[pm_id].mask & BTM_PM_REG_SET))
     {
-#if BTM_PM_DEBUG == TRUE
-    BTM_TRACE_DEBUG2( "BTM_SetPowerMode: Saving cmd acl_ind %d temp_pm_id %d", acl_ind,temp_pm_id);
-#endif
-        /* Make sure mask is set to BTM_PM_REG_SET */
-        btm_cb.pm_reg_db[temp_pm_id].mask |= BTM_PM_REG_SET;
-        *(&p_cb->req_mode[temp_pm_id]) = *((tBTM_PM_PWR_MD *)p_mode);
+        p_cb->req_mode[pm_id] = *p_mode;
         p_cb->chg_ind = TRUE;
     }
 
-#if BTM_PM_DEBUG == TRUE
-    BTM_TRACE_DEBUG2( "btm_pm state:0x%x, pm_pend_link: %d", p_cb->state, btm_cb.pm_pend_link);
-#endif
     /* if mode == hold or pending, return */
-    if( (p_cb->state == BTM_PM_STS_HOLD) ||
-        (p_cb->state ==  BTM_PM_STS_PENDING) ||
-        (btm_cb.pm_pend_link != MAX_L2CAP_LINKS) ) /* command pending */
-    {
-        if(acl_ind != btm_cb.pm_pend_link)
-        {
-            /* set the stored mask */
-            p_cb->state |= BTM_PM_STORED_MASK;
-            BTM_TRACE_DEBUG1( "btm_pm state stored:%d",acl_ind);
-        }
+    if ((p_cb->state == BTM_PM_STS_HOLD) ||
+        (p_cb->state == BTM_PM_STS_PENDING) ||
+        (btm_cb.pm_pend_link != MAX_L2CAP_LINKS)) /* command pending */
         return BTM_CMD_STORED;
-    }
-
-
 
     return btm_pm_snd_md_req(pm_id, acl_ind, p_mode);
 }
@@ -319,10 +288,10 @@ tBTM_STATUS BTM_ReadPowerMode (BD_ADDR remote_bda, tBTM_PM_MODE *p_mode)
 **                  BTM_CMD_STORED if the command is stored
 **
 *******************************************************************************/
+#if (BTM_SSR_INCLUDED == TRUE)
 tBTM_STATUS BTM_SetSsrParams (BD_ADDR remote_bda, UINT16 max_lat,
                               UINT16 min_rmt_to, UINT16 min_loc_to)
 {
-#if (BTM_SSR_INCLUDED == TRUE)
     int acl_ind;
     tBTM_PM_MCB *p_cb;
 
@@ -343,10 +312,8 @@ tBTM_STATUS BTM_SetSsrParams (BD_ADDR remote_bda, UINT16 max_lat,
     p_cb->min_rmt_to    = min_rmt_to;
     p_cb->min_loc_to    = min_loc_to;
     return BTM_CMD_STORED;
-#else
-    return BTM_ILLEGAL_ACTION;
-#endif
 }
+#endif
 
 /*******************************************************************************
 **
@@ -444,7 +411,6 @@ static tBTM_PM_PWR_MD * btm_pm_compare_modes(tBTM_PM_PWR_MD *p_md1, tBTM_PM_PWR_
     if(p_md1 == NULL)
     {
         *p_res = *p_md2;
-        p_res->mode &= ~BTM_PM_MD_FORCE;
 
         return p_md2;
     }
@@ -513,7 +479,7 @@ static tBTM_PM_PWR_MD * btm_pm_compare_modes(tBTM_PM_PWR_MD *p_md1, tBTM_PM_PWR_
 *******************************************************************************/
 static tBTM_PM_MODE btm_pm_get_set_mode(UINT8 pm_id, tBTM_PM_MCB *p_cb, tBTM_PM_PWR_MD *p_mode, tBTM_PM_PWR_MD *p_res)
 {
-    int   xx, loop_max;
+    int   xx;
     tBTM_PM_PWR_MD *p_md = NULL;
 
     if(p_mode != NULL && p_mode->mode & BTM_PM_MD_FORCE)
@@ -523,12 +489,7 @@ static tBTM_PM_MODE btm_pm_get_set_mode(UINT8 pm_id, tBTM_PM_MCB *p_cb, tBTM_PM_
         return p_res->mode;
     }
 
-    if(!p_mode)
-        loop_max = BTM_MAX_PM_RECORDS+1;
-    else
-        loop_max = BTM_MAX_PM_RECORDS;
-
-    for( xx=0; xx<loop_max; xx++)
+    for( xx=0; xx<BTM_MAX_PM_RECORDS; xx++)
     {
         /* g through all the registered "set" parties */
         if(btm_cb.pm_reg_db[xx].mask & BTM_PM_REG_SET)
@@ -581,6 +542,9 @@ static tBTM_STATUS btm_pm_snd_md_req(UINT8 pm_id, int link_ind, tBTM_PM_PWR_MD *
     tBTM_PM_MODE    mode;
     tBTM_PM_MCB *p_cb = &btm_cb.pm_mode_db[link_ind];
     BOOLEAN      chg_ind = FALSE;
+#ifdef REVOLUTION
+    BT_HDR      *p_buf;
+#endif
 
     mode = btm_pm_get_set_mode(pm_id, p_cb, p_mode, &md_res);
     md_res.mode = mode;
@@ -605,6 +569,11 @@ static tBTM_STATUS btm_pm_snd_md_req(UINT8 pm_id, int link_ind, tBTM_PM_PWR_MD *
     if( mode != BTM_PM_MD_ACTIVE && p_cb->state != BTM_PM_MD_ACTIVE)
         p_cb->chg_ind = TRUE; /* needs to wake, then sleep */
 
+#ifdef REVOLUTION
+    if ((p_buf = (BT_HDR *)GKI_getpoolbuf (HCI_CMD_POOL_ID)) == NULL)
+        return (BTM_NO_RESOURCES);
+#endif
+
     if(p_cb->chg_ind == TRUE) /* needs to wake first */
         md_res.mode = BTM_PM_MD_ACTIVE;
 #if (BTM_SSR_INCLUDED == TRUE)
@@ -615,8 +584,13 @@ static tBTM_STATUS btm_pm_snd_md_req(UINT8 pm_id, int link_ind, tBTM_PM_PWR_MD *
         p_cb->max_lat = 0;
     }
 #endif
+#ifdef REVOLUTION
+    /* The command is sent unless a case below marks it as a failure */
+    btm_cb.pm_pend_link = link_ind;
+#else
     /* Default is failure */
     btm_cb.pm_pend_link = MAX_L2CAP_LINKS;
+#endif
 
     /* send the appropriate HCI command */
     btm_cb.pm_pend_id   = pm_id;
@@ -624,6 +598,46 @@ static tBTM_STATUS btm_pm_snd_md_req(UINT8 pm_id, int link_ind, tBTM_PM_PWR_MD *
 #if BTM_PM_DEBUG == TRUE
     BTM_TRACE_DEBUG2("btm_pm_snd_md_req state:0x%x, link_ind: %d", p_cb->state, link_ind);
 #endif
+#ifdef REVOLUTION
+    switch(md_res.mode)
+    {
+    case BTM_PM_MD_ACTIVE:
+        switch(p_cb->state)
+        {
+        case BTM_PM_MD_SNIFF:
+            btsnd_hcic_exit_sniff_mode (p_buf, btm_cb.acl_db[link_ind].hci_handle);
+            break;
+        case BTM_PM_MD_PARK:
+            btsnd_hcic_exit_park_mode (p_buf, btm_cb.acl_db[link_ind].hci_handle);
+            break;
+        default:
+            /* Failure */
+            btm_cb.pm_pend_link = MAX_L2CAP_LINKS;
+            break;
+        }
+        break;
+
+    case BTM_PM_MD_HOLD:
+        btsnd_hcic_hold_mode (p_buf, btm_cb.acl_db[link_ind].hci_handle,
+                              md_res.max, md_res.min);
+        break;
+
+    case BTM_PM_MD_SNIFF:
+        btsnd_hcic_sniff_mode (p_buf, btm_cb.acl_db[link_ind].hci_handle,
+                               md_res.max, md_res.min, md_res.attempt,
+                               md_res.timeout);
+        break;
+
+    case BTM_PM_MD_PARK:
+        btsnd_hcic_park_mode (p_buf, btm_cb.acl_db[link_ind].hci_handle,
+                              md_res.max, md_res.min);
+        break;
+    default:
+        /* Failure */
+        btm_cb.pm_pend_link = MAX_L2CAP_LINKS;
+        break;
+    }
+#else
     switch(md_res.mode)
     {
     case BTM_PM_MD_ACTIVE:
@@ -675,6 +689,7 @@ static tBTM_STATUS btm_pm_snd_md_req(UINT8 pm_id, int link_ind, tBTM_PM_PWR_MD *
         /* Failure btm_cb.pm_pend_link = MAX_L2CAP_LINKS */
         break;
     }
+#endif
 
     if(btm_cb.pm_pend_link == MAX_L2CAP_LINKS)
     {
@@ -682,38 +697,15 @@ static tBTM_STATUS btm_pm_snd_md_req(UINT8 pm_id, int link_ind, tBTM_PM_PWR_MD *
 #if BTM_PM_DEBUG == TRUE
         BTM_TRACE_DEBUG1( "pm_pend_link: %d",btm_cb.pm_pend_link);
 #endif
+#ifdef REVOLUTION
+        GKI_freebuf (p_buf);
+#else
         return (BTM_NO_RESOURCES);
+#endif
     }
 
     return BTM_CMD_STARTED;
 }
-
-/*******************************************************************************
-**
-** Function         btm_pm_check_stored
-**
-** Description      This function is called when an HCI command status event occurs
-**                  to check if there's any PM command issued while waiting for
-**                  HCI command status.
-**
-** Returns          none.
-**
-*******************************************************************************/
-static void btm_pm_check_stored(void)
-{
-    int     xx;
-    for(xx=0; xx<MAX_L2CAP_LINKS; xx++)
-    {
-        if(btm_cb.pm_mode_db[xx].state & BTM_PM_STORED_MASK)
-        {
-            btm_cb.pm_mode_db[xx].state &= ~BTM_PM_STORED_MASK;
-            BTM_TRACE_DEBUG1( "btm_pm_check_stored :%d", xx);
-            btm_pm_snd_md_req(BTM_PM_SET_ONLY_ID, xx, NULL);
-            break;
-        }
-    }
-}
-
 
 /*******************************************************************************
 **
@@ -741,9 +733,6 @@ void btm_pm_proc_cmd_status(UINT8 status)
     {
         p_cb->state = BTM_PM_ST_PENDING;
         pm_status = BTM_PM_STS_PENDING;
-#if BTM_PM_DEBUG == TRUE
-        BTM_TRACE_DEBUG1( "btm_pm_proc_cmd_status new state:0x%x", p_cb->state);
-#endif
     }
     else /* the command was not successfull. Stay in the same state */
     {
@@ -758,13 +747,7 @@ void btm_pm_proc_cmd_status(UINT8 status)
     }
 
     /* no pending cmd now */
-#if BTM_PM_DEBUG == TRUE
-    BTM_TRACE_DEBUG3( "btm_pm_proc_cmd_status state:0x%x, pm_pend_link: %d(new: %d)",
-        p_cb->state, btm_cb.pm_pend_link, MAX_L2CAP_LINKS);
-#endif
     btm_cb.pm_pend_link = MAX_L2CAP_LINKS;
-
-    btm_pm_check_stored();
 }
 
 /*******************************************************************************
@@ -785,9 +768,8 @@ void btm_pm_proc_mode_change (UINT8 hci_status, UINT16 hci_handle, UINT8 mode, U
 {
     tACL_CONN   *p;
     tBTM_PM_MCB *p_cb = NULL;
-    int xx, yy, zz;
-    tBTM_PM_STATE  old_state;
-    tL2C_LCB        *p_lcb;
+    tBTM_SEC_DEV_REC *p_dev_rec;
+    int xx, yy;
 
     /* get the index to acl_db */
     if ((xx = btm_handle_to_acl_index(hci_handle)) >= MAX_L2CAP_LINKS)
@@ -796,111 +778,65 @@ void btm_pm_proc_mode_change (UINT8 hci_status, UINT16 hci_handle, UINT8 mode, U
     p = &btm_cb.acl_db[xx];
 
     /*** 2035 and 2045 work around:  If mode is active and coming out of a SCO disconnect, restore packet types ***/
-    if (mode == HCI_MODE_ACTIVE)
+    if ((mode == HCI_MODE_ACTIVE) && (p->restore_pkt_types) && (btm_num_sco_links_active() == 0))
     {
-        if(BTM_GetNumScoLinks() == 0)
-        {
-            if(p->restore_pkt_types)
-    {
-        BTM_TRACE_DEBUG3("btm mode change AFTER unsniffing; hci hdl 0x%x, types 0x%02x/0x%02x",
-                            hci_handle, p->pkt_types_mask, p->restore_pkt_types);
-        p->pkt_types_mask = p->restore_pkt_types;
         p->restore_pkt_types = 0;   /* Only exists while SCO is active */
+        BTM_TRACE_DEBUG2("btm mode change AFTER unsniffing; hci hdl 0x%x, types 0x%02x",
+                         hci_handle, p->pkt_types_mask);
         btsnd_hcic_change_conn_type (p->hci_handle, p->pkt_types_mask);
     }
-#if (BTM_PM_SNIFF_SLOT_WORK_AROUND == TRUE)
-            else
-            {
-                BTM_TRACE_DEBUG2("btm mode change AFTER unsniffing; hci hdl 0x%x, types 0x%02x",
-                                    hci_handle, btm_cb.btm_acl_pkt_types_supported);
-                btm_set_packet_types (p, btm_cb.btm_acl_pkt_types_supported);
-            }
-#endif
-        }
-#if (BTM_PM_SNIFF_SLOT_WORK_AROUND == TRUE)
-        else
-        {
-            /* Mode changed from Sniff to Active while SCO is open. */
-            /* Packet types of active mode, not sniff mode, should be used for ACL when SCO is closed. */
-            p->restore_pkt_types = btm_cb.btm_acl_pkt_types_supported;
-
-            /* Exclude packet types not supported by the peer */
-            btm_acl_chk_peer_pkt_type_support (p, &p->restore_pkt_types);
-        }
-#endif
-    }
-#if (BTM_PM_SNIFF_SLOT_WORK_AROUND == TRUE)
-    else if (mode == HCI_MODE_SNIFF)
-    {
-        BTM_TRACE_DEBUG1("btm mode change to sniff; hci hdl 0x%x use single slot",
-                            hci_handle);
-        btm_set_packet_types (p, (HCI_PKT_TYPES_MASK_DM1 | HCI_PKT_TYPES_MASK_DH1));
-    }
-#endif
 
     /* update control block */
     p_cb = &(btm_cb.pm_mode_db[xx]);
-    old_state       = p_cb->state;
-    p_cb->state     = mode;
-    p_cb->interval  = interval;
-#if BTM_PM_DEBUG == TRUE
-    BTM_TRACE_DEBUG2( "btm_pm_proc_mode_change new state:0x%x (old:0x%x)", p_cb->state, old_state);
-#endif
+    p_cb->state    = mode;
+    p_cb->interval = interval;
 
-    if ((p_cb->state == HCI_MODE_ACTIVE) &&
-        ((p_lcb = l2cu_find_lcb_by_bd_addr (p->remote_addr)) != NULL))
-    {
-        /* There might be any pending packets due to SNIFF or PENDING state */
-        /* Trigger L2C to start transmission of the pending packets.        */
-        BTM_TRACE_DEBUG0 ("btm mode change to active; check l2c_link for outgoing packets");
-        l2c_link_check_send_pkts (p_lcb, NULL, NULL);
-
-        //btu_stop_timer (&p_lcb->timer_entry);
-    }
-
-    /* notify registered parties */
-    for(yy=0; yy<=BTM_MAX_PM_RECORDS; yy++)
+    for (yy = 0; yy < BTM_MAX_PM_RECORDS; yy++)
     {
         /* set req_mode  HOLD mode->ACTIVE */
-        if( (mode == BTM_PM_MD_ACTIVE) && (p_cb->req_mode[yy].mode == BTM_PM_MD_HOLD) )
+        if ((mode == BTM_PM_MD_ACTIVE) && (p_cb->req_mode[yy].mode == BTM_PM_MD_HOLD))
             p_cb->req_mode[yy].mode = BTM_PM_MD_ACTIVE;
     }
 
     /* new request has been made. - post a message to BTU task */
-    if(old_state & BTM_PM_STORED_MASK)
-    {
-#if BTM_PM_DEBUG == TRUE
-        BTM_TRACE_DEBUG1( "btm_pm_proc_mode_change: Sending stored req:%d", xx);
-#endif
+    if (p_cb->chg_ind == TRUE)
         btm_pm_snd_md_req(BTM_PM_SET_ONLY_ID, xx, NULL);
-    }
-    else
-    {
-        for(zz=0; zz<MAX_L2CAP_LINKS; zz++)
-        {
-            if(btm_cb.pm_mode_db[zz].chg_ind == TRUE)
-            {
-#if BTM_PM_DEBUG == TRUE
-                BTM_TRACE_DEBUG1( "btm_pm_proc_mode_change: Sending PM req :%d", zz);
-#endif
-                btm_pm_snd_md_req(BTM_PM_SET_ONLY_ID, zz, NULL);
-                break;
-            }
-        }
-    }
-
 
     /* notify registered parties */
-    for(yy=0; yy<BTM_MAX_PM_RECORDS; yy++)
+    for (yy = 0; yy < BTM_MAX_PM_RECORDS; yy++)
     {
-        if(btm_cb.pm_reg_db[yy].mask & BTM_PM_REG_NOTIF)
-        {
-            (*btm_cb.pm_reg_db[yy].cback)( p->remote_addr, mode, interval, hci_status);
-        }
+        if (btm_cb.pm_reg_db[yy].mask & BTM_PM_REG_NOTIF)
+            (*btm_cb.pm_reg_db[yy].cback)(p->remote_addr, mode, interval, hci_status);
     }
 
     /* If mode change was because of an active role switch or change link key */
-    btm_cont_rswitch_or_chglinkkey(p, btm_find_dev(p->remote_addr), hci_status);
+    if (btm_cb.acl_db[xx].switch_role_state == BTM_ACL_SWKEY_STATE_MODE_CHANGE)
+    {
+        p_dev_rec = btm_find_dev (btm_cb.acl_db[xx].remote_addr);
+
+        if ((p_dev_rec != NULL) && ((p_dev_rec->sec_flags & BTM_SEC_ENCRYPTED) != 0))
+        {
+            if (btsnd_hcic_set_conn_encrypt (hci_handle, FALSE))
+            {
+                btm_cb.acl_db[xx].switch_role_state = BTM_ACL_SWKEY_STATE_ENCRYPTION_OFF;
+                return;
+            }
+        }
+        else if (btsnd_hcic_switch_role (btm_cb.acl_db[xx].remote_addr,
+                                         (UINT8)!btm_cb.acl_db[xx].link_role))
+        {
+            btm_cb.acl_db[xx].switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+            return;
+        }
+
+        btm_cb.acl_db[xx].switch_role_state = BTM_ACL_SWKEY_STATE_IDLE;
+        if (btm_cb.devcb.p_switch_role_cb)
+        {
+            btm_cb.devcb.switch_role_ref_data.hci_status = hci_status;
+            (*btm_cb.devcb.p_switch_role_cb)(&btm_cb.devcb.switch_role_ref_data);
+            btm_cb.devcb.p_switch_role_cb = NULL;
+        }
+    }
 }
 
 /*******************************************************************************
@@ -982,17 +918,3 @@ tBTM_STATUS BTM_ReadPowerMode (BD_ADDR remote_bda, tBTM_PM_MODE *p_mode)
 
 #endif
 
-/*******************************************************************************
-**
-** Function         BTM_IsPowerManagerOn
-**
-** Description      This function is called to check if power manager is included.
-**                  in the BTE version.
-**
-** Returns          BTM_PWR_MGR_INCLUDED.
-**
-*******************************************************************************/
-BOOLEAN BTM_IsPowerManagerOn (void)
-{
-    return BTM_PWR_MGR_INCLUDED;
-}

@@ -6,7 +6,9 @@
 #include <__internal/__NULL.h>
 #include <__internal/__size_t.h>
 
+#ifndef offsetof
 #define offsetof(type, member_designator) ((size_t) & (((type*)0)->member_designator))
+#endif
 
 // IWYU pragma: end_exports
 

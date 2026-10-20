@@ -1,5 +1,22 @@
 /******************************************************************************
  *
+ *  NOTICE OF CHANGES
+ *  2026/10/18:
+ *      - RVL multiplexer state machine: retail timer handling (no T1/T2 or
+ *        restart timers), reconfiguration handled in SABME_WAIT_UA, no
+ *        CONF_IND in WAIT_CONN_CNF, no timeouts in CONFIGURE/WAIT_SABME
+ *      - rfc_mx_sm_state_idle: reply PENDING to a connect indication while
+ *        initiating
+ *      - rfc_mx_send_config_req: clears flush_to_present/qos_present
+ *      - rfc_mx_conf_ind: event trace
+ *
+ *  Compile with REVOLUTION defined to include these changes.
+ *
+ ******************************************************************************/
+
+
+/******************************************************************************
+ *
  *  Copyright (C) 1999-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -140,6 +157,13 @@ void rfc_mx_sm_state_idle (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
 
     case RFC_MX_EVENT_CONN_IND:
 
+#ifdef REVOLUTION
+        if (p_mcb->is_initiator)
+        {
+            L2CA_ConnectRsp (p_mcb->bd_addr, *((UINT8 *)p_data), p_mcb->lcid, L2CAP_CONN_PENDING, 0);
+            return;
+        }
+#endif
         rfc_timer_start (p_mcb, RFCOMM_CONN_TIMEOUT);
         L2CA_ConnectRsp (p_mcb->bd_addr, *((UINT8 *)p_data), p_mcb->lcid, L2CAP_CONN_OK, 0);
 
@@ -186,11 +210,13 @@ void rfc_mx_sm_state_wait_conn_cnf (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
         RFCOMM_TRACE_ERROR2 ("Mx error state %d event %d", p_mcb->state, event);
         return;
 
+#ifndef REVOLUTION
     /* There is some new timing so that Config Ind comes before security is completed
        so we are still waiting fo the confirmation. */
     case RFC_MX_EVENT_CONF_IND:
         rfc_mx_conf_ind (p_mcb, (tL2CAP_CFG_INFO *)p_data);
         return;
+#endif
 
     case RFC_MX_EVENT_CONN_CNF:
         if (*((UINT16 *)p_data) != L2CAP_SUCCESS)
@@ -253,12 +279,14 @@ void rfc_mx_sm_state_configure (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
         PORT_CloseInd (p_mcb);
         return;
 
+#ifndef REVOLUTION
     case RFC_EVENT_TIMEOUT:
         p_mcb->state = RFC_MX_STATE_IDLE;
         L2CA_DisconnectReq (p_mcb->lcid);
 
         PORT_StartCnf (p_mcb, RFCOMM_ERROR);
         return;
+#endif
     }
     RFCOMM_TRACE_EVENT2 ("RFCOMM MX ignored - evt:%d in state:%d", event, p_mcb->state);
 }
@@ -284,6 +312,15 @@ void rfc_mx_sm_sabme_wait_ua (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
         RFCOMM_TRACE_ERROR2 ("Mx error state %d event %d", p_mcb->state, event);
         return;
 
+#ifdef REVOLUTION
+    case RFC_MX_EVENT_CONF_IND:
+        rfc_mx_conf_ind (p_mcb, (tL2CAP_CFG_INFO *)p_data);
+        return;
+
+    case RFC_MX_EVENT_CONF_CNF:
+        rfc_mx_conf_cnf (p_mcb, (tL2CAP_CFG_INFO *)p_data);
+        return;
+#else
     /* workaround: we don't support reconfig */
     /* commented out until we support reconfig
     case RFC_MX_EVENT_CONF_IND:
@@ -294,6 +331,7 @@ void rfc_mx_sm_sabme_wait_ua (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
         rfc_mx_conf_cnf (p_mcb, (tL2CAP_CFG_INFO *)p_data);
         return;
     */
+#endif
 
     case RFC_MX_EVENT_DISC_IND:
         p_mcb->state = RFC_MX_STATE_IDLE;
@@ -313,8 +351,10 @@ void rfc_mx_sm_sabme_wait_ua (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
         rfc_timer_stop (p_mcb);
         /* Case falls through */
 
+#ifndef REVOLUTION
     case RFC_MX_EVENT_CONF_IND: /* workaround: we don't support reconfig */
     case RFC_MX_EVENT_CONF_CNF: /* workaround: we don't support reconfig */
+#endif
     case RFC_EVENT_TIMEOUT:
         p_mcb->state = RFC_MX_STATE_IDLE;
         L2CA_DisconnectReq (p_mcb->lcid);
@@ -346,7 +386,9 @@ void rfc_mx_sm_state_wait_sabme (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
         return;
 
     case RFC_EVENT_SABME:
+#ifndef REVOLUTION
         rfc_timer_stop (p_mcb);
+#endif
         PORT_StartInd (p_mcb);
         return;
 
@@ -362,6 +404,7 @@ void rfc_mx_sm_state_wait_sabme (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
         }
         return;
 
+#ifndef REVOLUTION
     case RFC_MX_EVENT_CONF_IND: /* workaround: we don't support reconfig */
     case RFC_MX_EVENT_CONF_CNF: /* workaround: we don't support reconfig */
     case RFC_EVENT_TIMEOUT:
@@ -370,6 +413,7 @@ void rfc_mx_sm_state_wait_sabme (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
 
         PORT_CloseInd (p_mcb);
         return;
+#endif
     }
     RFCOMM_TRACE_EVENT2 ("RFCOMM MX ignored - evt:%d in state:%d", event, p_mcb->state);
 }
@@ -431,7 +475,9 @@ void rfc_mx_sm_state_connected (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
 *******************************************************************************/
 void rfc_mx_sm_state_disc_wait_ua (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
 {
+#ifndef REVOLUTION
     BT_HDR *p_buf;
+#endif
 
     RFCOMM_TRACE_EVENT1 ("rfc_mx_sm_state_disc_wait_ua - evt:%d", event);
     switch (event)
@@ -452,6 +498,7 @@ void rfc_mx_sm_state_disc_wait_ua (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
             /* Save entry for quicker access to mcb based on the LCID */
             rfc_save_lcid_mcb (p_mcb, p_mcb->lcid);
 
+#ifndef REVOLUTION
             /* clean up before reuse it */
             while ((p_buf = (BT_HDR *)GKI_dequeue(&p_mcb->cmd_q)) != NULL)
                 GKI_freebuf(p_buf);
@@ -459,6 +506,7 @@ void rfc_mx_sm_state_disc_wait_ua (tRFC_MCB *p_mcb, UINT16 event, void *p_data)
             rfc_timer_start (p_mcb, RFC_MCB_INIT_INACT_TIMER);
 
             p_mcb->is_initiator     = TRUE;
+#endif
             p_mcb->restart_required = FALSE;
             p_mcb->local_cfg_sent   = FALSE;
             p_mcb->peer_cfg_rcvd    = FALSE;
@@ -515,6 +563,10 @@ static void rfc_mx_send_config_req (tRFC_MCB *p_mcb)
 
     cfg.mtu_present      = TRUE;
     cfg.mtu              = L2CAP_MTU_SIZE;
+#ifdef REVOLUTION
+    cfg.flush_to_present = FALSE;
+    cfg.qos_present      = FALSE;
+#endif
 
 /* Defaults set by memset
     cfg.flush_to_present = FALSE;
@@ -560,12 +612,16 @@ static void rfc_mx_conf_cnf (tRFC_MCB *p_mcb, tL2CAP_CFG_INFO *p_cfg)
         {
             p_mcb->state = RFC_MX_STATE_SABME_WAIT_UA;
             rfc_send_sabme (p_mcb, RFCOMM_MX_DLCI);
+#ifndef REVOLUTION
             rfc_timer_start (p_mcb, RFC_T1_TIMEOUT);
+#endif
         }
         else
         {
             p_mcb->state = RFC_MX_STATE_WAIT_SABME;
+#ifndef REVOLUTION
             rfc_timer_start (p_mcb, RFC_T2_TIMEOUT);
+#endif
         }
     }
 }
@@ -581,6 +637,10 @@ static void rfc_mx_conf_cnf (tRFC_MCB *p_mcb, tL2CAP_CFG_INFO *p_cfg)
 *******************************************************************************/
 static void rfc_mx_conf_ind (tRFC_MCB *p_mcb, tL2CAP_CFG_INFO *p_cfg)
 {
+#ifdef REVOLUTION
+    RFCOMM_TRACE_EVENT1 ("rfc_mx_conf_ind p_cfg:%0x", p_cfg);
+
+#endif
     /* Save peer L2CAP MTU if present */
     /* RFCOMM adds 3-4 bytes in the beginning and 1 bytes FCS */
     if (p_cfg->mtu_present)
@@ -603,12 +663,16 @@ static void rfc_mx_conf_ind (tRFC_MCB *p_mcb, tL2CAP_CFG_INFO *p_cfg)
         {
             p_mcb->state = RFC_MX_STATE_SABME_WAIT_UA;
             rfc_send_sabme (p_mcb, RFCOMM_MX_DLCI);
+#ifndef REVOLUTION
             rfc_timer_start (p_mcb, RFC_T1_TIMEOUT);
+#endif
         }
         else
         {
             p_mcb->state = RFC_MX_STATE_WAIT_SABME;
+#ifndef REVOLUTION
             rfc_timer_start (p_mcb, RFC_T2_TIMEOUT);
+#endif
         }
     }
 }

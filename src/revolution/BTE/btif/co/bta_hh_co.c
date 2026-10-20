@@ -16,8 +16,7 @@
  *
  ******************************************************************************/
 
-//#if (defined(BTA_HH_INCLUDED) && (BTA_HH_INCLUDED == TRUE))
-
+#ifndef REVOLUTION
 #include <ctype.h>
 #include <fcntl.h>
 #include <cstdio>
@@ -272,5 +271,6 @@ void bta_hh_co_send_hid_info(btif_hh_device_t *p_dev, char *dev_name, UINT16 ven
         p_dev->fd = -1;
     }
 }
+#endif
 
 

@@ -62,6 +62,30 @@
 /* DM events */
 enum
 {
+#ifdef REVOLUTION
+    /* device manager local device API events */
+    BTA_DM_API_ENABLE_EVT = BTA_SYS_EVT_START(BTA_ID_DM),
+    BTA_DM_API_DISABLE_EVT,
+    BTA_DM_API_SET_NAME_EVT,
+    BTA_DM_API_SET_VISIBILITY_EVT,
+    BTA_API_DM_SIG_STRENGTH_EVT,
+    BTA_DM_ACL_CHANGE_EVT,
+
+    /* security API events */
+    BTA_DM_API_BOND_EVT,
+    BTA_DM_API_PIN_REPLY_EVT,
+    BTA_DM_API_AUTH_REPLY_EVT,
+
+    /* power manger events */
+    BTA_DM_PM_BTM_STATUS_EVT,
+    BTA_DM_PM_TIMER_EVT,
+
+    BTA_DM_API_KEEP_ACL_EVT,
+    BTA_DM_API_SEND_HCI_RESET_EVT,
+
+    BTA_DM_MAX_EVT
+};
+#else
     /* device manager local device API events */
     BTA_DM_API_ENABLE_EVT = BTA_SYS_EVT_START(BTA_ID_DM),
     BTA_DM_API_DISABLE_EVT,
@@ -124,6 +148,7 @@ enum
     BTA_DM_API_SET_AFH_CHANNEL_ASSESMENT_EVT,
     BTA_DM_MAX_EVT
 };
+#endif
 
 
 /* DM search events */
@@ -135,11 +160,17 @@ enum
     BTA_DM_API_DISCOVER_EVT,
     BTA_DM_INQUIRY_CMPL_EVT,
     BTA_DM_REMT_NAME_EVT,
+#ifdef REVOLUTION
+    BTA_DM_API_DI_DISCOVER_EVT,
+    BTA_DM_SDP_RESULT_EVT,
+    BTA_DM_SEARCH_CMPL_EVT,
+    BTA_DM_DISCOVERY_RESULT_EVT
+#else
     BTA_DM_SDP_RESULT_EVT,
     BTA_DM_SEARCH_CMPL_EVT,
     BTA_DM_DISCOVERY_RESULT_EVT,
     BTA_DM_API_DI_DISCOVER_EVT
-
+#endif
 };
 
 /* data type for BTA_DM_API_ENABLE_EVT */
@@ -237,6 +268,10 @@ typedef struct
 {
     BT_HDR      hdr;
     BD_ADDR bd_addr;
+#ifdef REVOLUTION
+    UINT8       pin_len;        /* +0xE: PIN length passed to BTM_SecBond */
+    UINT8       pin[16];        /* +0xF: PIN string passed to BTM_SecBond */
+#endif
 } tBTA_DM_API_BOND;
 
 /* data type for BTA_DM_API_BOND_CANCEL_EVT */
@@ -367,7 +402,9 @@ typedef struct
     tBTM_BL_EVENT   event;
     UINT8           busy_level;
     BOOLEAN         is_new;
+#ifndef REVOLUTION
     UINT8           new_role;
+#endif
     BD_ADDR         bd_addr;
     UINT8           hci_status;
 } tBTA_DM_ACL_CHANGE;
@@ -398,16 +435,20 @@ typedef struct
 {
     BT_HDR              hdr;
     BD_ADDR             bd_addr;
+#ifndef REVOLUTION
     DEV_CLASS           dc;
+#endif
     LINK_KEY            link_key;
     tBTA_SERVICE_MASK   tm;
     BOOLEAN             is_trusted;
+#ifndef REVOLUTION
     UINT8               key_type;
     tBTA_IO_CAP         io_cap;
     BOOLEAN             link_key_known;
     BOOLEAN             dc_known;
     BD_NAME             bd_name;
     BD_FEATURES         features;
+#endif
 } tBTA_DM_API_ADD_DEVICE;
 
 /* data type for BTA_DM_API_REMOVE_ACL_EVT */
@@ -538,7 +579,9 @@ typedef union
 
     tBTA_DM_API_VENDOR_SPECIFIC_COMMAND vendor_command;
 
+#ifndef REVOLUTION
     tBTA_DM_API_ADD_DEVICE  add_dev;
+#endif
 
     tBTA_DM_API_REMOVE_DEVICE remove_dev;
 
@@ -551,6 +594,8 @@ typedef union
     tBTA_DM_API_BOND_CANCEL bond_cancel;
 
     tBTA_DM_API_PIN_REPLY pin_reply;
+
+#ifndef REVOLUTION
     tBTA_DM_API_LINK_POLICY link_policy;
 
     tBTA_DM_API_LOC_OOB     loc_oob;
@@ -558,6 +603,7 @@ typedef union
     tBTA_DM_API_PASKY_CANCEL passkey_cancel;
     tBTA_DM_CI_IO_REQ       ci_io_req;
     tBTA_DM_CI_RMT_OOB      ci_rmt_oob;
+#endif
 
     tBTA_DM_API_AUTH_REPLY auth_reply;
 
@@ -626,13 +672,17 @@ typedef UINT8 tBTA_DM_DEV_INFO;
 typedef struct
 {
     BD_ADDR                     peer_bdaddr;
+#ifndef REVOLUTION
     UINT16                      link_policy;
+#endif
     tBTA_DM_CONN_STATE          conn_state;
     tBTA_PREF_ROLES             pref_role;
     BOOLEAN                     in_use;
+#ifndef REVOLUTION
     tBTA_DM_DEV_INFO            info;
 #if (BTM_SSR_INCLUDED == TRUE)
     tBTM_PM_STATUS              prev_low;   /* previous low power mode used */
+#endif
 #endif
     tBTA_DM_PM_ACTTION          pm_mode_attempted;
     tBTA_DM_PM_ACTTION          pm_mode_failed;
@@ -686,7 +736,9 @@ extern tBTA_DM_CONNECTED_SRVCS bta_dm_conn_srvcs;
 /* DM control block */
 typedef struct
 {
+#ifndef REVOLUTION
     BOOLEAN                     is_bta_dm_active;
+#endif
     tBTA_DM_ACTIVE_LINK         device_list;
     tBTA_DM_SEC_CBACK           *p_sec_cback;
     TIMER_LIST_ENT              signal_strength_timer;
@@ -698,8 +750,13 @@ typedef struct
     UINT32                      wbt_sdp_handle;          /* WIDCOMM Extensions SDP record handle */
     UINT8                       wbt_scn;                 /* WIDCOMM Extensions SCN */
     UINT8                       num_master_only;
+#ifdef REVOLUTION
+    UINT16                      cur_policy;
+    UINT8                       cur_av_count;
+#endif
     UINT8                       pm_id;
     tBTA_PM_TIMER               pm_timer[BTA_DM_NUM_PM_TIMER];
+#ifndef REVOLUTION
     UINT32                      role_policy_mask;   /* the bits set indicates the modules that wants to remove role switch from the default link policy */
     UINT16                      cur_policy;         /* current default link policy */
     UINT16                      rs_event;           /* the event waiting for role switch */
@@ -711,10 +768,14 @@ typedef struct
     UINT16                      page_scan_window;
     UINT16                      inquiry_scan_interval;
     UINT16                      inquiry_scan_window;
+#endif
 
     /* Storage for pin code request parameters */
     BD_ADDR                     pin_bd_addr;
     DEV_CLASS                   pin_dev_class;
+#ifdef REVOLUTION
+    BOOLEAN                     keep_acl;
+#else
     tBTA_DM_SEC_EVT             pin_evt;
     UINT32          num_val;        /* the numeric value for comparison. If just_works, do not show this number to UI */
     BOOLEAN         just_works;     /* TRUE, if "Just Works" association model */
@@ -731,6 +792,7 @@ typedef struct
     tBTA_DM_ENCRYPT_CBACK      *p_encrypt_cback;
     tBTA_DM_BLE_SEC_ACT         sec_act;
     TIMER_LIST_ENT              switch_delay_timer;
+#endif
 
 } tBTA_DM_CB;
 
@@ -750,6 +812,15 @@ typedef struct
     tSDP_DISCOVERY_DB    * p_sdp_db;
     UINT16                 state;
     BD_ADDR                peer_bdaddr;
+#ifdef REVOLUTION
+    char                   peer_name[32];
+    TIMER_LIST_ENT         search_timer;
+    TIMER_LIST_ENT         rmt_name_timer;
+    UINT8                  service_index;
+    tBTA_DM_MSG          * p_search_queue;   /* search or discover commands during search cancel stored here */
+    BOOLEAN                wait_disc;
+    BOOLEAN                sdp_results;
+#else
     BOOLEAN                name_discover_done;
     char                   peer_name[BD_NAME_LEN];
     TIMER_LIST_ENT         search_timer;
@@ -772,6 +843,7 @@ typedef struct
     UINT8 *                 p_ble_rawdata;
     UINT32                 ble_raw_size;
     UINT32                 ble_raw_used;
+#endif
 #endif
 #endif
 
@@ -1009,6 +1081,12 @@ extern void bta_dm_disable_test_mode(tBTA_DM_MSG *p_data);
 extern void bta_dm_execute_callback(tBTA_DM_MSG *p_data);
 
 extern void bta_dm_set_afh_channel_assesment(tBTA_DM_MSG *p_data);
+#ifdef REVOLUTION
+extern void bta_dm_keep_acl(tBTA_DM_MSG *p_data);
+extern void bta_dm_send_hci_reset(tBTA_DM_MSG *p_data);
+extern void bta_dm_hci_reset_cback(void *p);
+extern void bta_dm_disc_remname_cback(tBTM_REMOTE_DEV_NAME *p_remote_name);
+#endif
 
 #endif /* BTA_DM_INT_H */
 

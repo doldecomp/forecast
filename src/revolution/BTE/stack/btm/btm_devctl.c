@@ -121,7 +121,7 @@ response message */
 
 /* host SCO buffer size */
 #ifndef BTM_SCO_HOST_BUF_SIZE
-#define BTM_SCO_HOST_BUF_SIZE       0xff
+#define BTM_SCO_HOST_BUF_SIZE       0x1e
 #endif
 
 #ifndef BTM_GPS_UIPC_CH_NB
@@ -132,8 +132,46 @@ response message */
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /********************************************************************************/
 static void btm_dev_reset (void);
+#ifndef REVOLUTION
 static void btm_after_reset_hold_complete (void);
 static void btm_continue_reset (void);
+#else
+static void btm_continue_reset (void);
+
+#define BTM_MAX_RESET_TRIES     5
+
+/* Re-send a setup command until the retry counter runs out, then reset again */
+#define BTM_DEV_RETRY(cmd)                                                  \
+    if (--btm_cb.devcb.reset_tries == 0)                                    \
+    {                                                                       \
+        btm_dev_reset ();                                                   \
+    }                                                                       \
+    else                                                                    \
+    {                                                                       \
+        btu_start_timer (&btm_cb.devcb.reset_timer, BTU_TTYPE_BTM_DEV_CTL, 1); \
+        cmd;                                                                \
+    }
+
+static void btm_cmd_hci_buf_size (void)
+{
+    BT_HDR *p_cmd;
+
+    if ((p_cmd = (BT_HDR *)GKI_getpoolbuf (HCI_CMD_POOL_ID)) != NULL)
+        btsnd_hcic_read_buffer_size (p_cmd);
+}
+
+static void btm_cmd_local_version (void)
+{
+    btsnd_hcic_read_local_ver ();
+    btsnd_hcic_read_bd_addr ();
+    btm_pm_reset ();
+}
+
+static void btm_cmd_local_features (void)
+{
+    btsnd_hcic_read_local_features ();
+}
+#endif
 
 /*******************************************************************************
 **
@@ -146,6 +184,10 @@ static void btm_continue_reset (void);
 *******************************************************************************/
 void btm_dev_init (void)
 {
+#ifdef REVOLUTION
+    memcpy (btm_cb.devcb.dev_class, BTM_INIT_CLASS_OF_DEVICE, DEV_CLASS_LEN);
+    btm_cb.devcb.page_timeout = 0x1400;
+#else
 #if 0  /* cleared in btm_init; put back in if called from anywhere else! */
     memset (&btm_cb.devcb, 0, sizeof (tBTM_DEVCB));
 #endif
@@ -156,6 +198,8 @@ void btm_dev_init (void)
 #if (BTM_USE_DEF_LOCAL_NAME == TRUE)
     BCM_STRNCPY_S(btm_cb.cfg.bd_name, sizeof(btm_cb.cfg.bd_name), BTM_DEF_LOCAL_NAME, BTM_MAX_LOC_BD_NAME_LEN);
 #endif
+#endif
+
 #endif
 
     btm_cb.devcb.reset_timer.param  = (TIMER_PARAM_TYPE)TT_DEV_RESET;
@@ -176,6 +220,9 @@ void btm_dev_init (void)
     btm_cb.first_disabled_channel = 0xff; /* To allow disabling 0th channel alone */
     btm_cb.last_disabled_channel = 0xff; /* To allow disabling 0th channel alone */
 
+#ifdef REVOLUTION
+    btm_dev_reset();
+#else
 #if (BTM_AUTOMATIC_HCI_RESET == TRUE)
 
 #if (BTM_FIRST_RESET_DELAY > 0)
@@ -187,6 +234,7 @@ void btm_dev_init (void)
 
 #else
    BTM_TRACE_EVENT0 ("BTM_AUTOMATIC_HCI_RESET is FALSE, so skip btm reset for now");
+#endif
 #endif
 
 }
@@ -209,6 +257,9 @@ static void btm_db_reset (void)
     tBTM_STATUS      status = BTM_DEV_RESET;
 
     btm_inq_db_reset();
+#ifdef REVOLUTION
+    btm_discovery_db_reset();
+#endif
 
     if (btm_cb.devcb.p_rln_cmpl_cb)
     {
@@ -240,6 +291,7 @@ static void btm_db_reset (void)
 
 
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_dev_absent
@@ -262,7 +314,7 @@ void btm_dev_absent (void)
 
     btu_stop_timer (&btm_cb.devcb.reset_timer);
 }
-
+#endif
 
 /*******************************************************************************
 **
@@ -277,7 +329,9 @@ void btm_dev_absent (void)
 *******************************************************************************/
 void BTM_DeviceReset (tBTM_CMPL_CB *p_cb)
 {
+#ifndef REVOLUTION
     tBTM_STATUS status;
+#endif
 
     /* If device is already resetting, do not allow another */
     if ((!btm_cb.devcb.p_reset_cmpl_cb) || (btm_cb.devcb.p_reset_cmpl_cb == p_cb))
@@ -292,7 +346,11 @@ void BTM_DeviceReset (tBTM_CMPL_CB *p_cb)
         btm_cb.devcb.p_reset_cmpl_cb = p_cb;
 
         btm_dev_reset ();
+#ifdef REVOLUTION
+        btm_report_device_status (BTM_DEV_STATUS_DOWN);
+#endif
     }
+#ifndef REVOLUTION
     else
     {
         /* pass an error to the bad callback, another one was already provided */
@@ -302,8 +360,34 @@ void BTM_DeviceReset (tBTM_CMPL_CB *p_cb)
             p_cb (&status);
         }
     }
+#endif
 }
 
+
+#ifdef REVOLUTION
+/*******************************************************************************
+**
+** Function         BTM_SendHciReset
+**
+** Description      This function is called to send an HCI reset. Callback
+**                  function if provided is called when the reset completes.
+**
+** Returns          void
+**
+*******************************************************************************/
+void BTM_SendHciReset (tBTM_CMPL_CB *p_cb)
+{
+    if ((!btm_cb.devcb.p_reset_cmpl_cb) || (btm_cb.devcb.p_reset_cmpl_cb == p_cb)
+        || (btm_cb.devcb.p_hci_reset_cmpl_cb == p_cb))
+    {
+        btm_acl_device_down();
+        btm_db_reset();
+        btm_cb.devcb.p_hci_reset_cmpl_cb = p_cb;
+        btm_dev_reset ();
+        btm_report_device_status (BTM_DEV_STATUS_DOWN);
+    }
+}
+#endif
 
 /*******************************************************************************
 **
@@ -340,8 +424,10 @@ tBTM_STATUS BTM_SetAfhChannels (UINT8 first, UINT8 last)
         (!HCI_LMP_AFH_CLASS_MASTR_SUPPORTED(btm_cb.devcb.local_features)))
         return (BTM_MODE_UNSUPPORTED);
 
+#ifndef REVOLUTION
     if (!BTM_IsDeviceUp())
         return (BTM_WRONG_MODE);
+#endif
 
     if ((btm_cb.first_disabled_channel != first)
      || (btm_cb.last_disabled_channel  != last))
@@ -357,6 +443,7 @@ tBTM_STATUS BTM_SetAfhChannels (UINT8 first, UINT8 last)
     return (BTM_SUCCESS);
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_SetAfhChannelAssessment
@@ -377,7 +464,9 @@ tBTM_STATUS BTM_SetAfhChannelAssessment (BOOLEAN enable_or_disable)
 
     return (BTM_SUCCESS);
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_ContinueReset
@@ -396,6 +485,7 @@ void BTM_ContinueReset (void)
     btm_continue_reset();
 #endif
 }
+#endif
 
 /*******************************************************************************
 **
@@ -410,18 +500,27 @@ static void btm_dev_reset (void)
 {
     btm_cb.devcb.state = BTM_DEV_STATE_WAIT_RESET_CMPLT;
 
+#ifdef REVOLUTION
+    btm_cb.devcb.reset_tries = BTM_MAX_RESET_TRIES;
+#else
     /* flush out the command complete queue and command transmit queue */
     btu_hcif_flush_cmd_queue();
+#endif
 
     /* Start reset timer.  When timer expires we will send first command */
     /* from the setup sequence */
 
     btu_start_timer (&btm_cb.devcb.reset_timer, BTU_TTYPE_BTM_DEV_CTL,
                      BTM_DEV_RESET_TIMEOUT);
+#ifdef REVOLUTION
+    btsnd_hcic_reset ();
+#else
     btsnd_hcic_reset (LOCAL_BR_EDR_CONTROLLER_ID);
+#endif
 }
 
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_get_hci_buf_size
@@ -441,6 +540,9 @@ void btm_get_hci_buf_size (void)
 
 }
 #if BLE_INCLUDED == TRUE
+#endif
+
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_read_ble_wl_size
@@ -458,6 +560,9 @@ void btm_read_ble_wl_size(void)
     /* Send a Read Buffer Size message to the Host Controller. */
     btsnd_hcic_ble_read_white_list_size();
 }
+#endif
+
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_get_ble_buffer_size
@@ -476,6 +581,9 @@ void btm_get_ble_buffer_size(void)
     btsnd_hcic_ble_read_buffer_size ();
 }
 #endif
+#endif
+
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_get_local_version
@@ -499,7 +607,9 @@ void btm_get_local_version (void)
 #endif
 
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_get_local_features
@@ -515,6 +625,53 @@ void btm_get_local_features (void)
 
     btsnd_hcic_read_local_features ();
 }
+#endif
+
+#ifdef REVOLUTION
+#ifdef REVOLUTION
+/* Reset path variant of BTM_SetLocalDeviceName: the local name is already
+   the target name, and the retail keeps the destination pointer ahead of
+   the command buffer here (the standalone API orders them the other way). */
+static tBTM_STATUS btm_set_local_device_name (char *p_name)
+{
+    UINT8 *p_dst;
+    BT_HDR *p_cmd;
+
+    if (!p_name)
+        return (BTM_ILLEGAL_VALUE);
+
+    if (btm_cb.devcb.state == BTM_DEV_STATE_WAIT_RESET_CMPLT ||
+        btm_cb.devcb.state == BTM_DEV_STATE_WAIT_AFTER_RESET)
+        return (BTM_DEV_RESET);
+
+    if ((p_cmd = (BT_HDR *)GKI_getpoolbuf (HCI_CMD_POOL_ID)) != NULL)
+    {
+        p_dst = (UINT8 *)btm_cb.cfg.bd_name;
+        if (p_dst != (UINT8 *)p_name)
+        {
+            memset (p_dst, 0, sizeof(btm_cb.cfg.bd_name));
+            strncpy ((char *)p_dst, p_name, BTM_MAX_LOC_BD_NAME_LEN);
+        }
+
+        btsnd_hcic_change_name (p_cmd, p_dst);
+        return (BTM_CMD_STARTED);
+    }
+
+    return (BTM_NO_RESOURCES);
+}
+#endif
+
+static void btm_continue_reset (void)
+{
+    btm_cb.devcb.state = BTM_DEV_STATE_WAIT_HCI_BUF_SIZE;
+    btm_cb.devcb.reset_tries = BTM_MAX_RESET_TRIES;
+    BTM_DEV_RETRY (btm_cmd_hci_buf_size ());
+
+    BTM_SetDeviceClass (btm_cb.devcb.dev_class);
+    btm_set_local_device_name (btm_cb.cfg.bd_name);
+    BTM_SetPinType (btm_cb.cfg.pin_type, btm_cb.cfg.pin_code, btm_cb.cfg.pin_code_len);
+}
+#endif
 
 /*******************************************************************************
 **
@@ -529,11 +686,35 @@ void btm_dev_timeout (TIMER_LIST_ENT  *p_tle)
 {
     TIMER_PARAM_TYPE timer_type = (TIMER_PARAM_TYPE)p_tle->param;
 
+#ifdef REVOLUTION
+    if (timer_type == (TIMER_PARAM_TYPE)TT_DEV_RESET)
+    {
+        switch (btm_cb.devcb.state)
+        {
+        case BTM_DEV_STATE_WAIT_RESET_CMPLT:
+            btm_dev_reset ();
+            break;
+
+        case BTM_DEV_STATE_WAIT_AFTER_RESET:
+            btm_continue_reset ();
+            break;
+
+        case BTM_DEV_STATE_WAIT_HCI_BUF_SIZE:
+            BTM_DEV_RETRY (btm_cmd_hci_buf_size ());
+            break;
+
+        case BTM_DEV_STATE_WAIT_LOCAL_VER:
+            BTM_DEV_RETRY (btm_cmd_local_version ());
+            break;
+        }
+    }
+#else
     if ((timer_type & TT_DEV_RESET_MASK) == TT_DEV_RESET)
     {
         /* Call device reset as long as there is timeout*/
         btm_dev_reset();
     }
+#endif
     else if (timer_type == (TIMER_PARAM_TYPE)TT_DEV_RLN)
     {
         tBTM_CMPL_CB  *p_cb = btm_cb.devcb.p_rln_cmpl_cb;
@@ -559,6 +740,32 @@ void btm_dev_timeout (TIMER_LIST_ENT  *p_tle)
 *******************************************************************************/
 void btm_reset_complete (void)
 {
+#ifdef REVOLUTION
+    BTM_TRACE_EVENT0 ("btm_reset_complete");
+
+    if (btm_cb.devcb.p_hci_reset_cmpl_cb)
+    {
+        tBTM_CMPL_CB *p_cb = btm_cb.devcb.p_hci_reset_cmpl_cb;
+
+        btm_cb.devcb.p_hci_reset_cmpl_cb = NULL;
+        (*p_cb)(NULL);
+    }
+    else if (btm_cb.devcb.state == BTM_DEV_STATE_WAIT_RESET_CMPLT)
+    {
+        l2cu_device_reset ();
+
+        btm_cb.btm_inq_vars.inq_scan_window   = HCI_DEF_INQUIRYSCAN_WINDOW;
+        btm_cb.btm_inq_vars.inq_scan_period   = HCI_DEF_INQUIRYSCAN_INTERVAL;
+        btm_cb.btm_inq_vars.inq_scan_type     = HCI_DEF_SCAN_TYPE;
+
+        btm_cb.btm_inq_vars.page_scan_window  = HCI_DEF_PAGESCAN_WINDOW;
+        btm_cb.btm_inq_vars.page_scan_period  = HCI_DEF_PAGESCAN_INTERVAL;
+        btm_cb.btm_inq_vars.page_scan_type    = HCI_DEF_SCAN_TYPE;
+
+        btm_continue_reset ();
+    }
+}
+#else
     int devinx;
 
     BTM_TRACE_EVENT0 ("btm_reset_complete");
@@ -608,7 +815,9 @@ void btm_reset_complete (void)
 #endif
     }
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_continue_reset
@@ -645,7 +854,9 @@ void btm_continue_reset (void)
 
     BTM_SetPinType (btm_cb.cfg.pin_type, btm_cb.cfg.pin_code, btm_cb.cfg.pin_code_len);
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_after_reset_hold_complete
@@ -665,7 +876,7 @@ void btm_after_reset_hold_complete (void)
     btm_continue_reset();
 #endif
 }
-
+#endif
 
 /*******************************************************************************
 **
@@ -720,6 +931,11 @@ void btm_read_hci_buf_size_complete (UINT8 *p, UINT16 evt_len)
     (void) BTM_SetDiscoverability (BTM_DEFAULT_DISC_MODE, BTM_DEFAULT_DISC_WINDOW, BTM_DEFAULT_DISC_INTERVAL);
 #endif
 
+#ifdef REVOLUTION
+    btm_cb.devcb.state = BTM_DEV_STATE_WAIT_LOCAL_VER;
+    btm_cb.devcb.reset_tries = BTM_MAX_RESET_TRIES;
+    BTM_DEV_RETRY (btm_cmd_local_version ());
+#else
 #if BTM_INTERNAL_BB == TRUE
     {
         UINT8 buf[9] = BTM_INTERNAL_LOCAL_VER;
@@ -728,9 +944,11 @@ void btm_read_hci_buf_size_complete (UINT8 *p, UINT16 evt_len)
 #else
     btm_get_local_version ();
 #endif
+#endif
 }
 
 #if (BLE_INCLUDED == TRUE)
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_read_ble_buf_size_complete
@@ -774,7 +992,9 @@ void btm_read_ble_buf_size_complete (UINT8 *p, UINT16 evt_len)
 #endif
 
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_read_white_list_size_complete
@@ -798,6 +1018,8 @@ void btm_read_white_list_size_complete(UINT8 *p, UINT16 evt_len)
 }
 
 #endif
+#endif
+
 /*******************************************************************************
 **
 ** Function         btm_read_local_version_complete
@@ -829,6 +1051,11 @@ void btm_read_local_version_complete (UINT8 *p, UINT16 evt_len)
         STREAM_TO_UINT16 (p_vi->lmp_subversion, p);
     }
 
+#ifdef REVOLUTION
+    btm_cb.devcb.state = BTM_DEV_STATE_WAIT_LOCAL_FEAT;
+    btm_cb.devcb.reset_tries = BTM_MAX_RESET_TRIES;
+    BTM_DEV_RETRY (btm_cmd_local_features ());
+#else
 #if BLE_INCLUDED == TRUE
     {
         btm_read_ble_wl_size();
@@ -844,6 +1071,7 @@ void btm_read_local_version_complete (UINT8 *p, UINT16 evt_len)
 #else
     /* get local feature if BRCM specific feature is not included  */
     btm_get_local_features ();
+#endif
 #endif
 #endif
 }
@@ -868,15 +1096,19 @@ void btm_read_local_features_complete (UINT8 *p, UINT16 evt_len)
     UINT8 last;
     UINT8 first;
 
+#ifndef REVOLUTION
     btu_stop_timer (&btm_cb.devcb.reset_timer);
+#endif
     /* If there was a callback address for reset complete, call it */
     p_devcb->p_reset_cmpl_cb = NULL;
 
     STREAM_TO_UINT8  (status, p);
     if (status == HCI_SUCCESS)
     {
+#ifndef REVOLUTION
         /* stop guard timer to avoid accidental timeout */
         btu_stop_timer(&p_devcb->reset_timer);
+#endif
 
         p_devcb->state = BTM_DEV_STATE_READY;
 
@@ -1062,6 +1294,7 @@ void btm_read_local_features_complete (UINT8 *p, UINT16 evt_len)
     }
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_get_voice_coding_support
@@ -1085,6 +1318,7 @@ UINT8 btm_get_voice_coding_support( void )
 
     return code ;
 }
+#endif
 
 /*******************************************************************************
 **
@@ -1095,6 +1329,35 @@ UINT8 btm_get_voice_coding_support( void )
 ** Returns          status of the operation
 **
 *******************************************************************************/
+tBTM_STATUS BTM_SetLocalDeviceName (char *p_name)
+{
+#ifdef REVOLUTION
+    BT_HDR *p_cmd;
+
+    if (!p_name)
+        return (BTM_ILLEGAL_VALUE);
+
+    if (btm_cb.devcb.state == BTM_DEV_STATE_WAIT_RESET_CMPLT ||
+        btm_cb.devcb.state == BTM_DEV_STATE_WAIT_AFTER_RESET)
+        return (BTM_DEV_RESET);
+
+    if ((p_cmd = (BT_HDR *)GKI_getpoolbuf (HCI_CMD_POOL_ID)) != NULL)
+    {
+        UINT8 *p_dst = (UINT8 *)btm_cb.cfg.bd_name;
+        if (p_dst != (UINT8 *)p_name)
+        {
+            memset (p_dst, 0, sizeof(btm_cb.cfg.bd_name));
+            strncpy ((char *)p_dst, p_name, BTM_MAX_LOC_BD_NAME_LEN);
+        }
+
+        btsnd_hcic_change_name (p_cmd, p_dst);
+        return (BTM_CMD_STARTED);
+    }
+
+    return (BTM_NO_RESOURCES);
+}
+#else
+
 tBTM_STATUS BTM_SetLocalDeviceName (char *p_name)
 {
     UINT8    *p;
@@ -1131,9 +1394,10 @@ tBTM_STATUS BTM_SetLocalDeviceName (char *p_name)
     else
         return (BTM_NO_RESOURCES);
 }
+#endif
 
 
-
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_ReadLocalDeviceName
@@ -1157,8 +1421,9 @@ tBTM_STATUS BTM_ReadLocalDeviceName (char **p_name)
     return(BTM_NO_RESOURCES);
 #endif
 }
+#endif
 
-
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_ReadLocalDeviceNameFromController
@@ -1183,6 +1448,7 @@ tBTM_STATUS BTM_ReadLocalDeviceNameFromController (tBTM_CMPL_CB *p_rln_cmpl_cbac
 
     return BTM_CMD_STARTED;
 }
+#endif
 
 /*******************************************************************************
 **
@@ -1216,6 +1482,7 @@ void btm_read_local_name_complete (UINT8 *p, UINT16 evt_len)
 }
 
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_GetLocalDeviceAddr
@@ -1230,6 +1497,7 @@ void BTM_GetLocalDeviceAddr (BD_ADDR bd_addr)
 {
     memcpy (bd_addr, btm_cb.devcb.local_addr, BD_ADDR_LEN);
 }
+#endif
 
 /*******************************************************************************
 **
@@ -1284,7 +1552,11 @@ void btm_read_local_addr_complete (UINT8 *p, UINT16 evt_len)
 tBTM_STATUS BTM_ReadLocalVersion (tBTM_VERSION_INFO *p_vers)
 {
     /* Make sure the device has retrieved the info (not being reset) */
+#ifdef REVOLUTION
+    if (btm_cb.devcb.state < BTM_DEV_STATE_WAIT_LOCAL_FEAT)
+#else
     if (btm_cb.devcb.state < BTM_DEV_STATE_READY)
+#endif
         return (BTM_DEV_RESET);
 
     *p_vers = btm_cb.devcb.local_version;
@@ -1306,6 +1578,23 @@ tBTM_STATUS BTM_ReadLocalVersion (tBTM_VERSION_INFO *p_vers)
 *******************************************************************************/
 tBTM_STATUS BTM_SetDeviceClass (DEV_CLASS dev_class)
 {
+#ifdef REVOLUTION
+    BT_HDR *p_buf;
+
+    memcpy (btm_cb.devcb.dev_class, dev_class, DEV_CLASS_LEN);
+
+    if (btm_cb.devcb.state == BTM_DEV_STATE_WAIT_RESET_CMPLT ||
+        btm_cb.devcb.state == BTM_DEV_STATE_WAIT_AFTER_RESET)
+        return (BTM_DEV_RESET);
+
+    if ((p_buf = (BT_HDR *)GKI_getpoolbuf (HCI_CMD_POOL_ID)) != NULL)
+    {
+        btsnd_hcic_write_dev_class (p_buf, dev_class);
+        return (BTM_SUCCESS);
+    }
+
+    return (BTM_NO_RESOURCES);
+#else
     if(!memcmp (btm_cb.devcb.dev_class, dev_class, DEV_CLASS_LEN))
         return(BTM_SUCCESS);
 
@@ -1319,6 +1608,7 @@ tBTM_STATUS BTM_SetDeviceClass (DEV_CLASS dev_class)
         return (BTM_NO_RESOURCES);
 
     return (BTM_SUCCESS);
+#endif
 }
 
 
@@ -1351,6 +1641,7 @@ UINT8 *BTM_ReadLocalFeatures (void)
     return (btm_cb.devcb.local_features);
 }
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_ReadBrcmFeatures
@@ -1364,6 +1655,7 @@ UINT8 *BTM_ReadBrcmFeatures (void)
 {
     return (btm_cb.devcb.brcm_features);
 }
+#endif
 
 /*******************************************************************************
 **
@@ -1405,6 +1697,40 @@ tBTM_DEV_STATUS_CB *BTM_RegisterForDeviceStatusNotif (tBTM_DEV_STATUS_CB *p_cb)
 tBTM_STATUS BTM_VendorSpecificCommand(UINT16 opcode, UINT8 param_len,
                                       UINT8 *p_param_buf, tBTM_VSC_CMPL_CB *p_cb)
 {
+#ifdef REVOLUTION
+    BT_HDR *p_buf;
+
+    BTM_TRACE_EVENT2 ("BTM: BTM_VendorSpecificCommand: Opcode: 0x%04X, ParamLen: %i.",
+                      opcode, param_len);
+
+    /* Make sure the previous command is completed */
+    if (btm_cb.devcb.vsc_busy)
+    {
+        BTM_TRACE_EVENT0 ("BTM: Unable to send vendor specific command (controller is busy).");
+        return (BTM_BUSY);
+    }
+
+    /* Allocate a buffer to hold HCI command */
+    if ((p_buf = (BT_HDR *)GKI_getbuf((UINT16)(sizeof(BT_HDR) + param_len +
+                            HCIC_PREAMBLE_SIZE))) != NULL)
+    {
+        /* Save the callback, it is used when the command complete event arrives */
+        btm_cb.devcb.p_vsc_cmpl_cb = p_cb;
+        if (p_cb != NULL)
+            btm_cb.devcb.vsc_busy = TRUE;
+
+        /* Send the HCI command (opcode will be OR'd with HCI_GRP_VENDOR_SPECIFIC) */
+        btsnd_hcic_vendor_spec_cmd (p_buf, opcode, param_len, p_param_buf);
+
+        /* Return value */
+        if (p_cb != NULL)
+            return (BTM_CMD_STARTED);
+        else
+            return (BTM_SUCCESS);
+    }
+    else
+        return (BTM_NO_RESOURCES);
+#else
     void *p_buf;
 
     BTM_TRACE_EVENT2 ("BTM: BTM_VendorSpecificCommand: Opcode: 0x%04X, ParamLen: %i.",
@@ -1425,6 +1751,7 @@ tBTM_STATUS BTM_VendorSpecificCommand(UINT16 opcode, UINT8 param_len,
     }
     else
         return (BTM_NO_RESOURCES);
+#endif
 
 }
 
@@ -1439,6 +1766,25 @@ tBTM_STATUS BTM_VendorSpecificCommand(UINT16 opcode, UINT8 param_len,
 ** Returns          void
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+void btm_vsc_complete (UINT8 *p, UINT16 opcode, UINT16 evt_len)
+{
+    tBTM_VSC_CMPL   vcs_cplt_params;
+    UINT8 *p_param = vcs_cplt_params.param;
+    tBTM_VSC_CMPL_CB *p_cb = btm_cb.devcb.p_vsc_cmpl_cb;
+
+    btm_cb.devcb.vsc_busy = FALSE;
+    btm_cb.devcb.p_vsc_cmpl_cb = NULL;
+
+    if (p_cb != NULL)
+    {
+        vcs_cplt_params.opcode = opcode;
+        vcs_cplt_params.length = evt_len;
+        memcpy (p_param, p, evt_len);
+        (*p_cb)(&vcs_cplt_params);
+    }
+}
+#else
 void btm_vsc_complete (UINT8 *p, UINT16 opcode, UINT16 evt_len,
                        tBTM_CMPL_CB *p_vsc_cplt_cback)
 {
@@ -1454,6 +1800,7 @@ void btm_vsc_complete (UINT8 *p, UINT16 opcode, UINT16 evt_len,
         (*p_vsc_cplt_cback)(&vcs_cplt_params);  /* Call the VSC complete callback function */
     }
 }
+#endif
 
 /*******************************************************************************
 **
@@ -1472,9 +1819,15 @@ void btm_vsc_complete (UINT8 *p, UINT16 opcode, UINT16 evt_len,
 *******************************************************************************/
 #ifdef REVOLUTION
 tBTM_STATUS BTM_RegisterForVSEvents (tBTM_VS_EVT_CB *p_cb)
+{
+    if (btm_cb.devcb.p_vend_spec_cb[0] != NULL && p_cb != NULL)
+        return (BTM_BUSY);
+
+    btm_cb.devcb.p_vend_spec_cb[0] = p_cb;
+    return (BTM_SUCCESS);
+}
 #else
 tBTM_STATUS BTM_RegisterForVSEvents (tBTM_VS_EVT_CB *p_cb, BOOLEAN is_register)
-#endif
 {
     tBTM_STATUS retval = BTM_SUCCESS;
     UINT8 i, free_idx = BTM_MAX_VSE_CALLBACKS;
@@ -1518,6 +1871,7 @@ tBTM_STATUS BTM_RegisterForVSEvents (tBTM_VS_EVT_CB *p_cb, BOOLEAN is_register)
 
     return (retval);
 }
+#endif
 
 /*******************************************************************************
 **
@@ -1533,6 +1887,23 @@ tBTM_STATUS BTM_RegisterForVSEvents (tBTM_VS_EVT_CB *p_cb, BOOLEAN is_register)
 *******************************************************************************/
 void btm_vendor_specific_evt (UINT8 *p, UINT8 evt_len)
 {
+#ifdef REVOLUTION
+    tBTM_DEVCB *p_devcb = &btm_cb.devcb;
+    tBTM_VS_EVT_CB *p_cb;
+
+    if (p_devcb->local_version.manufacturer != 0x12)
+    {
+        BTM_TRACE_EVENT0 ("BTM Event: Received a vendor specific event from controller");
+    }
+
+    p_cb = p_devcb->p_vend_spec_cb[0];
+
+    p_devcb->p_vsc_cmpl_cb = NULL;
+    p_devcb->vsc_busy = FALSE;
+
+    if (p_cb)
+        (*p_cb)(evt_len, p);
+#else
     UINT8 i;
 
     BTM_TRACE_DEBUG0 ("BTM Event: Vendor Specific event from controller");
@@ -1542,6 +1913,7 @@ void btm_vendor_specific_evt (UINT8 *p, UINT8 evt_len)
         if (btm_cb.devcb.p_vend_spec_cb[i])
             (*btm_cb.devcb.p_vend_spec_cb[i])(evt_len, p);
     }
+#endif
 }
 
 
@@ -1559,6 +1931,23 @@ void btm_vendor_specific_evt (UINT8 *p, UINT8 evt_len)
 *******************************************************************************/
 tBTM_STATUS BTM_WritePageTimeout(UINT16 timeout)
 {
+#ifdef REVOLUTION
+    BT_HDR *p_buf;
+
+    BTM_TRACE_EVENT1 ("BTM: BTM_WritePageTimeout: Timeout: %d.", timeout);
+
+    /* Remember the timeout in milliseconds; the HCI unit is 0.625 ms */
+    btm_cb.devcb.page_timeout = timeout * 625 / 1000;
+
+    if ((p_buf = (BT_HDR *)GKI_getpoolbuf (HCI_CMD_POOL_ID)) != NULL)
+    {
+        btsnd_hcic_write_page_tout (p_buf, timeout);
+
+        return (BTM_SUCCESS);
+    }
+
+    return (BTM_NO_RESOURCES);
+#else
     BTM_TRACE_EVENT1 ("BTM: BTM_WritePageTimeout: Timeout: %d.", timeout);
 
     /* Send the HCI command */
@@ -1566,8 +1955,17 @@ tBTM_STATUS BTM_WritePageTimeout(UINT16 timeout)
         return (BTM_SUCCESS);
     else
         return (BTM_NO_RESOURCES);
+#endif
 }
 
+#ifdef REVOLUTION
+/* The retail link dead-stripped these functions but kept their trace
+   strings, so declare them as plain file-scope data. */
+char s_btm_voice_settings_trace[] = "BTM: BTM_WriteVoiceSettings: Settings: 0x%04x.";
+char s_btm_test_mode_trace[] = "BTM: BTM_EnableTestMode";
+#endif
+
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_WriteVoiceSettings
@@ -1591,7 +1989,9 @@ tBTM_STATUS BTM_WriteVoiceSettings(UINT16 settings)
 
     return (BTM_NO_RESOURCES);
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         BTM_EnableTestMode
@@ -1650,7 +2050,9 @@ tBTM_STATUS BTM_EnableTestMode(void)
     else
         return (BTM_NO_RESOURCES);
 }
+#endif
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         btm_get_hci_version
@@ -1664,8 +2066,7 @@ UINT8 btm_get_hci_version (void)
 {
     return (btm_cb.devcb.local_version.hci_version);
 }
-
-
+#endif
 
 /*******************************************************************************
 **
@@ -1684,6 +2085,9 @@ tBTM_STATUS BTM_ReadStoredLinkKey (BD_ADDR bd_addr,	tBTM_CMPL_CB *p_cb)
 {
     BD_ADDR local_bd_addr;
     BOOLEAN read_all_flag = FALSE;
+#ifdef REVOLUTION
+    BT_HDR *p_buf;
+#endif
 
     /* Check if the previous command is completed */
     if (btm_cb.devcb.p_stored_link_key_cmpl_cb)
@@ -1701,12 +2105,24 @@ tBTM_STATUS BTM_ReadStoredLinkKey (BD_ADDR bd_addr,	tBTM_CMPL_CB *p_cb)
     BTM_TRACE_EVENT1 ("BTM: BTM_ReadStoredLinkKey: Read_All: %s",
                         read_all_flag ? "TRUE" : "FALSE");
 
+#ifdef REVOLUTION
+    if ((p_buf = (BT_HDR *)GKI_getpoolbuf (HCI_CMD_POOL_ID)) != NULL)
+    {
+        btm_cb.devcb.p_stored_link_key_cmpl_cb = p_cb;
+        btsnd_hcic_read_stored_key (p_buf, bd_addr, read_all_flag);
+
+        return (BTM_SUCCESS);
+    }
+
+    return (BTM_NO_RESOURCES);
+#else
     /* Send the HCI command */
     btm_cb.devcb.p_stored_link_key_cmpl_cb = p_cb;
     if (btsnd_hcic_read_stored_key (bd_addr, read_all_flag))
         return (BTM_SUCCESS);
     else
         return (BTM_NO_RESOURCES);
+#endif
 
 }
 
@@ -1731,6 +2147,9 @@ tBTM_STATUS BTM_WriteStoredLinkKey (UINT8 num_keys,
                                     LINK_KEY *link_key,
                                     tBTM_CMPL_CB *p_cb)
 {
+#ifdef REVOLUTION
+    BT_HDR *p_buf;
+#endif
     /* Check if the previous command is completed */
     if (btm_cb.devcb.p_stored_link_key_cmpl_cb)
         return (BTM_BUSY);
@@ -1741,12 +2160,24 @@ tBTM_STATUS BTM_WriteStoredLinkKey (UINT8 num_keys,
     if(num_keys > HCI_MAX_NUM_OF_LINK_KEYS_PER_CMMD)
         num_keys = HCI_MAX_NUM_OF_LINK_KEYS_PER_CMMD;
 
+#ifdef REVOLUTION
+    if ((p_buf = (BT_HDR *)GKI_getpoolbuf (HCI_CMD_POOL_ID)) != NULL)
+    {
+        btm_cb.devcb.p_stored_link_key_cmpl_cb = p_cb;
+        btsnd_hcic_write_stored_key (p_buf, num_keys, bd_addr, link_key);
+
+        return (BTM_SUCCESS);
+    }
+
+    return (BTM_NO_RESOURCES);
+#else
     /* Send the HCI command */
     btm_cb.devcb.p_stored_link_key_cmpl_cb = p_cb;
     if (btsnd_hcic_write_stored_key (num_keys, bd_addr, link_key))
         return (BTM_SUCCESS);
     else
         return (BTM_NO_RESOURCES);
+#endif
 
 }
 
@@ -1819,19 +2250,10 @@ void btm_read_stored_link_key_complete (UINT8 *p)
         /* Set the call back event to indicate command complete */
         result.event = BTM_CB_EVT_READ_STORED_LINK_KEYS;
 
-        /* Extract the result fields from the HCI event if status is success */
         STREAM_TO_UINT8  (result.status, p);
-        if (result.status == HCI_SUCCESS)
-        {
-            STREAM_TO_UINT16 (result.max_keys, p);
-            STREAM_TO_UINT16 (result.read_keys, p);
-        }
-        else
-        {
-            BTM_TRACE_WARNING1("Read stored link key status %d", result.status);
-            result.max_keys = 0;
-            result.read_keys = 0;
-        }
+        STREAM_TO_UINT16 (result.max_keys, p);
+        STREAM_TO_UINT16 (result.read_keys, p);
+
         /* Call the call back and pass the result */
         (*p_cb)(&result);
     }

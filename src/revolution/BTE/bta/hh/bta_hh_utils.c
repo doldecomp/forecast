@@ -37,6 +37,9 @@
 
 #define BTA_HH_MAX_RPT_CHARS    8
 
+#ifndef REVOLUTION
+/* Not present in the Wii RVL build: BTA_HhParseBootRpt and the boot-report
+   parsers are absent from the retail DOL (no symbols, TU is exactly 5 fns). */
 static const UINT8 bta_hh_mod_key_mask[BTA_HH_MOD_MAX_KEY] =
 {
     BTA_HH_KB_CTRL_MASK,
@@ -44,6 +47,30 @@ static const UINT8 bta_hh_mod_key_mask[BTA_HH_MOD_MAX_KEY] =
     BTA_HH_KB_ALT_MASK,
     BTA_HH_KB_GUI_MASK
 };
+#endif
+
+/* String pool for the RVL build. The retail .data holds these 16 literals in
+   this order, each 4-byte aligned and NUL padded to the size given here. The
+   boot-report parsers were the only users of the s_keybd_ / s_mice_ arrays and
+   the retail link dead-stripped them, so those 8 arrays are spelled as globals:
+   MWCC emits file-scope globals unconditionally, which keeps the retail .data
+   pool byte-identical while the parsers stay out of the compiled .text. */
+static char s_find_found[36] = "found kdev_cb[%d] hid_handle = %d ";
+static char s_find_inuse[52] = "in_use ? [%d] kdev[%d].hid_handle = %d state = [%d]";
+static char s_find_index[44] = "bta_hh_find_cb:: index = %d while max = %d";
+static char s_add_subclass[20] = "subclass = 0x%2x";
+char s_keybd_called[64] = "bta_hh_parse_keybd_rpt:  (report=%p, report_len=%d) called";
+char s_alt_pressed[16] = "Alt key pressed";
+char s_alt_notpressed[20] = "Alt key not pressed";
+char s_this_char[20] = "this_char = %02x";
+char s_keybd_cannot[72] = "BTA_HhParseKeybdRpt:  Cannot interpret scan code                 0x%02x";
+char s_mice_called[92] = "bta_hh_parse_mice_rpt:  bta_keybd_rpt_rcvd(report=%p,                 report_len=%d) called";
+char s_mice_button[20] = "mice button: 0x%2x";
+char s_mice_move[28] = "mice move: x = %d y = %d";
+static char s_db_list[60] = "bta_hh_trace_dev_db:: Device DB list********************";
+static char s_db_kdev[36] = "kdev[%d] in_use[%d]  handle[%d] ";
+static char s_db_attr[60] = "\t\t\t attr_mask[%04x] state [%d] sub_class[%02x] index = %d";
+static char s_db_stars[64] = "*********************************************************";
 
 
 /*******************************************************************************
@@ -68,14 +95,14 @@ UINT8  bta_hh_find_cb(BD_ADDR bda)
               bdcmp(bda, bd_addr_null) != 0) )
         {
 #if BTA_HH_DEBUG
-            APPL_TRACE_DEBUG2("found kdev_cb[%d] hid_handle = %d ", xx,
+            APPL_TRACE_DEBUG2(s_find_found, xx,
                                 bta_hh_cb.kdev[xx].hid_handle)
 #endif
             return xx;
         }
 #if BTA_HH_DEBUG
         else
-            APPL_TRACE_DEBUG4("in_use ? [%d] kdev[%d].hid_handle = %d state = [%d]",
+            APPL_TRACE_DEBUG4(s_find_inuse,
                             bta_hh_cb.kdev[xx].in_use, xx,
                             bta_hh_cb.kdev[xx].hid_handle,
                             bta_hh_cb.kdev[xx].state);
@@ -93,7 +120,7 @@ UINT8  bta_hh_find_cb(BD_ADDR bda)
     }
     /* If device list full, report BTA_HH_MAX_KNOWN */
 #if BTA_HH_DEBUG
-    APPL_TRACE_DEBUG2("bta_hh_find_cb:: index = %d while max = %d",
+    APPL_TRACE_DEBUG2(s_find_index,
                         xx, BTA_HH_MAX_KNOWN);
 #endif
 
@@ -121,7 +148,11 @@ void bta_hh_clean_up_kdev(tBTA_HH_DEV_CB *p_cb)
     index = p_cb->index;                        /* Preserve index for this control block */
 
     /* Free buffer for report descriptor info */
+#ifdef REVOLUTION
+    utl_freebuf((void **)&p_cb->dscp_info.dsc_list);
+#else
     utl_freebuf((void **)&p_cb->dscp_info.descriptor.dsc_list);
+#endif
 
     memset(p_cb, 0, sizeof (tBTA_HH_DEV_CB));   /* Reset control block */
 
@@ -130,6 +161,7 @@ void bta_hh_clean_up_kdev(tBTA_HH_DEV_CB *p_cb)
     p_cb->hid_handle = BTA_HH_INVALID_HANDLE;
 
 }
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         bta_hh_update_di_info
@@ -150,6 +182,7 @@ void bta_hh_update_di_info(tBTA_HH_DEV_CB *p_cb, UINT16 vendor_id, UINT16 produc
     p_cb->dscp_info.product_id    =   product_id;
     p_cb->dscp_info.version       =   version;
 }
+#endif
 /*******************************************************************************
 **
 ** Function         bta_hh_add_device_to_list
@@ -159,6 +192,41 @@ void bta_hh_update_di_info(tBTA_HH_DEV_CB *p_cb, UINT16 vendor_id, UINT16 produc
 ** Returns          void
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+void bta_hh_add_device_to_list(tBTA_HH_DEV_CB *p_cb, UINT8 handle,
+                               UINT16 attr_mask,
+                               tHID_DEV_DSCP_INFO *p_dscp_info,
+                               UINT8 sub_class,
+                               UINT8 app_id)
+{
+#if BTA_HH_DEBUG
+    APPL_TRACE_DEBUG1(s_add_subclass, sub_class);
+#endif
+
+    p_cb->hid_handle = handle;
+    p_cb->in_use = TRUE;
+    p_cb->attr_mask = attr_mask;
+
+    p_cb->sub_class = sub_class;
+    p_cb->app_id    = app_id;
+
+    /* store report descriptor info */
+    if ( p_dscp_info)
+    {
+        utl_freebuf((void **)&p_cb->dscp_info.dsc_list);
+
+        if (p_dscp_info->dl_len &&
+        (p_cb->dscp_info.dsc_list =
+            (UINT8 *)GKI_getbuf(p_dscp_info->dl_len)) != NULL)
+        {
+            p_cb->dscp_info.dl_len = p_dscp_info->dl_len;
+            memcpy(p_cb->dscp_info.dsc_list, p_dscp_info->dsc_list,
+                    p_dscp_info->dl_len);
+        }
+    }
+    return;
+}
+#else
 void bta_hh_add_device_to_list(tBTA_HH_DEV_CB *p_cb, UINT8 handle,
                                UINT16 attr_mask,
                                tHID_DEV_DSCP_INFO *p_dscp_info,
@@ -204,6 +272,7 @@ void bta_hh_add_device_to_list(tBTA_HH_DEV_CB *p_cb, UINT8 handle,
     }
     return;
 }
+#endif
 
 /*******************************************************************************
 **
@@ -225,13 +294,19 @@ BOOLEAN bta_hh_tod_spt(tBTA_HH_DEV_CB *p_cb,UINT8 sub_class)
         {
             p_cb->app_id = p_bta_hh_cfg->p_devt_list[xx].app_id;
 #if BTA_HH_DEBUG
+#ifndef REVOLUTION
+            /* RVL has no trace here */
             APPL_TRACE_EVENT1("bta_hh_tod_spt sub_class:0x%x supported", sub_class);
+#endif
 #endif
             return TRUE;
         }
     }
 #if BTA_HH_DEBUG
+#ifndef REVOLUTION
+    /* RVL has no trace here */
             APPL_TRACE_EVENT1("bta_hh_tod_spt sub_class:0x%x NOT supported", sub_class);
+#endif
 #endif
     return FALSE;
 }
@@ -246,6 +321,7 @@ BOOLEAN bta_hh_tod_spt(tBTA_HH_DEV_CB *p_cb,UINT8 sub_class)
 ** Returns          void
 **
 *******************************************************************************/
+#ifndef REVOLUTION
 void bta_hh_parse_keybd_rpt(tBTA_HH_BOOT_RPT *p_kb_data, UINT8 *p_report,
                             UINT16 report_len)
 {
@@ -333,6 +409,70 @@ void bta_hh_parse_keybd_rpt(tBTA_HH_BOOT_RPT *p_kb_data, UINT8 *p_report,
 
     return;
 }
+#else
+/* Wii RVL version converts scan codes with explicit Alt-key reporting.
+   NOTE: the retail link dead-stripped this body (the RVL build has no caller
+   and no symbol for it), so it must not reach the compiled object. The .data
+   pool it used to feed survives through the global s_keybd_* arrays above. */
+#if 0
+void bta_hh_parse_keybd_rpt(tBTA_HH_BOOT_RPT *p_kb_data, UINT8 *p_report,
+                            UINT16 report_len)
+{
+    tBTA_HH_KB_CB       *p_kb = &bta_hh_cb.kb_cb;
+    tBTA_HH_KEYBD_RPT   *p_data = &p_kb_data->data_rpt.keybd_rpt;
+
+    UINT8        this_char, ctl_shift;
+    UINT16       xx, key_idx = 0;
+    UINT8        this_report[BTA_HH_MAX_RPT_CHARS];
+
+    APPL_TRACE_DEBUG2(s_keybd_called,
+            p_report, report_len);
+
+    if (report_len < 2)
+        return;
+
+    ctl_shift = *p_report++;
+    report_len--;
+
+    if (report_len > BTA_HH_MAX_RPT_CHARS)
+        report_len = BTA_HH_MAX_RPT_CHARS;
+
+    memset (this_report, 0, BTA_HH_MAX_RPT_CHARS);
+    memset (p_data, 0, sizeof(tBTA_HH_KEYBD_RPT));
+    memcpy (this_report, p_report, report_len);
+
+    /* RVL reports the Alt modifier (mod_key[2]) state explicitly */
+    if (ctl_shift & BTA_HH_KB_ALT_MASK)
+    {
+        APPL_TRACE_DEBUG0(s_alt_pressed);
+        p_kb->mod_key[2] = TRUE;
+    }
+    else
+    {
+        APPL_TRACE_DEBUG0(s_alt_notpressed);
+        p_kb->mod_key[2] = FALSE;
+    }
+    p_data->mod_key[2] = p_kb->mod_key[2];
+
+    /* convert scan codes, skipping key releases (0) and unknown codes */
+    for (xx = 0; xx < report_len; xx++)
+    {
+        APPL_TRACE_DEBUG1(s_this_char, this_report[xx]);
+        if ((this_char = this_report[xx]) == 0)
+            continue;
+        if (this_char >= 0x04 && this_char <= 0x1D)
+            p_data->this_char[key_idx++] = this_char;
+        else
+            APPL_TRACE_DEBUG1(s_keybd_cannot, this_char);
+    }
+
+    memset (p_kb->last_report, 0, BTA_HH_MAX_RPT_CHARS);
+    memcpy (p_kb->last_report, p_report, report_len);
+
+    return;
+}
+#endif /* 0 -- RVL boot-report parser, dead-stripped in retail */
+#endif /* REVOLUTION switch for bta_hh_parse_keybd_rpt */
 
 /*******************************************************************************
 **
@@ -343,6 +483,10 @@ void bta_hh_parse_keybd_rpt(tBTA_HH_BOOT_RPT *p_kb_data, UINT8 *p_report,
 ** Returns          void
 **
 *******************************************************************************/
+/* WARNING: not part of the Wii RVL build. The retail link dead-stripped this
+   body (no caller, no symbol) and only its strings remain in the unit's .data,
+   kept alive by the global s_mice_* arrays above. Compiled for non-RVL only. */
+#ifndef REVOLUTION
 void bta_hh_parse_mice_rpt(tBTA_HH_BOOT_RPT *p_mice_data, UINT8 *p_report,
                            UINT16 report_len)
 {
@@ -350,8 +494,7 @@ void bta_hh_parse_mice_rpt(tBTA_HH_BOOT_RPT *p_mice_data, UINT8 *p_report,
 #if BTA_HH_DEBUG
     UINT8       xx;
 
-    APPL_TRACE_DEBUG2("bta_hh_parse_mice_rpt:  bta_keybd_rpt_rcvd(report=%p, \
-                report_len=%d) called", p_report, report_len);
+    APPL_TRACE_DEBUG2(s_mice_called, p_report, report_len);
 #endif
 
     if (report_len < 3)
@@ -363,7 +506,7 @@ void bta_hh_parse_mice_rpt(tBTA_HH_BOOT_RPT *p_mice_data, UINT8 *p_report,
 #if BTA_HH_DEBUG
     for (xx = 0; xx < report_len; xx++)
     {
-        APPL_TRACE_DEBUG1("this_char = %02x", p_report[xx]);
+        APPL_TRACE_DEBUG1(s_this_char, p_report[xx]);
     }
 #endif
 
@@ -377,14 +520,15 @@ void bta_hh_parse_mice_rpt(tBTA_HH_BOOT_RPT *p_mice_data, UINT8 *p_report,
     p_data->delta_y     = p_report[2];
 
 #if BTA_HH_DEBUG
-    APPL_TRACE_DEBUG1("mice button: 0x%2x", p_data->mouse_button);
-    APPL_TRACE_DEBUG2("mice move: x = %d y = %d", p_data->delta_x,
+    APPL_TRACE_DEBUG1(s_mice_button, p_data->mouse_button);
+    APPL_TRACE_DEBUG2(s_mice_move, p_data->delta_x,
                         p_data->delta_y );
 #endif
 
     return;
 
 }
+#endif /* !REVOLUTION -- RVL has no boot-report mouse parser */
 
 #if BTA_HH_DEBUG
 /*******************************************************************************
@@ -400,18 +544,18 @@ void bta_hh_trace_dev_db(void)
 {
     UINT8    xx;
 
-    APPL_TRACE_DEBUG0("bta_hh_trace_dev_db:: Device DB list********************");
+    APPL_TRACE_DEBUG0(s_db_list);
 
     for (xx = 0; xx < BTA_HH_MAX_KNOWN; xx++)
     {
-        APPL_TRACE_DEBUG3("kdev[%d] in_use[%d]  handle[%d] ",xx,
+        APPL_TRACE_DEBUG3(s_db_kdev,xx,
             bta_hh_cb.kdev[xx].in_use, bta_hh_cb.kdev[xx].hid_handle);
 
-        APPL_TRACE_DEBUG4("\t\t\t attr_mask[%04x] state [%d] sub_class[%02x] index = %d",
+        APPL_TRACE_DEBUG4(s_db_attr,
             bta_hh_cb.kdev[xx].attr_mask, bta_hh_cb.kdev[xx].state,
             bta_hh_cb.kdev[xx].sub_class, bta_hh_cb.kdev[xx].index);
     }
-    APPL_TRACE_DEBUG0("*********************************************************");
+    APPL_TRACE_DEBUG0(s_db_stars);
 }
 #endif
 #endif /* HL_INCLUDED */

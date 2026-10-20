@@ -276,7 +276,12 @@ extern UINT16 bta_sys_get_sys_features(void);
 extern void bta_sys_sendmsg(void *p_msg);
 extern void bta_sys_start_timer(TIMER_LIST_ENT *p_tle, UINT16 type, INT32 timeout);
 extern void bta_sys_stop_timer(TIMER_LIST_ENT *p_tle);
+#ifdef REVOLUTION
+/* RVL has no SYS HW module concept */
+extern void bta_sys_disable(void);
+#else
 extern void bta_sys_disable(tBTA_SYS_HW_MODULE module);
+#endif
 
 extern void bta_sys_hw_register( tBTA_SYS_HW_MODULE module, tBTA_SYS_HW_CBACK *cback);
 extern void bta_sys_hw_unregister( tBTA_SYS_HW_MODULE module );

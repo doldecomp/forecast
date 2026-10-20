@@ -169,9 +169,15 @@ typedef struct
     tL2CAP_FCR_OPTS fcr;
     BOOLEAN     fcs_present;            /* Optionally bypasses FCS checks */
     UINT8       fcs;                    /* '0' if desire is to bypass FCS, otherwise '1' */
+#ifdef REVOLUTION
+    /* RVL: sizeof is 0x3C (rfc_mx_fsm memsets 0x3C, hh_cb.sdp_busy follows at
+       +0x3C). The members in 0x32..0x3C are not identified yet. */
+    UINT8       reserved0[10];
+#else
     BOOLEAN               ext_flow_spec_present;
     tHCI_EXT_FLOW_SPEC    ext_flow_spec;
     UINT16      flags;                  /* bit 0: 0-no continuation, 1-continuation */
+#endif
 } tL2CAP_CFG_INFO;
 
 /* L2CAP channel configured field bitmap */
@@ -347,7 +353,12 @@ extern "C"
 **                  BTM_SetSecurityLevel().
 **
 *******************************************************************************/
+#ifdef REVOLUTION
+/* RVL returns TRUE/FALSE, there are no virtual PSMs. */
+L2C_API extern BOOLEAN L2CA_Register (UINT16 psm, tL2CAP_APPL_INFO *p_cb_info);
+#else
 L2C_API extern UINT16 L2CA_Register (UINT16 psm, tL2CAP_APPL_INFO *p_cb_info);
+#endif
 
 /*******************************************************************************
 **
@@ -1167,6 +1178,11 @@ L2C_API extern UINT8 L2CA_GetBleConnRole (BD_ADDR bd_addr);
 L2C_API extern UINT16 L2CA_GetDisconnectReason (BD_ADDR remote_bda);
 
 #endif /* (BLE_INCLUDED == TRUE) */
+
+#ifdef REVOLUTION
+typedef BOOLEAN (tL2CA_COMPRESS_CB) (BD_ADDR peer_addr, int a2, int a3, int a4, int a5, int a6, int a7, UINT8 **p_mem, UINT32 *p_mem_size);
+L2C_API extern void L2CA_RegisterCompression (tL2CA_COMPRESS_CB *p_cb, int param);
+#endif
 
 #ifdef __cplusplus
 }

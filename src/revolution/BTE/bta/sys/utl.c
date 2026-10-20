@@ -25,6 +25,7 @@
 #include "gki.h"
 #include "btm_api.h"
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         utl_str2int
@@ -146,6 +147,8 @@ UINT8 utl_itoa(UINT16 i, char *p_s)
     return (UINT8) (p - p_s);
 }
 
+#endif /* !REVOLUTION */
+
 /*******************************************************************************
 **
 ** Function         utl_freebuf
@@ -168,6 +171,7 @@ void utl_freebuf(void **p)
 }
 
 
+#ifndef REVOLUTION
 /*******************************************************************************
 **
 ** Function         utl_set_device_class
@@ -293,4 +297,4 @@ BOOLEAN utl_isdialstr(const char *p_s)
     return TRUE;
 }
 
-
+#endif /* !REVOLUTION */
