@@ -1836,11 +1836,33 @@ revolution/BTE/stack/rfcomm/rfc_ts_frames.c:
 revolution/BTE/stack/rfcomm/rfc_utils.c:
 	.text       start:0x8015A7D0 end:0x8015AFB0
 	.rodata     start:0x80197890 end:0x80197990
-	.data       start:0x801D5870 end:0x801D58FC
+	.data       start:0x801D5870 end:0x801D5900
+
+revolution/BTE/stack/sdp/sdp_api.c:
+	.text       start:0x8015AFB0 end:0x8015BE18
+	.data       start:0x801D5900 end:0x801D5950
+
+revolution/BTE/stack/sdp/sdp_db.c:
+	.text       start:0x8015BE18 end:0x8015CAE4
+	.data       start:0x801D5950 end:0x801D59E8
 
 revolution/BTE/stack/sdp/sdp_discovery.c:
 	.text       start:0x8015CAE4 end:0x8015DD5C
 	.data       start:0x801D59E8 end:0x801D5B44
+
+revolution/BTE/stack/sdp/sdp_main.c:
+	.text       start:0x8015DD5C end:0x8015E8C8
+	.data       start:0x801D5B48 end:0x801D5EA8
+	.bss        start:0x80328640 end:0x8032CC78
+
+revolution/BTE/stack/sdp/sdp_server.c:
+	.text       start:0x8015E8C8 end:0x8015F5D8
+	.data       start:0x801D5EA8 end:0x801D5EE8
+
+revolution/BTE/stack/sdp/sdp_utils.c:
+	.text       start:0x8015F5D8 end:0x80160618
+	.rodata     start:0x80197990 end:0x801979A0
+	.data       start:0x801D5EE8 end:0x801D5FE0
 
 revolution/TPL/TPL.c:
 	.text       start:0x80160618 end:0x8016082C

@@ -22,7 +22,6 @@
  *
  ******************************************************************************/
 
-#include <cstdlib>
 #include <cstring>
 #include <cstdio>
 
@@ -206,62 +205,6 @@ tSDP_ATTRIBUTE *sdp_db_find_attr_in_rec (tSDP_RECORD *p_rec, UINT16 start_attr,
 }
 
 
-/*******************************************************************************
-**
-** Function         sdp_compose_proto_list
-**
-** Description      This function is called to compose a data sequence from
-**                  protocol element list struct pointer
-**
-** Returns          the length of the data sequence
-**
-*******************************************************************************/
-static int sdp_compose_proto_list( UINT8 *p, UINT16 num_elem,
-                                  tSDP_PROTOCOL_ELEM *p_elem_list)
-{
-    UINT16          xx, yy, len;
-    BOOLEAN            is_rfcomm_scn;
-    UINT8           *p_head = p;
-    UINT8            *p_len;
-
-    /* First, build the protocol list. This consists of a set of data element
-    ** sequences, one for each layer. Each layer sequence consists of layer's
-    ** UUID and optional parameters
-    */
-    for (xx = 0; xx < num_elem; xx++, p_elem_list++)
-    {
-        len = 3 + (p_elem_list->num_params * 3);
-        UINT8_TO_BE_STREAM  (p, (DATA_ELE_SEQ_DESC_TYPE << 3) | SIZE_IN_NEXT_BYTE);
-
-        p_len = p;
-        *p++ = (UINT8) len;
-
-        UINT8_TO_BE_STREAM  (p, (UUID_DESC_TYPE << 3) | SIZE_TWO_BYTES);
-        UINT16_TO_BE_STREAM (p, p_elem_list->protocol_uuid);
-
-        if (p_elem_list->protocol_uuid == UUID_PROTOCOL_RFCOMM)
-            is_rfcomm_scn = TRUE;
-        else
-            is_rfcomm_scn = FALSE;
-
-        for (yy = 0; yy < p_elem_list->num_params; yy++)
-        {
-            if (is_rfcomm_scn)
-            {
-                UINT8_TO_BE_STREAM  (p, (UINT_DESC_TYPE << 3) | SIZE_ONE_BYTE);
-                UINT8_TO_BE_STREAM (p, p_elem_list->params[yy]);
-
-                *p_len -= 1;
-            }
-            else
-            {
-                UINT8_TO_BE_STREAM  (p, (UINT_DESC_TYPE << 3) | SIZE_TWO_BYTES);
-                UINT16_TO_BE_STREAM (p, p_elem_list->params[yy]);
-            }
-        }
-    }
-    return (p - p_head);
-}
 
 #endif  /* SDP_SERVER_ENABLED == TRUE */
 
@@ -467,42 +410,27 @@ BOOLEAN SDP_AddAttribute (UINT32 handle, UINT16 attr_id, UINT8 attr_type,
                     p_rec->attribute[yy] = p_rec->attribute[yy - 1];
             }
 
+            p_rec->num_attributes++;
             p_attr->id   = attr_id;
-            p_attr->type = attr_type;
             p_attr->len  = attr_len;
+            p_attr->type = attr_type;
 
             if (p_rec->free_pad_ptr + attr_len >= SDP_MAX_PAD_LEN)
             {
-                /* do truncate only for text string type descriptor */
-                if (attr_type == TEXT_STR_DESC_TYPE)
-                {
-                    SDP_TRACE_WARNING2("SDP_AddAttribute: attr_len:%d too long. truncate to (%d)",
-                        attr_len, SDP_MAX_PAD_LEN - p_rec->free_pad_ptr );
+                SDP_TRACE_WARNING2("SDP_AddAttribute: attr_len:%d too long. truncate to (%d)",
+                    attr_len, SDP_MAX_PAD_LEN - p_rec->free_pad_ptr );
 
-                    attr_len = SDP_MAX_PAD_LEN - p_rec->free_pad_ptr;
-                    p_val[SDP_MAX_PAD_LEN - p_rec->free_pad_ptr] = '\0';
-                    p_val[SDP_MAX_PAD_LEN - p_rec->free_pad_ptr+1] = '\0';
-                }
-                else
-                    attr_len = 0;
+                attr_len = SDP_MAX_PAD_LEN - p_rec->free_pad_ptr;
+                p_val[SDP_MAX_PAD_LEN - p_rec->free_pad_ptr] = '\0';
+                p_val[SDP_MAX_PAD_LEN - p_rec->free_pad_ptr+1] = '\0';
             }
 
             if ((attr_len > 0) && (p_val != 0))
             {
-                p_attr->len  = attr_len;
                 memcpy (&p_rec->attr_pad[p_rec->free_pad_ptr], p_val, (size_t)attr_len);
                 p_attr->value_ptr = &p_rec->attr_pad[p_rec->free_pad_ptr];
                 p_rec->free_pad_ptr += attr_len;
             }
-            else if ((attr_len == 0 && p_attr->len != 0) || /* if truncate to 0 length, simply don't add */
-                      p_val == 0)
-            {
-                SDP_TRACE_ERROR2("SDP_AddAttribute fail, length exceed maximum: ID %d: attr_len:%d ",
-                    attr_id, attr_len );
-                p_attr->id   = p_attr->type = p_attr->len  = 0;
-                return (FALSE);
-            }
-            p_rec->num_attributes++;
 
             /*** Mark DI record as used by Broadcom ***/
             if (handle == sdp_cb.server_db.di_primary_handle &&
@@ -517,81 +445,6 @@ BOOLEAN SDP_AddAttribute (UINT32 handle, UINT16 attr_id, UINT8 attr_type,
 }
 
 
-/*******************************************************************************
-**
-** Function         SDP_AddSequence
-**
-** Description      This function is called to add a sequence to a record.
-**                  This would be through the SDP database maintenance API.
-**                  If the sequence already exists in the record, it is replaced
-**                  with the new sequence.
-**
-** NOTE             Element values must be passed as a Big Endian stream.
-**
-** Returns          TRUE if added OK, else FALSE
-**
-*******************************************************************************/
-BOOLEAN SDP_AddSequence (UINT32 handle,  UINT16 attr_id, UINT16 num_elem,
-                         UINT8 type[], UINT8 len[], UINT8 *p_val[])
-{
-#if SDP_SERVER_ENABLED == TRUE
-    UINT16          xx;
-    UINT8           buff[SDP_MAX_ATTR_LEN * 2];
-    UINT8           *p;
-    UINT8           *p_head;
-
-    p = buff;
-    /* First, build the sequence */
-    for (xx = 0; xx < num_elem; xx++)
-    {
-        p_head = p;
-        switch (len[xx])
-        {
-        case 1:
-            UINT8_TO_BE_STREAM (p, (type[xx] << 3) | SIZE_ONE_BYTE);
-            break;
-        case 2:
-            UINT8_TO_BE_STREAM  (p, (type[xx] << 3) | SIZE_TWO_BYTES);
-            break;
-        case 4:
-            UINT8_TO_BE_STREAM  (p, (type[xx] << 3) | SIZE_FOUR_BYTES);
-            break;
-        case 8:
-            UINT8_TO_BE_STREAM  (p, (type[xx] << 3) | SIZE_EIGHT_BYTES);
-            break;
-        case 16:
-            UINT8_TO_BE_STREAM  (p, (type[xx] << 3) | SIZE_SIXTEEN_BYTES);
-            break;
-        default:
-            UINT8_TO_BE_STREAM (p, (type[xx] << 3) | SIZE_IN_NEXT_BYTE);
-            UINT8_TO_BE_STREAM (p, len[xx]);
-            break;
-        }
-
-        ARRAY_TO_BE_STREAM (p, p_val[xx], len[xx]);
-
-        if (p - buff > SDP_MAX_ATTR_LEN)
-        {
-            /* go back to before we add this element */
-            p = p_head;
-            if(p_head == buff)
-            {
-                /* the first element exceed the max length */
-                SDP_TRACE_ERROR0 ("SDP_AddSequence - too long(attribute is not added)!!");
-                return FALSE;
-            }
-            else
-                SDP_TRACE_ERROR2 ("SDP_AddSequence - too long, add %d elements of %d", xx, num_elem);
-            break;
-        }
-    }
-
-    return (SDP_AddAttribute (handle, attr_id, DATA_ELE_SEQ_DESC_TYPE,
-            (UINT32) (p - buff), buff));
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
-}
 
 
 /*******************************************************************************
@@ -635,152 +488,11 @@ BOOLEAN SDP_AddUuidSequence (UINT32 handle,  UINT16 attr_id, UINT16 num_uuids,
 #endif
 }
 
-/*******************************************************************************
-**
-** Function         SDP_AddProtocolList
-**
-** Description      This function is called to add a protocol descriptor list to
-**                  a record. This would be through the SDP database maintenance API.
-**                  If the protocol list already exists in the record, it is replaced
-**                  with the new list.
-**
-** Returns          TRUE if added OK, else FALSE
-**
-*******************************************************************************/
-BOOLEAN SDP_AddProtocolList (UINT32 handle, UINT16 num_elem,
-                             tSDP_PROTOCOL_ELEM *p_elem_list)
-{
-#if SDP_SERVER_ENABLED == TRUE
-    UINT8           buff[SDP_MAX_ATTR_LEN * 2];
-    int offset;
-
-    offset = sdp_compose_proto_list(buff, num_elem, p_elem_list);
-
-    return (SDP_AddAttribute (handle, ATTR_ID_PROTOCOL_DESC_LIST,
-            DATA_ELE_SEQ_DESC_TYPE, (UINT32) offset, buff));
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
-}
 
 
-/*******************************************************************************
-**
-** Function         SDP_AddAdditionProtoLists
-**
-** Description      This function is called to add a protocol descriptor list to
-**                  a record. This would be through the SDP database maintenance API.
-**                  If the protocol list already exists in the record, it is replaced
-**                  with the new list.
-**
-** Returns          TRUE if added OK, else FALSE
-**
-*******************************************************************************/
-BOOLEAN SDP_AddAdditionProtoLists (UINT32 handle, UINT16 num_elem,
-                                   tSDP_PROTO_LIST_ELEM *p_proto_list)
-{
-#if SDP_SERVER_ENABLED == TRUE
-    UINT16          xx;
-    UINT8           buff[SDP_MAX_ATTR_LEN * 2];
-    UINT8           *p = buff;
-    UINT8            *p_len;
-    int offset;
-
-    /* for each ProtocolDescriptorList */
-    for (xx = 0; xx < num_elem; xx++, p_proto_list++)
-    {
-        UINT8_TO_BE_STREAM  (p, (DATA_ELE_SEQ_DESC_TYPE << 3) | SIZE_IN_NEXT_BYTE);
-        p_len = p++;
-
-        offset = sdp_compose_proto_list(p, p_proto_list->num_elems,
-                                        p_proto_list->list_elem);
-        p += offset;
-
-        *p_len  = (UINT8)(p - p_len - 1);
-    }
-
-    return (SDP_AddAttribute (handle, ATTR_ID_ADDITION_PROTO_DESC_LISTS,
-            DATA_ELE_SEQ_DESC_TYPE, (UINT32) (p - buff), buff));
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
-}
-
-/*******************************************************************************
-**
-** Function         SDP_AddProfileDescriptorList
-**
-** Description      This function is called to add a profile descriptor list to
-**                  a record. This would be through the SDP database maintenance API.
-**                  If the version already exists in the record, it is replaced
-**                  with the new one.
-**
-** Returns          TRUE if added OK, else FALSE
-**
-*******************************************************************************/
-BOOLEAN SDP_AddProfileDescriptorList (UINT32 handle, UINT16 profile_uuid,
-                                      UINT16 version)
-{
-#if SDP_SERVER_ENABLED == TRUE
-    UINT8           buff[SDP_MAX_ATTR_LEN];
-    UINT8           *p = &buff[2];
-
-    /* First, build the profile descriptor list. This consists of a data element sequence. */
-    /* The sequence consists of profile's UUID and version number  */
-    UINT8_TO_BE_STREAM  (p, (UUID_DESC_TYPE << 3) | SIZE_TWO_BYTES);
-    UINT16_TO_BE_STREAM (p, profile_uuid);
-
-    UINT8_TO_BE_STREAM  (p, (UINT_DESC_TYPE << 3) | SIZE_TWO_BYTES);
-    UINT16_TO_BE_STREAM (p, version);
-
-    /* Add in type and length fields */
-    buff[0] = (UINT8) ((DATA_ELE_SEQ_DESC_TYPE << 3) | SIZE_IN_NEXT_BYTE);
-    buff[1] = (UINT8) (p - &buff[2]);
-
-    return (SDP_AddAttribute (handle, ATTR_ID_BT_PROFILE_DESC_LIST,
-            DATA_ELE_SEQ_DESC_TYPE, (UINT32) (p - buff), buff));
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
-}
 
 
-/*******************************************************************************
-**
-** Function         SDP_AddLanguageBaseAttrIDList
-**
-** Description      This function is called to add a language base attr list to
-**                  a record. This would be through the SDP database maintenance API.
-**                  If the version already exists in the record, it is replaced
-**                  with the new one.
-**
-** Returns          TRUE if added OK, else FALSE
-**
-*******************************************************************************/
-BOOLEAN SDP_AddLanguageBaseAttrIDList (UINT32 handle, UINT16 lang,
-                                       UINT16 char_enc, UINT16 base_id)
-{
-#if SDP_SERVER_ENABLED == TRUE
-    UINT8           buff[SDP_MAX_ATTR_LEN];
-    UINT8           *p = buff;
 
-    /* First, build the language base descriptor list. This consists of a data */
-    /* element sequence. The sequence consists of 9 bytes (3 UINt16 fields)    */
-    UINT8_TO_BE_STREAM  (p, (UINT_DESC_TYPE << 3) | SIZE_TWO_BYTES);
-    UINT16_TO_BE_STREAM (p, lang);
-
-    UINT8_TO_BE_STREAM  (p, (UINT_DESC_TYPE << 3) | SIZE_TWO_BYTES);
-    UINT16_TO_BE_STREAM (p, char_enc);
-
-    UINT8_TO_BE_STREAM  (p, (UINT_DESC_TYPE << 3) | SIZE_TWO_BYTES);
-    UINT16_TO_BE_STREAM (p, base_id);
-
-    return (SDP_AddAttribute (handle, ATTR_ID_LANGUAGE_BASE_ATTR_ID_LIST,
-            DATA_ELE_SEQ_DESC_TYPE, (UINT32) (p - buff), buff));
-#else   /* SDP_SERVER_ENABLED == FALSE */
-    return (FALSE);
-#endif
-}
 
 
 /*******************************************************************************
@@ -957,6 +669,3 @@ INT32 SDP_ReadRecord(UINT32 handle, UINT8 *p_data, INT32 *p_data_len)
     return (offset);
 }
 #endif
-
-
-

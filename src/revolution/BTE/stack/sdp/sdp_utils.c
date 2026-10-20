@@ -24,7 +24,7 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <netinet/in.h>
+#define ntohs(x) (x)
 #include <cstdio>
 
 #include "gki.h"
@@ -65,37 +65,6 @@ tCONN_CB *sdpu_find_ccb_by_cid (UINT16 cid)
             return (p_ccb);
     }
 
-    /* If here, not found */
-    return (NULL);
-}
-
-
-/*******************************************************************************
-**
-** Function         sdpu_find_ccb_by_db
-**
-** Description      This function searches the CCB table for an entry with the
-**                  passed discovery db.
-**
-** Returns          the CCB address, or NULL if not found.
-**
-*******************************************************************************/
-tCONN_CB *sdpu_find_ccb_by_db (tSDP_DISCOVERY_DB *p_db)
-{
-#if SDP_CLIENT_ENABLED == TRUE
-    UINT16       xx;
-    tCONN_CB     *p_ccb;
-
-    if (p_db)
-    {
-        /* Look through each connection control block */
-        for (xx = 0, p_ccb = sdp_cb.ccb; xx < SDP_MAX_CONNECTIONS; xx++, p_ccb++)
-        {
-            if ((p_ccb->con_state != SDP_STATE_IDLE) && (p_ccb->p_db == p_db))
-                return (p_ccb);
-        }
-    }
-#endif
     /* If here, not found */
     return (NULL);
 }
@@ -149,18 +118,9 @@ void sdpu_release_ccb (tCONN_CB *p_ccb)
 
     /* Drop any response pointer we may be holding */
     p_ccb->con_state = SDP_STATE_IDLE;
-#if SDP_CLIENT_ENABLED == TRUE
-    p_ccb->is_attr_search = FALSE;
-#endif
-
-    /* Free the response buffer */
-    if (p_ccb->rsp_list)
-    {
-       SDP_TRACE_DEBUG0("releasing SDP rsp_list");
-
-        GKI_freebuf(p_ccb->rsp_list);
-        p_ccb->rsp_list = NULL;
-    }
+    /* The RVL CCB keeps the server response in an inline scratchpad
+       (rsp_list[1000]), so there is no GKI buffer to release and
+       is_attr_search is left alone. */
 }
 
 
@@ -726,35 +686,6 @@ BOOLEAN sdpu_compare_uuid_arrays (UINT8 *p_uuid1, UINT32 len1, UINT8 *p_uuid2, U
 
 /*******************************************************************************
 **
-** Function         sdpu_compare_bt_uuids
-**
-** Description      This function compares 2 BT UUID structures.
-**
-** NOTE             it is assumed that BT UUID structures are compressed to the
-**                  smallest possible UUIDs (by removing the base SDP UUID)
-**
-** Returns          TRUE if matched, else FALSE
-**
-*******************************************************************************/
-BOOLEAN sdpu_compare_bt_uuids (tBT_UUID *p_uuid1, tBT_UUID *p_uuid2)
-{
-    /* Lengths must match for BT UUIDs to match */
-    if (p_uuid1->len == p_uuid2->len)
-    {
-        if (p_uuid1->len == 2)
-            return (p_uuid1->uu.uuid16 == p_uuid2->uu.uuid16);
-        else if (p_uuid1->len == 4)
-            return (p_uuid1->uu.uuid32 == p_uuid2->uu.uuid32);
-        else if (!memcmp (p_uuid1->uu.uuid128, p_uuid2->uu.uuid128, 16))
-            return (TRUE);
-    }
-
-    return (FALSE);
-}
-
-
-/*******************************************************************************
-**
 ** Function         sdpu_compare_uuid_with_attr
 **
 ** Description      This function compares a BT UUID structure with the UUID in an
@@ -815,13 +746,11 @@ void sdpu_sort_attr_list( UINT16 num_attr, tSDP_DISCOVERY_DB *p_db )
     {
         return;
     }
-    else if (num_attr > SDP_MAX_ATTR_FILTERS)
-    {
-        num_attr = SDP_MAX_ATTR_FILTERS;
-    }
 
-    num_attr--; /* for the for-loop */
-    for( i = 0; i < num_attr; )
+    /* RVL restarts from the beginning with a wrap-around index and compares
+       against the promoted `num_attr - 1`, which lets the compiler keep the
+       increment in the loop tail. */
+    for( i = 0; i < num_attr - 1; i++ )
     {
         if( p_db->attr_filters[i] > p_db->attr_filters[i+1] )
         {
@@ -830,211 +759,7 @@ void sdpu_sort_attr_list( UINT16 num_attr, tSDP_DISCOVERY_DB *p_db )
             p_db->attr_filters[i] = p_db->attr_filters[i+1];
             p_db->attr_filters[i+1] = x;
 
-            i = 0;
+            i = 0xFFFF;
         }
-        else
-            i++;
     }
-}
-
-
-/*******************************************************************************
-**
-** Function         sdpu_get_list_len
-**
-** Description      gets the total list length in the sdp database for a given
-**                  uid sequence and attr sequence
-**
-** Returns          void
-**
-*******************************************************************************/
-UINT16 sdpu_get_list_len(tSDP_UUID_SEQ *uid_seq, tSDP_ATTR_SEQ *attr_seq)
-{
-    tSDP_RECORD    *p_rec;
-    UINT16 len = 0;
-    UINT16 len1;
-
-    for (p_rec = sdp_db_service_search (NULL, uid_seq); p_rec; p_rec = sdp_db_service_search (p_rec, uid_seq))
-    {
-        len += 3;
-
-        len1 = sdpu_get_attrib_seq_len(p_rec, attr_seq );
-
-        if (len1 != 0)
-            len += len1;
-        else
-            len -= 3;
-    }
-    return len;
-}
-
-/*******************************************************************************
-**
-** Function         sdpu_get_attrib_seq_len
-**
-** Description      gets the length of the specific attributes in a given
-**                  sdp record
-**
-** Returns          void
-**
-*******************************************************************************/
-UINT16 sdpu_get_attrib_seq_len(tSDP_RECORD *p_rec, tSDP_ATTR_SEQ *attr_seq)
-{
-    tSDP_ATTRIBUTE *p_attr;
-    UINT16 len1 = 0;
-    UINT16 xx;
-    BOOLEAN is_range = FALSE;
-    UINT16 start_id, end_id;
-
-    for (xx = 0; xx < attr_seq->num_attr; xx++)
-    {
-        if (is_range == FALSE)
-        {
-            start_id = attr_seq->attr_entry[xx].start;
-            end_id = attr_seq->attr_entry[xx].end;
-        }
-        p_attr = sdp_db_find_attr_in_rec (p_rec,
-                                          start_id,
-                                          end_id);
-        if (p_attr)
-        {
-            len1 += sdpu_get_attrib_entry_len (p_attr);
-
-            /* If doing a range, stick with this one till no more attributes found */
-            if (start_id != end_id)
-            {
-                /* Update for next time through */
-                start_id = p_attr->id + 1;
-                xx--;
-                is_range = TRUE;
-            }
-            else
-                is_range = FALSE;
-        }
-        else
-            is_range = FALSE;
-    }
-    return len1;
-}
-
-/*******************************************************************************
-**
-** Function         sdpu_get_attrib_entry_len
-**
-** Description      gets the length of a specific attribute
-**
-** Returns          void
-**
-*******************************************************************************/
-UINT16 sdpu_get_attrib_entry_len(tSDP_ATTRIBUTE *p_attr)
-{
-    UINT16 len = 3;
-
-    /* the attribute is in the db record.
-     * assuming the attribute len is less than SDP_MAX_ATTR_LEN */
-    switch(p_attr->type)
-    {
-    case TEXT_STR_DESC_TYPE:    /* 4 */
-    case DATA_ELE_SEQ_DESC_TYPE:/* 6 */
-    case DATA_ELE_ALT_DESC_TYPE:/* 7 */
-    case URL_DESC_TYPE:         /* 8 */
-#if (SDP_MAX_ATTR_LEN > 0xFFFF)
-        if(p_attr->len > 0xFFFF)
-        {
-            len += 5;
-        }
-        else
-
-#endif/* 0xFFFF - 0xFF */
-#if (SDP_MAX_ATTR_LEN > 0xFF)
-        if(p_attr->len > 0xFF)
-        {
-            len += 3;
-        }
-        else
-
-#endif /* 0xFF and less*/
-        {
-            len += 2;
-        }
-        len += p_attr->len;
-        return len;
-	}
-
-    /* Now, the attribute value */
-    switch (p_attr->len)
-    {
-    case 1:
-    case 2:
-    case 4:
-    case 8:
-    case 16:
-        len += 1;
-        break;
-    default:
-        len += 2;
-        break;
-    }
-
-    len += p_attr->len;
-    return len;
-}
-
-
-/*******************************************************************************
-**
-** Function         sdpu_build_partial_attrib_entry
-**
-** Description      This function fills a buffer with partial attribute. It is
-**                  assumed that the maximum size of any attribute is 256 bytes.
-**
-**                  p_out: output buffer
-**                  p_attr: attribute to be copied partially into p_out
-**                  rem_len: num bytes to copy into p_out
-**                  offset: current start offset within the attr that needs to be copied
-**
-** Returns          Pointer to next byte in the output buffer.
-**                  offset is also updated
-**
-*******************************************************************************/
-UINT8 *sdpu_build_partial_attrib_entry (UINT8 *p_out, tSDP_ATTRIBUTE *p_attr, UINT16 len, UINT16 *offset)
-{
-    UINT8   tmp_attr[MAX_ATTR_LEN];
-    UINT8   *p_tmp_attr = &tmp_attr[0];
-    size_t  len_to_copy;
-    UINT16  attr_len;
-
-    sdpu_build_attrib_entry(p_tmp_attr, p_attr);
-    attr_len = sdpu_get_attrib_entry_len(p_attr);
-
-    len_to_copy = ((attr_len - *offset) < len) ? (attr_len - *offset): len;
-
-    memcpy(p_out, &tmp_attr[*offset], len_to_copy);
-
-    p_out = &p_out[len_to_copy];
-    *offset += len_to_copy;
-
-    return p_out;
-}
-
-/*******************************************************************************
-**
-** Function         sdpu_uuid16_to_uuid128
-**
-** Description      This function converts UUID-16 to UUID-128 by including the base UUID
-**
-**                  uuid16: 2-byte UUID
-**                  p_uuid128: Expanded 128-bit UUID
-**
-** Returns          None
-**
-*******************************************************************************/
-void sdpu_uuid16_to_uuid128(UINT16 uuid16, UINT8* p_uuid128)
-{
-    UINT16 uuid16_bo;
-    memset(p_uuid128, 0, 16);
-
-    memcpy(p_uuid128, sdp_base_uuid, MAX_UUID_SIZE);
-    uuid16_bo = ntohs(uuid16);
-    memcpy(p_uuid128+ 2, &uuid16_bo, sizeof(uint16_t));
 }

@@ -228,6 +228,8 @@ typedef struct
     UINT16            max_attr_list_size;       /* Max attribute list size to use   */
     UINT16            max_recs_per_search;      /* Max records we want per seaarch  */
     UINT8             trace_level;
+    /* The retail symbol is padded to 0x4638; only 0x4634 bytes are cleared. */
+    UINT8             reserved[4];
 } tSDP_CB;
 
 #ifdef __cplusplus

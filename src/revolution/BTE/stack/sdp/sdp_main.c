@@ -22,9 +22,7 @@
  *
  ******************************************************************************/
 
-#include <cstdlib>
 #include <cstring>
-#include <cstdio>
 
 #include "bt_target.h"
 #include "gki.h"
@@ -33,7 +31,6 @@
 #include "hcimsgs.h"
 
 #include "l2c_api.h"
-#include "l2cdefs.h"
 
 #include "btu.h"
 #include "btm_api.h"
@@ -80,7 +77,8 @@ static void sdp_disconnect_cfm (UINT16 l2cap_cid, UINT16 result);
 void sdp_init (void)
 {
     /* Clears all structures and local SDP database (if Server is enabled) */
-    memset (&sdp_cb, 0, sizeof (tSDP_CB));
+    /* The retail symbol is 0x4638, but only 0x4634 bytes are cleared. */
+    memset (&sdp_cb, 0, sizeof (tSDP_CB) - 4);
 
     /* Initialize the L2CAP configuration. We only care about MTU and flush */
     sdp_cb.l2cap_my_cfg.mtu_present       = TRUE;
@@ -135,27 +133,6 @@ void sdp_init (void)
     }
 }
 
-#if (defined(SDP_DEBUG) && SDP_DEBUG == TRUE)
-/*******************************************************************************
-**
-** Function         sdp_set_max_attr_list_size
-**
-** Description      This function sets the max attribute list size to use
-**
-** Returns          void
-**
-*******************************************************************************/
-UINT16 sdp_set_max_attr_list_size (UINT16 max_size)
-{
-    if (max_size > (sdp_cb.l2cap_my_cfg.mtu - 16) )
-        max_size = sdp_cb.l2cap_my_cfg.mtu - 16;
-
-    sdp_cb.max_attr_list_size  = max_size;
-
-    return sdp_cb.max_attr_list_size;
-}
-#endif
-
 /*******************************************************************************
 **
 ** Function         sdp_connect_ind
@@ -185,25 +162,8 @@ static void sdp_connect_ind (BD_ADDR  bd_addr, UINT16 l2cap_cid, UINT16 psm, UIN
 
     /* Send response to the L2CAP layer. */
     L2CA_ConnectRsp (bd_addr, l2cap_id, l2cap_cid, L2CAP_CONN_OK, L2CAP_CONN_OK);
-    {
-        tL2CAP_CFG_INFO cfg = sdp_cb.l2cap_my_cfg;
-
-        if (cfg.fcr_present)
-        {
-            SDP_TRACE_DEBUG6("sdp_connect_ind:  mode %u, txwinsz %u, max_trans %u, rtrans_tout %u, mon_tout %u, mps %u",
-                        cfg.fcr.mode, cfg.fcr.tx_win_sz, cfg.fcr.max_transmit,
-                        cfg.fcr.rtrans_tout,cfg.fcr.mon_tout, cfg.fcr.mps);
-        }
-
-        if ((!L2CA_ConfigReq (l2cap_cid, &cfg)) && cfg.fcr_present
-             && cfg.fcr.mode != L2CAP_FCR_BASIC_MODE)
-        {
-            /* FCR not desired; try again in basic mode */
-            cfg.fcr.mode = L2CAP_FCR_BASIC_MODE;
-            cfg.fcr_present = FALSE;
-            L2CA_ConfigReq (l2cap_cid, &cfg);
-        }
-    }
+    /* RVL hands L2CAP our config directly; there is no FCR handling. */
+    L2CA_ConfigReq (l2cap_cid, &sdp_cb.l2cap_my_cfg);
 
     SDP_TRACE_EVENT1 ("SDP - Rcvd L2CAP conn ind, sent config req, CID 0x%x", p_ccb->connection_id);
 #else   /* No server */
@@ -227,7 +187,6 @@ static void sdp_connect_ind (BD_ADDR  bd_addr, UINT16 l2cap_cid, UINT16 psm, UIN
 static void sdp_connect_cfm (UINT16 l2cap_cid, UINT16 result)
 {
     tCONN_CB    *p_ccb;
-    tL2CAP_CFG_INFO cfg;
 
     /* Find CCB based on CID */
     if ((p_ccb = sdpu_find_ccb_by_cid (l2cap_cid)) == NULL)
@@ -242,23 +201,8 @@ static void sdp_connect_cfm (UINT16 l2cap_cid, UINT16 result)
     {
         p_ccb->con_state = SDP_STATE_CFG_SETUP;
 
-        cfg = sdp_cb.l2cap_my_cfg;
-
-        if (cfg.fcr_present)
-        {
-            SDP_TRACE_DEBUG6("sdp_connect_cfm:  mode %u, txwinsz %u, max_trans %u, rtrans_tout %u, mon_tout %u, mps %u",
-                        cfg.fcr.mode, cfg.fcr.tx_win_sz, cfg.fcr.max_transmit,
-                        cfg.fcr.rtrans_tout,cfg.fcr.mon_tout, cfg.fcr.mps);
-        }
-
-        if ((!L2CA_ConfigReq (l2cap_cid, &cfg)) && cfg.fcr_present
-             && cfg.fcr.mode != L2CAP_FCR_BASIC_MODE)
-        {
-            /* FCR not desired; try again in basic mode */
-            cfg.fcr_present = FALSE;
-            cfg.fcr.mode = L2CAP_FCR_BASIC_MODE;
-            L2CA_ConfigReq (l2cap_cid, &cfg);
-        }
+        /* RVL hands L2CAP our config directly; there is no FCR handling. */
+        L2CA_ConfigReq (l2cap_cid, &sdp_cb.l2cap_my_cfg);
 
         SDP_TRACE_EVENT1 ("SDP - got conn cnf, sent cfg req, CID: 0x%x", p_ccb->connection_id);
     }
@@ -267,25 +211,20 @@ static void sdp_connect_cfm (UINT16 l2cap_cid, UINT16 result)
         SDP_TRACE_WARNING2 ("SDP - Rcvd conn cnf with error: 0x%x  CID 0x%x", result, p_ccb->connection_id);
 
         /* Tell the user if he has a callback */
-        if (p_ccb->p_cb || p_ccb->p_cb2)
+        if (p_ccb->p_cb)
         {
-            UINT16 err = -1;
             if ((result == HCI_ERR_HOST_REJECT_SECURITY)
              || (result == HCI_ERR_AUTH_FAILURE)
              || (result == HCI_ERR_PAIRING_NOT_ALLOWED)
              || (result == HCI_ERR_PAIRING_WITH_UNIT_KEY_NOT_SUPPORTED)
              || (result == HCI_ERR_KEY_MISSING))
-                err = SDP_SECURITY_ERR;
+                (*p_ccb->p_cb) (SDP_SECURITY_ERR);
             else if (result == HCI_ERR_HOST_REJECT_DEVICE)
-                err = SDP_CONN_REJECTED;
+                (*p_ccb->p_cb) (SDP_CONN_REJECTED);
             else
-                err = SDP_CONN_FAILED;
-            if(p_ccb->p_cb)
-                (*p_ccb->p_cb)(err);
-            else if(p_ccb->p_cb2)
-                (*p_ccb->p_cb2)(err, p_ccb->user_data);
-
+                (*p_ccb->p_cb) (SDP_CONN_FAILED);
         }
+
         sdpu_release_ccb (p_ccb);
     }
 }
@@ -332,39 +271,6 @@ static void sdp_config_ind (UINT16 l2cap_cid, tL2CAP_CFG_INFO *p_cfg)
     p_cfg->mtu_present      = FALSE;
     p_cfg->result           = L2CAP_CFG_OK;
 
-    /* Check peer config request against our rfcomm configuration */
-    if (p_cfg->fcr_present)
-    {
-        /* Reject the window size if it is bigger than we want it to be */
-        if (p_cfg->fcr.mode != L2CAP_FCR_BASIC_MODE)
-        {
-            if (sdp_cb.l2cap_my_cfg.fcr.mode != L2CAP_FCR_BASIC_MODE
-                && p_cfg->fcr.tx_win_sz > sdp_cb.l2cap_my_cfg.fcr.tx_win_sz)
-            {
-                p_cfg->fcr.tx_win_sz = sdp_cb.l2cap_my_cfg.fcr.tx_win_sz;
-                p_cfg->result = L2CAP_CFG_UNACCEPTABLE_PARAMS;
-                SDP_TRACE_DEBUG0("sdp_config_ind(CONFIG) -> Please try again with SMALLER TX WINDOW");
-            }
-
-            /* Reject if locally we want basic and they don't */
-            if (sdp_cb.l2cap_my_cfg.fcr.mode == L2CAP_FCR_BASIC_MODE)
-            {
-                /* Ask for a new setup */
-                p_cfg->fcr.mode = L2CAP_FCR_BASIC_MODE;
-                p_cfg->result = L2CAP_CFG_UNACCEPTABLE_PARAMS;
-                SDP_TRACE_DEBUG0("sdp_config_ind(CONFIG) -> Please try again with BASIC mode");
-            }
-            /* Remain in configure state and give the peer our desired configuration */
-            if (p_cfg->result != L2CAP_CFG_OK)
-            {
-                SDP_TRACE_WARNING1 ("SDP - Rcvd cfg ind, Unacceptable Parameters sent cfg cfm, CID: 0x%x", l2cap_cid);
-                L2CA_ConfigRsp (l2cap_cid, p_cfg);
-                return;
-            }
-        }
-        else    /* We agree with peer's request */
-            p_cfg->fcr_present = FALSE;
-    }
 
     L2CA_ConfigRsp (l2cap_cid, p_cfg);
 
@@ -427,17 +333,7 @@ static void sdp_config_cfm (UINT16 l2cap_cid, tL2CAP_CFG_INFO *p_cfg)
     }
     else
     {
-        /* If peer has rejected FCR and suggested basic then try basic */
-        if (p_cfg->fcr_present)
-        {
-            tL2CAP_CFG_INFO cfg = sdp_cb.l2cap_my_cfg;
-            cfg.fcr_present = FALSE;
-            L2CA_ConfigReq (l2cap_cid, &cfg);
-
-            /* Remain in configure state */
-            return;
-        }
-
+        /* RVL has no FCR to renegotiate here: fail the connection */
 #if SDP_CLIENT_ENABLED == TRUE
         sdp_disconnect(p_ccb, SDP_CFG_FAILED);
 #endif
@@ -474,9 +370,6 @@ static void sdp_disconnect_ind (UINT16 l2cap_cid, BOOLEAN ack_needed)
     if (p_ccb->p_cb)
         (*p_ccb->p_cb) ((UINT16) ((p_ccb->con_state == SDP_STATE_CONNECTED) ?
                         SDP_SUCCESS : SDP_CONN_FAILED));
-    else if (p_ccb->p_cb2)
-        (*p_ccb->p_cb2) ((UINT16) ((p_ccb->con_state == SDP_STATE_CONNECTED) ?
-                        SDP_SUCCESS : SDP_CONN_FAILED), p_ccb->user_data);
 
 #endif
     sdpu_release_ccb (p_ccb);
@@ -636,22 +529,19 @@ void sdp_disconnect (tCONN_CB*p_ccb, UINT16 reason)
 
     SDP_TRACE_EVENT1 ("SDP - disconnect  CID: 0x%x", p_ccb->connection_id);
 
-    /* Check if we have a connection ID */
-    if (p_ccb->connection_id != 0)
+    /* The 2006 code only has these two cases: a connection that is up gets a
+       disconnect request and the reason is remembered for the confirm, one
+       still in setup gets its callback straight away. */
+    if (p_ccb->con_state != SDP_STATE_CONN_SETUP)
     {
         L2CA_DisconnectReq (p_ccb->connection_id);
         p_ccb->disconnect_reason = reason;
     }
-
-    /* If at setup state, we may not get callback ind from L2CAP */
-    /* Call user callback immediately */
-    if (p_ccb->con_state == SDP_STATE_CONN_SETUP)
+    else
     {
         /* Tell the user if he has a callback */
         if (p_ccb->p_cb)
             (*p_ccb->p_cb) (reason);
-        else if (p_ccb->p_cb2)
-            (*p_ccb->p_cb2) (reason, p_ccb->user_data);
 
         sdpu_release_ccb (p_ccb);
     }
@@ -683,8 +573,6 @@ static void sdp_disconnect_cfm (UINT16 l2cap_cid, UINT16 result)
     /* Tell the user if he has a callback */
     if (p_ccb->p_cb)
         (*p_ccb->p_cb) (p_ccb->disconnect_reason);
-    else if (p_ccb->p_cb2)
-        (*p_ccb->p_cb2) (p_ccb->disconnect_reason, p_ccb->user_data);
 
 
     sdpu_release_ccb (p_ccb);
@@ -704,7 +592,8 @@ static void sdp_disconnect_cfm (UINT16 l2cap_cid, UINT16 result)
 *******************************************************************************/
 void sdp_conn_timeout (tCONN_CB*p_ccb)
 {
-    SDP_TRACE_EVENT2 ("SDP - CCB timeout in state: %d  CID: 0x%x",
+    /* The retail .data pool rounds this final string up to 0x360. */
+    SDP_TRACE_EVENT2 ("SDP - CCB timeout in state: %d  CID: 0x%x\0\0\0\0\0\0",
                       p_ccb->con_state, p_ccb->connection_id);
 
     L2CA_DisconnectReq (p_ccb->connection_id);
@@ -712,12 +601,6 @@ void sdp_conn_timeout (tCONN_CB*p_ccb)
     /* Tell the user if he has a callback */
     if (p_ccb->p_cb)
         (*p_ccb->p_cb) (SDP_CONN_FAILED);
-    else if (p_ccb->p_cb2)
-        (*p_ccb->p_cb2) (SDP_CONN_FAILED, p_ccb->user_data);
 #endif
     sdpu_release_ccb (p_ccb);
 }
-
-
-
-
