@@ -641,28 +641,6 @@ void l2cu_send_peer_echo_rsp(tL2C_LCB *p_lcb, UINT8 id, UINT8 *p_data,
     l2c_link_check_send_pkts(p_lcb, NULL, p_buf);
 }
 
-#if 0
-void l2cu_send_peer_info_req(tL2C_LCB *p_lcb, UINT16 info_type)
-{
-    BT_HDR *p_buf;
-    UINT8 *p;
-
-    if ((p_buf = l2cu_build_header(p_lcb->handle, 2, L2CAP_CMD_INFO_REQ,
-                                   ++p_lcb->id))
-        == NULL)
-    {
-        L2CAP_TRACE(WARNING, "L2CAP - no buffer for conn_req");
-        return;
-    }
-
-    p = (UINT8 *)(p_buf + 1) + L2CAP_SEND_CMD_OFFSET + HCI_DATA_PREAMBLE_SIZE
-      + L2CAP_PKT_OVERHEAD + L2CAP_CMD_OVERHEAD;
-
-    UINT16_TO_STREAM(p, info_type);
-
-    l2c_link_check_send_pkts(p_lcb, NULL, p_buf);
-}
-#endif
 
 void l2cu_send_peer_info_rsp(tL2C_LCB *p_lcb, UINT8 remote_id, UINT16 info_type)
 {
@@ -847,23 +825,6 @@ tL2C_CCB *l2cu_find_ccb_by_cid(tL2C_LCB *p_lcb, UINT16 local_cid)
     return p_ccb;
 }
 
-#if 0
-tL2C_CCB *l2cu_find_ccb_by_remote_cid(tL2C_LCB *p_lcb, UINT16 remote_cid)
-{
-    tL2C_CCB *p_ccb;
-
-    if (!p_lcb)
-        return NULL;
-
-    for (p_ccb = p_lcb->p_first_ccb; p_ccb; p_ccb = p_ccb->p_next_ccb)
-    {
-        if (p_ccb->in_use && p_ccb->remote_cid == remote_cid)
-            return p_ccb;
-    }
-
-    return NULL;
-}
-#endif
 
 tL2C_RCB *l2cu_allocate_rcb(UINT16 psm)
 {
@@ -1189,134 +1150,9 @@ BOOLEAN l2cu_lcb_disconnecting(void)
     return status;
 }
 
-#if 0
-void l2cu_send_feature_req(tL2C_CCB *p_ccb)
-{
-    UINT8 buff[100];
-    UINT8 *p = buff;
 
-    UINT8_TO_STREAM(p, 'R');
-    UINT8_TO_STREAM(p, 'Q');
 
-    UINT8_TO_STREAM(p, 'r');
-    UINT8_TO_STREAM(p, 'q');
 
-    p_ccb->p_lcb->id = L2CAP_FEATURE_REQ_ID - 1;
 
-    l2cu_send_peer_echo_req(p_ccb->p_lcb, buff, p - buff);
-}
-#endif
 
-#if 0
-BOOLEAN l2cu_check_feature_req(tL2C_LCB *p_lcb, UINT8 id, UINT8 *p_data,
-                               UINT16 data_len)
-{
-    UINT8 buff[100];
-    UINT8 *p_out = buff;
-    UINT8 *p_end = p_data + data_len - 2;
-    UINT8 pe_type;
-    UINT8 pe_len;
 
-    if (data_len < 4 || p_data[0] != 'R' || p_data[1] != 'Q'
-        || p_data[data_len - 2] != 'r' || p_data[data_len - 1] != 'q'
-        || id != L2CAP_FEATURE_REQ_ID)
-    {
-        return FALSE;
-    }
-
-    p_data += 2;
-
-    UINT8_TO_STREAM(p_out, 'R');
-    UINT8_TO_STREAM(p_out, 'S');
-
-    while (p_data < p_end)
-    {
-        pe_type = *p_data++;
-        pe_len = *p_data++;
-
-        switch (pe_type)
-        {
-        default:
-            p_data += pe_len;
-            break;
-        }
-    }
-
-    if (p_data != p_end)
-    {
-        L2CAP_TRACE(ERROR, "L2CAP - badly formatted feature req");
-        return FALSE;
-    }
-
-    UINT8_TO_STREAM(p_out, 'r');
-    UINT8_TO_STREAM(p_out, 's');
-
-    l2cu_send_peer_echo_rsp(p_lcb, L2CAP_FEATURE_RSP_ID, buff, p_out - buff);
-
-    return TRUE;
-}
-#endif
-
-#if 0
-void l2cu_check_feature_rsp(tL2C_LCB *p_lcb, UINT8 id, UINT8 *p_data,
-                            UINT16 data_len)
-{
-    UINT8 *p_end = p_data + data_len - 2;
-
-    if (data_len <= 4 || p_data[0] != 'R' || p_data[1] != 'S'
-        || p_data[data_len - 2] != 'r' || p_data[data_len - 1] != 's'
-        || id != L2CAP_FEATURE_RSP_ID)
-    {
-        return;
-    }
-
-    p_data += 2;
-
-    while (p_data < p_end)
-    {
-        UINT8 pe_id = *p_data++;
-        UINT8 pe_len = *p_data++;
-
-        // This is kind of crazy LOL
-        switch (pe_id)
-        {
-        default:
-            p_data += pe_len;
-            break;
-        }
-    }
-
-    if (p_data != p_end)
-        L2CAP_TRACE(ERROR, "L2CAP - badly formatted feature rsp");
-}
-#endif
-
-#if 0
-void l2cu_stop_compression(/* void? */)
-{
-#if 0
-    /* ... */
-#endif
-}
-#endif
-
-#if 0
-BOOLEAN l2cu_lcb_has_feature_enable(/* tL2C_LCB *p_lcb? */)
-{
-    return FALSE;
-}
-#endif
-
-#if 0
-BOOLEAN l2cu_ccb_has_compression_enable(/* tL2C_CCB *p_ccb? */)
-{
-    return FALSE;
-}
-#endif
-
-#if 0
-UINT32 L2CA_GetCompressionFixMemoryPoolSize(/* void? */)
-{
-    return 0;
-}
-#endif

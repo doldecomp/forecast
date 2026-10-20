@@ -127,38 +127,6 @@ void gap_btm_cback1(void *p1)
     btm_cback(1, p1);
 }
 
-#if 0
-void gap_inq_results_cb(tBTM_INQ_RESULTS *p_results)
-{
-    tGAP_INFO *p_cb;
-    UINT8 index;
-
-    GAP_TRACE(
-        EVENT,
-        "GAP Inquiry Results Callback (bdaddr [%02x%02x%02x%02x%02x%02x])",
-        p_results->remote_bd_addr[0], p_results->remote_bd_addr[1],
-        p_results->remote_bd_addr[2], p_results->remote_bd_addr[3],
-        p_results->remote_bd_addr[4], p_results->remote_bd_addr[5]);
-
-    GAP_TRACE(
-        EVENT,
-        "                             (COD [%02x%02x%02x], clkoff 0x%04x)",
-        p_results->dev_class[0], p_results->dev_class[1],
-        p_results->dev_class[2], p_results->clock_offset);
-
-    /* explicitly post-increment */
-    for (index = 0, p_cb = &gap_cb.blk[0]; index < GAP_MAX_BLOCKS;
-         index++, p_cb++)
-    {
-        if (p_cb->in_use && p_cb->event == GAP_EVT_INQUIRY_COMPLETE)
-        {
-            if (p_cb->gap_inq_rslt_cback)
-                (*p_cb->gap_inq_rslt_cback)(GAP_EVT_INQUIRY_RESULTS, p_results);
-        }
-    }
-}
-
-#endif
 char gap_utils_trace_find_name[0x44] = "   GAP: FindAddrByName Rem Name Cmpl Evt (Status 0x%04x, Name [%s])";
 char gap_utils_trace_find_name_status[0x39] = "   GAP: FindAddrByName Rem Name Cmpl Evt (Status 0x%04x)";
 
@@ -279,31 +247,6 @@ static UINT16 gap_find_local_addr_by_name(tBTM_BD_NAME const devname, BD_ADDR bd
     return GAP_NO_DATA_AVAIL;
 }
 
-#if 0
-tGAP_INFO *gap_allocate_cb(void)
-{
-    tGAP_INFO *p_cb = &gap_cb.blk[0];
-    UINT8 x;
-
-    /* explicitly post-increment */
-    for (x = 0; x < GAP_MAX_BLOCKS; x++, p_cb++)
-    {
-        if (!p_cb->in_use)
-        {
-            memset(p_cb, 0, sizeof *p_cb);
-
-            p_cb->in_use	= TRUE;
-            p_cb->index		= x;
-            p_cb->p_data	= NULL;
-
-            return p_cb;
-        }
-    }
-
-    return NULL;
-}
-
-#endif
 static void gap_free_cb(tGAP_INFO *p_cb)
 {
     if (p_cb)
@@ -313,28 +256,7 @@ static void gap_free_cb(tGAP_INFO *p_cb)
     }
 }
 
-#if 0
-BOOLEAN gap_is_service_busy(UINT16 request)
-{
-    tGAP_INFO *p_cb = &gap_cb.blk[0];
-    UINT8 x;
 
-    /* explicitly post-increment */
-    for (x = 0; x < GAP_MAX_BLOCKS; x++, p_cb++)
-    {
-        if (p_cb->in_use && p_cb->event == request)
-            return TRUE;
-    }
-
-    return FALSE;
-}
-
-# if 0
-// Range: 0x730 -> 0x794
-unsigned short gap_convert_btm_status(unsigned char btm_status /* r3 */) {}
-#endif
-
-#endif
 UINT16 gap_convert_btm_status(tBTM_STATUS btm_status)
 {
     switch (btm_status)

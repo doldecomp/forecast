@@ -18,20 +18,6 @@ static tHID_DEV_PWR_MD const pwr_modes[3] =
     {640, 320,  0,  0, 3},
 };
 
-#if 0
-void hidd_pm_init(void)
-{
-    int i;
-
-    hd_cb.curr_pm.mode = 0;
-    hd_cb.final_pm.mode = 0xff;
-
-    for (i = 0; i < (int)ARRAY_LENGTH(hd_cb.pm_params); ++i)
-        memcpy(&hd_cb.pm_params[i], &pwr_modes[i], sizeof hd_cb.pm_params[i]);
-
-    hd_cb.pm_ctrl_busy = FALSE;
-}
-#endif
 
 UINT8 hidd_pm_set_now(tHID_DEV_PWR_MD *p_req_mode)
 {
@@ -180,29 +166,4 @@ static UINT8 hidd_pm_start(void)
     return 0;
 }
 
-#if 0
-UINT8 hidd_pm_stop(void)
-{
-    tHID_DEV_PWR_MD p_md = {0};
 
-    hidd_pm_set_power_mode(&p_md);
-
-    btu_stop_timer(&hd_cb.idle_tle);
-
-    return 0;
-}
-#endif
-
-#if 0
-UINT8 hidd_pm_suspend_evt(void)
-{
-    if (hd_cb.conn_substate == 0)
-        btu_stop_timer(&hd_cb.idle_tle);
-
-    hidd_pm_set_power_mode(&hd_cb.pm_params[2]);
-
-    hd_cb.conn_substate = 2;
-
-    return 0;
-}
-#endif
