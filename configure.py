@@ -695,18 +695,14 @@ config.libs = [
             Object(NonMatching, "revolution/WENC/wenc.c"),
 
             # WPAD
-            Object(Matching, "revolution/WPAD/WPAD.c",
-                   mw_version="GC/3.0a5.2"),
-            Object(Matching, "revolution/WPAD/WPADHIDParser.c",
-                   mw_version="GC/3.0a5.2"),
-            Object(Matching, "revolution/WPAD/WPADEncrypt.c",
-                   mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/WPAD/WPAD.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/WPAD/WPADHIDParser.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/WPAD/WPADEncrypt.c", mw_version="GC/3.0a5.2"),
             Object(Matching, "revolution/WPAD/debug_msg.c"),
             Object(Matching, "revolution/WPAD/WPADMem.c"),
 
             # KPAD
-            Object(Matching, "revolution/KPAD/KPAD.c",
-                   mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/KPAD/KPAD.c", mw_version="GC/3.0a5.2"),
 
             # WUD
             Object(Matching, "revolution/WUD/debug_msg.c"),
