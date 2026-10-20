@@ -569,14 +569,6 @@ void process_l2cap_cmd(tL2C_LCB *p_lcb, UINT8 *p, UINT16 pkt_len)
     }
 }
 
-#if 0
-void l2c_process_compress_setup_timeout(TIMER_LIST_ENT *p_tle)
-{
-#if 0
-    /* ... */
-#endif
-}
-#endif
 
 void l2c_process_timeout(TIMER_LIST_ENT *p_tle)
 {

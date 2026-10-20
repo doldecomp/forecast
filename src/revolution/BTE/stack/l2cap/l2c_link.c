@@ -715,21 +715,7 @@ BOOLEAN l2cap_link_chk_pkt_end(void)
     }
 }
 
-#if 0
-BT_HDR *l2c_link_get_decompressed_pkt(BT_HDR *p_cur)
-{
-    return p_cur;
-}
-#endif
 
-#if 0
-UINT8 l2c_link_pkts_rcvd(UINT16 *num_pkts, UINT16 *handles)
-{
-    UINT8 num_found = 0;
-
-    return num_found;
-}
-#endif
 
 void l2c_link_role_changed(BD_ADDR bd_addr, UINT8 new_role)
 {
