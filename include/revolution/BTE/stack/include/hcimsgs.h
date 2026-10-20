@@ -154,7 +154,7 @@ HCI_API extern BOOLEAN btsnd_hcic_create_conn_cancel(BD_ADDR dest);
 
                                                                     /* Accept Connection Request */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_accept_conn (BT_HDR *p, BD_ADDR bd_addr, UINT8 role);
+HCI_API extern void btsnd_hcic_accept_conn (void *buffer, BD_ADDR bd_addr, UINT8 role);
 #else
 HCI_API extern BOOLEAN btsnd_hcic_accept_conn (BD_ADDR bd_addr, UINT8 role);
 #endif
@@ -167,7 +167,7 @@ HCI_API extern BOOLEAN btsnd_hcic_accept_conn (BD_ADDR bd_addr, UINT8 role);
 
                                                                     /* Reject Connection Request */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_reject_conn (BT_HDR *p, BD_ADDR bd_addr, UINT8 reason);
+HCI_API extern void btsnd_hcic_reject_conn (void *buffer, BD_ADDR bd_addr, UINT8 reason);
 #else
 HCI_API extern BOOLEAN btsnd_hcic_reject_conn (BD_ADDR bd_addr, UINT8 reason);
 #endif
@@ -314,12 +314,12 @@ HCI_API extern BOOLEAN btsnd_hcic_setup_esco_conn (UINT16 handle,
 
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_accept_esco_conn (BT_HDR *p, BD_ADDR bd_addr,
-                                                    UINT32 tx_bw, UINT32 rx_bw,
-                                                    UINT16 max_latency,
-                                                    UINT16 content_fmt,
-                                                    UINT8 retrans_effort,
-                                                    UINT16 packet_types);
+HCI_API extern void btsnd_hcic_accept_esco_conn (void *buffer, BD_ADDR bd_addr,
+                                                 UINT32 tx_bw, UINT32 rx_bw,
+                                                 UINT16 max_latency,
+                                                 UINT16 content_fmt,
+                                                 UINT8 retrans_effort,
+                                                 UINT16 packet_types);
 #else
 HCI_API extern BOOLEAN btsnd_hcic_accept_esco_conn (BD_ADDR bd_addr,
                                                     UINT32 tx_bw, UINT32 rx_bw,
@@ -340,9 +340,9 @@ HCI_API extern BOOLEAN btsnd_hcic_accept_esco_conn (BD_ADDR bd_addr,
 
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_reject_esco_conn (BT_HDR *p, BD_ADDR bd_addr, UINT8 reason);
+HCI_API extern void btsnd_hcic_reject_esco_conn (void *buffer, BD_ADDR bd_addr, UINT8 reason);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_reject_esco_conn (BD_ADDR bd_addr, UINT8 reason);
+HCI_API extern void btsnd_hcic_reject_esco_conn (BD_ADDR bd_addr, UINT8 reason);
 #endif
 #define HCIC_PARAM_SIZE_REJECT_ESCO     7
 
@@ -351,7 +351,7 @@ HCI_API extern BOOLEAN btsnd_hcic_reject_esco_conn (BD_ADDR bd_addr, UINT8 reaso
 
 /* Hold Mode */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_hold_mode(BT_HDR *p, UINT16 handle, UINT16 max_hold_period,
+HCI_API extern BOOLEAN btsnd_hcic_hold_mode(void *buffer, UINT16 handle, UINT16 max_hold_period,
                                             UINT16 min_hold_period);
 #else
 HCI_API extern BOOLEAN btsnd_hcic_hold_mode(UINT16 handle, UINT16 max_hold_period,
@@ -367,7 +367,7 @@ HCI_API extern BOOLEAN btsnd_hcic_hold_mode(UINT16 handle, UINT16 max_hold_perio
 
                                                                     /* Sniff Mode */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_sniff_mode(BT_HDR *p, UINT16 handle,
+HCI_API extern BOOLEAN btsnd_hcic_sniff_mode(void *buffer, UINT16 handle,
                                              UINT16 max_sniff_period,
                                              UINT16 min_sniff_period,
                                              UINT16 sniff_attempt,
@@ -391,14 +391,14 @@ HCI_API extern BOOLEAN btsnd_hcic_sniff_mode(UINT16 handle,
                                                                     /* Sniff Mode */
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_exit_sniff_mode(BT_HDR *p, UINT16 handle);
+HCI_API extern BOOLEAN btsnd_hcic_exit_sniff_mode(void *buffer, UINT16 handle);
 #else
 HCI_API extern BOOLEAN btsnd_hcic_exit_sniff_mode(UINT16 handle);       /* Exit Sniff Mode */
 #endif
 
                                                                     /* Park Mode */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_park_mode (BT_HDR *p, UINT16 handle,
+HCI_API extern BOOLEAN btsnd_hcic_park_mode (void *buffer, UINT16 handle,
                                              UINT16 beacon_max_interval,
                                              UINT16 beacon_min_interval);
 #else
@@ -415,7 +415,7 @@ HCI_API extern BOOLEAN btsnd_hcic_park_mode (UINT16 handle,
                                                                     /* Park Mode */
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_exit_park_mode(BT_HDR *p, UINT16 handle);
+HCI_API extern BOOLEAN btsnd_hcic_exit_park_mode(void *buffer, UINT16 handle);
 #else
 HCI_API extern BOOLEAN btsnd_hcic_exit_park_mode(UINT16 handle);  /* Exit Park Mode */
 #endif
@@ -685,12 +685,12 @@ HCI_API extern BOOLEAN btsnd_hcic_reset(UINT8 local_controller_id);
 #define MAX_FILT_COND   (sizeof (BD_ADDR) + 1)
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_set_event_filter(BT_HDR *p, UINT8 filt_type,
+HCI_API extern void btsnd_hcic_set_event_filter(void *buffer, UINT8 filt_type,
                                                    UINT8 filt_cond_type,
                                                    UINT8 *filt_cond,
                                                    UINT8 filt_cond_len);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_set_event_filter(UINT8 filt_type,
+HCI_API extern void btsnd_hcic_set_event_filter(UINT8 filt_type,
                                                    UINT8 filt_cond_type,
                                                    UINT8 *filt_cond,
                                                    UINT8 filt_cond_len);
@@ -713,10 +713,10 @@ HCI_API extern BOOLEAN btsnd_hcic_new_unit_key(void);
 
                                                                 /* Read Stored Key */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_read_stored_key (BT_HDR *p, BD_ADDR bd_addr,
+HCI_API extern void btsnd_hcic_read_stored_key (void *buffer, BD_ADDR bd_addr,
                                                    BOOLEAN read_all_flag);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_read_stored_key (BD_ADDR bd_addr,
+HCI_API extern void btsnd_hcic_read_stored_key (BD_ADDR bd_addr,
                                                    BOOLEAN read_all_flag);
 #endif
 
@@ -729,11 +729,11 @@ HCI_API extern BOOLEAN btsnd_hcic_read_stored_key (BD_ADDR bd_addr,
 #define MAX_WRITE_KEYS 10
                                                                 /* Write Stored Key */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_stored_key (BT_HDR *p, UINT8 num_keys,
+HCI_API extern void btsnd_hcic_write_stored_key (void *buffer, UINT8 num_keys,
                                                     BD_ADDR *bd_addr,
                                                     LINK_KEY *link_key);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_stored_key (UINT8 num_keys, BD_ADDR *bd_addr,
+HCI_API extern void btsnd_hcic_write_stored_key (UINT8 num_keys, BD_ADDR *bd_addr,
                                                     LINK_KEY *link_key);
 #endif
 
@@ -744,6 +744,7 @@ HCI_API extern BOOLEAN btsnd_hcic_write_stored_key (UINT8 num_keys, BD_ADDR *bd_
 #define HCI_WRITE_KEY_KEY_OFF               7
 /* only 0x0b keys cab be sent in one HCI command */
 #define HCI_MAX_NUM_OF_LINK_KEYS_PER_CMMD   0x0b
+#define HCI_MAX_NUM_OF_LINK_KEYS_PER_CMD    0x0b
                                                                 /* Write Stored Key */
 
                                                                 /* Delete Stored Key */
@@ -757,9 +758,9 @@ HCI_API extern BOOLEAN btsnd_hcic_delete_stored_key (BD_ADDR bd_addr, BOOLEAN de
 
                                                                 /* Change Local Name */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_change_name(void *buffer, BD_NAME name);
+HCI_API extern void btsnd_hcic_change_name(void *buffer, BD_NAME name);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_change_name(BD_NAME name);
+HCI_API extern void btsnd_hcic_change_name(BD_NAME name);
 #endif
 
 #define HCIC_PARAM_SIZE_CHANGE_NAME     BD_NAME_LEN
@@ -793,23 +794,23 @@ HCI_API extern BOOLEAN btsnd_hcic_read_conn_acc_tout(UINT8 local_controller_id);
 HCI_API extern BOOLEAN btsnd_hcic_write_conn_acc_tout(UINT8 local_controller_id, UINT16 tout); /* Write Connection Accept Timout */
 HCI_API extern BOOLEAN btsnd_hcic_read_page_tout(void);                         /* Read Page Timout */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_page_tout(BT_HDR *p, UINT16 timeout);
+HCI_API extern void btsnd_hcic_write_page_tout(void *buffer, UINT16 timeout);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_page_tout(UINT16 timeout);              /* Write Page Timout */
+HCI_API extern void btsnd_hcic_write_page_tout(UINT16 timeout);              /* Write Page Timout */
 #endif
 HCI_API extern BOOLEAN btsnd_hcic_read_scan_enable(void);                       /* Read Scan Enable */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_scan_enable(BT_HDR *p, UINT8 flag);
+HCI_API extern void btsnd_hcic_write_scan_enable(void *buffer, UINT8 flag);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_scan_enable(UINT8 flag);                /* Write Scan Enable */
+HCI_API extern void btsnd_hcic_write_scan_enable(UINT8 flag);                /* Write Scan Enable */
 #endif
 HCI_API extern BOOLEAN btsnd_hcic_read_pagescan_cfg(void);                      /* Read Page Scan Activity */
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_pagescan_cfg(BT_HDR *p, UINT16 interval,
+HCI_API extern void btsnd_hcic_write_pagescan_cfg(void *buffer, UINT16 interval,
                                                      UINT16 window);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_pagescan_cfg(UINT16 interval,
+HCI_API extern void btsnd_hcic_write_pagescan_cfg(UINT16 interval,
                                                      UINT16 window);            /* Write Page Scan Activity */
 #endif
 
@@ -823,9 +824,9 @@ HCI_API extern BOOLEAN btsnd_hcic_read_inqscan_cfg(void);       /* Read Inquiry 
 
                                                                 /* Write Inquiry Scan Activity */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_inqscan_cfg(BT_HDR *p, UINT16 interval, UINT16 window);
+HCI_API extern void btsnd_hcic_write_inqscan_cfg(void *buffer, UINT16 interval, UINT16 window);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_inqscan_cfg(UINT16 interval, UINT16 window);
+HCI_API extern void btsnd_hcic_write_inqscan_cfg(UINT16 interval, UINT16 window);
 #endif
 
 #define HCIC_PARAM_SIZE_WRITE_INQSCAN_CFG    4
@@ -840,9 +841,9 @@ HCI_API extern BOOLEAN btsnd_hcic_read_encr_mode (void);                        
 HCI_API extern BOOLEAN btsnd_hcic_write_encr_mode (UINT8 mode);                  /* Write encryption mode */
 HCI_API extern BOOLEAN btsnd_hcic_read_dev_class(void);                          /* Read Class of Device */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_dev_class(BT_HDR *p, DEV_CLASS dev);
+HCI_API extern void btsnd_hcic_write_dev_class(void *buffer, DEV_CLASS dev);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_dev_class(DEV_CLASS dev);                /* Write Class of Device */
+HCI_API extern void btsnd_hcic_write_dev_class(DEV_CLASS dev);                /* Write Class of Device */
 #endif
 HCI_API extern BOOLEAN btsnd_hcic_read_voice_settings(void);                     /* Read Voice Settings */
 HCI_API extern BOOLEAN btsnd_hcic_write_voice_settings(UINT16 flags);            /* Write Voice Settings */
@@ -859,10 +860,10 @@ HCI_API extern BOOLEAN btsnd_hcic_set_host_flow_ctrl (UINT8 value);         /* E
 HCI_API extern BOOLEAN btsnd_hcic_read_auto_flush_tout(UINT16 handle);      /* Read Retransmit Timout */
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_auto_flush_tout(BT_HDR *p, UINT16 handle,
+HCI_API extern void btsnd_hcic_write_auto_flush_tout(void *buffer, UINT16 handle,
                                                         UINT16 timeout);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_auto_flush_tout(UINT16 handle,
+HCI_API extern void btsnd_hcic_write_auto_flush_tout(UINT16 handle,
                                                         UINT16 timeout);    /* Write Retransmit Timout */
 #endif
 
@@ -936,10 +937,10 @@ HCI_API extern BOOLEAN btsnd_hcic_read_max_iac (void);                      /* R
 HCI_API extern BOOLEAN btsnd_hcic_read_cur_iac_lap (void);                  /* Read Current IAC LAP */
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_cur_iac_lap (BT_HDR *p, UINT8 num_cur_iac,
+HCI_API extern void btsnd_hcic_write_cur_iac_lap (void *buffer, UINT8 num_cur_iac,
                                                      LAP * const iac_lap);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_cur_iac_lap (UINT8 num_cur_iac,
+HCI_API extern void btsnd_hcic_write_cur_iac_lap (UINT8 num_cur_iac,
                                                      LAP * const iac_lap);  /* Write Current IAC LAP */
 #endif
 
@@ -989,9 +990,9 @@ HCI_API extern BOOLEAN btsnd_hcic_read_local_ver (UINT8 local_controller_id);   
 HCI_API extern BOOLEAN btsnd_hcic_read_local_supported_cmds (UINT8 local_controller_id); /* Read Local Supported Commands */
 HCI_API extern BOOLEAN btsnd_hcic_read_local_features (void);                  /* Read Local Supported Features */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_read_buffer_size (BT_HDR *p);                /* Read Local buffer sizes */
+HCI_API extern void btsnd_hcic_read_buffer_size (void *buffer);                /* Read Local buffer sizes */
 #else
-HCI_API extern BOOLEAN btsnd_hcic_read_buffer_size (void);                     /* Read Local buffer sizes */
+HCI_API extern void btsnd_hcic_read_buffer_size (void);                     /* Read Local buffer sizes */
 #endif
 HCI_API extern BOOLEAN btsnd_hcic_read_country_code (void);                    /* Read Country Code */
 HCI_API extern BOOLEAN btsnd_hcic_read_bd_addr (void);                         /* Read Local BD_ADDR */
@@ -1003,21 +1004,21 @@ HCI_API extern BOOLEAN btsnd_hcic_read_loopback_mode (void);                   /
 HCI_API extern BOOLEAN btsnd_hcic_write_loopback_mode (UINT8 mode);            /* Write Loopback Mode */
 HCI_API extern BOOLEAN btsnd_hcic_enable_test_mode (void);                     /* Enable Device Under Test Mode */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_pagescan_type(BT_HDR *p, UINT8 type);
+HCI_API extern void btsnd_hcic_write_pagescan_type(void *buffer, UINT8 type);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_pagescan_type(UINT8 type);             /* Write Page Scan Type */
+HCI_API extern void btsnd_hcic_write_pagescan_type(UINT8 type);             /* Write Page Scan Type */
 #endif
 HCI_API extern BOOLEAN btsnd_hcic_read_pagescan_type(void);                    /* Read Page Scan Type */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_inqscan_type(BT_HDR *p, UINT8 type);
+HCI_API extern void btsnd_hcic_write_inqscan_type(void *buffer, UINT8 type);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_inqscan_type(UINT8 type);              /* Write Inquiry Scan Type */
+HCI_API extern void btsnd_hcic_write_inqscan_type(UINT8 type);              /* Write Inquiry Scan Type */
 #endif
 HCI_API extern BOOLEAN btsnd_hcic_read_inqscan_type(void);                     /* Read Inquiry Scan Type */
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_write_inquiry_mode(BT_HDR *p, UINT8 type);
+HCI_API extern void btsnd_hcic_write_inquiry_mode(void *buffer, UINT8 type);
 #else
-HCI_API extern BOOLEAN btsnd_hcic_write_inquiry_mode(UINT8 type);              /* Write Inquiry Mode */
+HCI_API extern void btsnd_hcic_write_inquiry_mode(UINT8 type);              /* Write Inquiry Mode */
 #endif
 HCI_API extern BOOLEAN btsnd_hcic_read_inquiry_mode(void);                     /* Read Inquiry Mode */
 HCI_API extern BOOLEAN btsnd_hcic_set_afh_channels (UINT8 first, UINT8 last);
@@ -1054,7 +1055,7 @@ HCI_API extern void btsnd_hcic_data (BT_HDR *p_buf, UINT16 len, UINT16 handle, U
 #define HCID_GET_SCO_LEN(p)  (*((UINT8 *)((p) + 1) + p->offset + 2))
 
 #ifdef REVOLUTION
-HCI_API extern BOOLEAN btsnd_hcic_vendor_spec_cmd (BT_HDR *p, UINT16 opcode,
+HCI_API extern void btsnd_hcic_vendor_spec_cmd (void *buffer, UINT16 opcode,
                                                    UINT8 len, UINT8 *p_data);
 #else
 HCI_API extern void btsnd_hcic_vendor_spec_cmd (

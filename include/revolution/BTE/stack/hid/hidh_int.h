@@ -90,5 +90,21 @@ HID_API extern tHID_HOST_CTB *hidh_cb_ptr;
 }
 #endif
 
+
+/* 2006 trace helper: HIDH_TRACE(LEVEL, fmt, ...) -> HIDH_TRACE_LEVELn(fmt, ...) */
+#define HIDH_TRACE_CAT(a, b)		HIDH_TRACE_CAT_(a, b)
+#define HIDH_TRACE_CAT_(a, b)		a##b
+#define HIDH_TRACE_NARG(...)		HIDH_TRACE_NARG_(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)
+#define HIDH_TRACE_NARG_(_1, _2, _3, _4, _5, _6, N, ...)	N
+#define HIDH_TRACE_DEC_1		0
+#define HIDH_TRACE_DEC_2		1
+#define HIDH_TRACE_DEC_3		2
+#define HIDH_TRACE_DEC_4		3
+#define HIDH_TRACE_DEC_5		4
+#define HIDH_TRACE_DEC_6		5
+#define HIDH_TRACE(type_, ...)	\
+    HIDH_TRACE_CAT(HIDH_TRACE_CAT(HIDH_TRACE_, type_),	\
+                   HIDH_TRACE_CAT(HIDH_TRACE_DEC_, HIDH_TRACE_NARG(__VA_ARGS__)))(__VA_ARGS__)
+
 #endif
 

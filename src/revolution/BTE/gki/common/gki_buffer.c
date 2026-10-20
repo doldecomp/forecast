@@ -1045,8 +1045,8 @@ BOOLEAN GKI_queue_is_empty(BUFFER_Q *p_q)
 
 /* Not present in the retail RVL build (dead-stripped from the DOL), but the
    trace string it used is still part of the retail .data, so keep its bytes
-   (with their original position) in an explicit array. Named @1041 in
-   symbols.txt, after its compiler symbol in the original object. */
+   (with their original position) in an explicit array. Its compiler-pool
+   label is recorded in symbols.txt. */
 char sBadAddrMsg[] = "GKI_get_buf_start:: bad addr";
 
 #ifndef REVOLUTION

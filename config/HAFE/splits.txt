@@ -1766,9 +1766,6 @@ revolution/BTE/stack/btm/btm_devctl.c:
 	.data       start:0x801D1A80 end:0x801D1CDA
 	.sdata      start:0x803308F8 end:0x8033090A
 
-revolution/BTE/stack/gap/gap_conn.c:
-	.sdata      start:0x80330910 end:0x80330918
-
 revolution/BTE/stack/btm/btm_inq.c:
 	.text       start:0x8014038C end:0x80141F58
 	.data       start:0x801D1CE0 end:0x801D1EEA
@@ -1777,9 +1774,6 @@ revolution/BTE/stack/btm/btm_inq.c:
 revolution/BTE/stack/btm/btm_main.c:
 	.text       start:0x80141F58 end:0x80141FB4
 	.bss        start:0x80324978 end:0x8032713C
-
-revolution/BTE/stack/gap/gap_utils.c:
-	.bss        start:0x80327140 end:0x803274F0
 
 revolution/BTE/stack/btm/btm_pm.c:
 	.text       start:0x80141FB4 end:0x80142C48
@@ -1804,6 +1798,73 @@ revolution/BTE/stack/btu/btu_hcif.c:
 revolution/BTE/stack/btu/btu_init.c:
 	.text       start:0x80147CA0 end:0x80147D18
 	.sdata2     start:0x80333140 end:0x80333146
+
+revolution/BTE/wbt_ext.c:
+	.text       start:0x80147D18 end:0x80147DF8
+
+revolution/BTE/stack/gap/gap_api.c:
+	.text       start:0x80147DF8 end:0x80147E58
+
+revolution/BTE/stack/gap/gap_conn.c:
+	.text       start:0x80147E58 end:0x80148994
+	.data       start:0x801D2CD0 end:0x801D2DA0
+	.sdata      start:0x80330910 end:0x80330918
+
+revolution/BTE/stack/gap/gap_utils.c:
+	.text       start:0x80148994 end:0x80148FB0
+	.data       start:0x801D2DA0 end:0x801D3090
+	.bss        start:0x80327140 end:0x803274F0
+
+revolution/BTE/stack/hcic/hcicmds.c:
+	.text       start:0x80148FB0 end:0x8014B6CC
+	.rodata     start:0x80197858 end:0x80197868
+
+revolution/BTE/stack/hid/hidd_api.c:
+	.text       start:0x8014B6CC end:0x8014B734
+
+revolution/BTE/stack/hid/hidd_conn.c:
+	.text       start:0x8014B734 end:0x8014B7F4
+	.data       start:0x801D3090 end:0x801D30C0
+
+revolution/BTE/stack/hid/hidd_mgmt.c:
+	.text       start:0x8014B7F4 end:0x8014B8BC
+	.data       start:0x801D30C0 end:0x801D30E0
+	.bss        start:0x803274F0 end:0x80327638
+
+revolution/BTE/stack/hid/hidd_pm.c:
+	.text       start:0x8014B8BC end:0x8014BC38
+
+revolution/BTE/stack/hid/hidh_api.c:
+	.text       start:0x8014BC38 end:0x8014C9B8
+	.data       start:0x801D30E0 end:0x801D31F8
+	.bss        start:0x80327638 end:0x80327A3C
+
+revolution/BTE/stack/hid/hidh_conn.c:
+	.text       start:0x8014C9B8 end:0x8014E9F8
+	.rodata     start:0x80197868 end:0x80197890
+	.data       start:0x801D31F8 end:0x801D35E0
+
+revolution/BTE/stack/l2cap/l2c_api.c:
+	.text       start:0x8014E9F8 end:0x8014F5C4
+	.data       start:0x801D35E0 end:0x801D3D70
+
+revolution/BTE/stack/l2cap/l2c_csm.c:
+	.text       start:0x8014F5C4 end:0x80150AA0
+	.data       start:0x801D3D70 end:0x801D45A8
+
+revolution/BTE/stack/l2cap/l2c_link.c:
+	.text       start:0x80150AA0 end:0x80151C2C
+	.data       start:0x801D45A8 end:0x801D4818
+
+revolution/BTE/stack/l2cap/l2c_main.c:
+	.text       start:0x80151C2C end:0x80152C5C
+	.data       start:0x801D4818 end:0x801D4B18
+	.bss        start:0x80327A40 end:0x80328228
+
+revolution/BTE/stack/l2cap/l2c_utils.c:
+	.text       start:0x80152C5C end:0x80154B20
+	.data       start:0x801D4B18 end:0x801D4C00
+	.sdata      start:0x80330918 end:0x80330928
 
 revolution/BTE/stack/rfcomm/port_api.c:
 	.text       start:0x80154B20 end:0x80154B70

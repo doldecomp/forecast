@@ -483,23 +483,31 @@ config.libs = [
             Object(Matching, "revolution/BTE/stack/btu/btu_init.c"),
             Object(Matching, "revolution/BTE/stack/btu/btu_task.c"),
 
-            # BTE/stack/gap (only their data is split so far)
-            Object(NonMatching, "revolution/BTE/stack/gap/gap_conn.c"),
-            Object(NonMatching, "revolution/BTE/stack/gap/gap_utils.c"),
+            # BTE/wbt
+            Object(Matching, "revolution/BTE/wbt_ext.c"),
+
+            # BTE/stack/gap
+            Object(Matching, "revolution/BTE/stack/gap/gap_api.c"),
+            Object(Matching, "revolution/BTE/stack/gap/gap_conn.c"),
+            Object(Matching, "revolution/BTE/stack/gap/gap_utils.c"),
 
             # BTE/stack/hcic
-            Object(NonMatching, "revolution/BTE/stack/hcic/hcicmds.c"),
+            Object(Matching, "revolution/BTE/stack/hcic/hcicmds.c", mw_version="GC/3.0a5.2"),
 
             # BTE/stack/hid
-            Object(NonMatching, "revolution/BTE/stack/hid/hidh_api.c"),
-            Object(NonMatching, "revolution/BTE/stack/hid/hidh_conn.c"),
+            Object(Matching, "revolution/BTE/stack/hid/hidd_api.c"),
+            Object(Matching, "revolution/BTE/stack/hid/hidd_conn.c"),
+            Object(Matching, "revolution/BTE/stack/hid/hidd_mgmt.c"),
+            Object(Matching, "revolution/BTE/stack/hid/hidd_pm.c"),
+            Object(Matching, "revolution/BTE/stack/hid/hidh_api.c"),
+            Object(Matching, "revolution/BTE/stack/hid/hidh_conn.c"),
 
             # BTE/stack/l2cap
-            Object(NonMatching, "revolution/BTE/stack/l2cap/l2c_api.c"),
-            Object(NonMatching, "revolution/BTE/stack/l2cap/l2c_csm.c"),
-            Object(NonMatching, "revolution/BTE/stack/l2cap/l2c_link.c"),
-            Object(NonMatching, "revolution/BTE/stack/l2cap/l2c_main.c"),
-            Object(NonMatching, "revolution/BTE/stack/l2cap/l2c_utils.c"),
+            Object(Matching, "revolution/BTE/stack/l2cap/l2c_api.c"),
+            Object(Matching, "revolution/BTE/stack/l2cap/l2c_csm.c"),
+            Object(Matching, "revolution/BTE/stack/l2cap/l2c_link.c"),
+            Object(Matching, "revolution/BTE/stack/l2cap/l2c_main.c"),
+            Object(Matching, "revolution/BTE/stack/l2cap/l2c_utils.c"),
 
             # BTE/stack/rfcomm
             Object(Matching, "revolution/BTE/stack/rfcomm/port_api.c"),
