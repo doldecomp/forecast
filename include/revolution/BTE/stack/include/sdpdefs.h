@@ -56,7 +56,12 @@
 #define ATTR_ID_PRIMARY_RECORD                  0x0204
 #define ATTR_ID_VENDOR_ID_SOURCE                0x0205
 
+#ifdef REVOLUTION
+/* RVL builds report the original Device ID specification id. */
+#define BLUETOOTH_DI_SPECIFICATION              0x0009
+#else
 #define BLUETOOTH_DI_SPECIFICATION              0x0103  /* 1.3 */
+#endif
 #define DI_VENDOR_ID_DEFAULT                    0xFFFF
 #define DI_VENDOR_ID_SOURCE_BTSIG               0x0001
 #define DI_VENDOR_ID_SOURCE_USBIF               0x0002

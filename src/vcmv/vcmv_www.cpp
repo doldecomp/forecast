@@ -148,22 +148,38 @@ s32 wwwCreateParentDirs(WWWNandFile* file) {
 }
 
 
-#pragma inline_depth(2)
 s32 wwwWriteNandFile(WWWNandFile* file) {
+    s32 i;
     s32 ret;
 
-    ret = NANDPrivateCreate(file->path, 0x3F, 0);
-    if (ret == -12) {
-        ret = wwwCreateParentDirs(file);
-        if (ret == 0 || ret == -6) {
-            ret = NANDPrivateCreate(file->path, 0x3F, 0);
+    ret = NANDPrivateCreate(file->path, NAND_PERM_RWALL, 0);
+    if (ret == NAND_RESULT_NOEXISTS) {
+        i = strlen(file->path);
+        while (i-- != 0) {
+            if (file->path[i] == '/') {
+                file->path[i] = '\0';
+                ret = NANDPrivateCreateDir(file->path, NAND_PERM_RWALL, 0);
+                if (ret == NAND_RESULT_NOEXISTS) {
+                    ret = wwwCreateParentDirs(file);
+                    if (ret == NAND_RESULT_OK || ret == NAND_RESULT_EXISTS) {
+                        ret = NANDPrivateCreateDir(file->path, NAND_PERM_RWALL, 0);
+                    }
+                }
+                file->path[i] = '/';
+                goto done;
+            }
+        }
+        ret = -64;
+    done:
+        if (ret == NAND_RESULT_OK || ret == NAND_RESULT_EXISTS) {
+            ret = NANDPrivateCreate(file->path, NAND_PERM_RWALL, 0);
         }
     }
-    if (ret != 0 && ret != -6) {
+    if (ret != NAND_RESULT_OK && ret != NAND_RESULT_EXISTS) {
         return ret;
     }
-    ret = NANDPrivateOpen(file->path, &wwwNandFileInfo, 2);
-    if (ret != 0) {
+    ret = NANDPrivateOpen(file->path, &wwwNandFileInfo, NAND_ACCESS_WRITE);
+    if (ret != NAND_RESULT_OK) {
         return ret;
     }
     ret = NANDWrite(&wwwNandFileInfo, file->buf, file->size);
@@ -173,6 +189,8 @@ s32 wwwWriteNandFile(WWWNandFile* file) {
     NANDClose(&wwwNandFileInfo);
     return ret;
 }
+
+#pragma inline_depth(2)
 
 #pragma opt_common_subs on
 void wwwSaveSettings(void) {

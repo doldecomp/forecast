@@ -479,7 +479,7 @@ config.libs = [
             Object(Matching, "revolution/BTE/stack/btm/btm_sec.c"),
 
             # BTE/stack/btu
-            Object(NonMatching, "revolution/BTE/stack/btu/btu_hcif.c"),
+            Object(Matching, "revolution/BTE/stack/btu/btu_hcif.c"),
             Object(Matching, "revolution/BTE/stack/btu/btu_init.c"),
             Object(Matching, "revolution/BTE/stack/btu/btu_task.c"),
 
@@ -521,8 +521,8 @@ config.libs = [
             Object(Matching, "revolution/BTE/stack/rfcomm/rfc_utils.c"),
 
             # BTE/stack/sdp
-            Object(NonMatching, "revolution/BTE/stack/sdp/sdp_api.c"),
-            Object(NonMatching, "revolution/BTE/stack/sdp/sdp_db.c"),
+            Object(Matching, "revolution/BTE/stack/sdp/sdp_api.c"),
+            Object(Matching, "revolution/BTE/stack/sdp/sdp_db.c"),
             Object(Matching, "revolution/BTE/stack/sdp/sdp_discovery.c", extra_cflags=[
                 "-Iinclude/revolution/BTE/gki/platform",
                 "-Iinclude/revolution/BTE/gki/common",
@@ -530,9 +530,9 @@ config.libs = [
                 "-Iinclude/revolution/BTE/stack/include",
                 "-Iinclude/revolution/BTE/stack/sdp",
             ]),
-            Object(NonMatching, "revolution/BTE/stack/sdp/sdp_main.c"),
-            Object(NonMatching, "revolution/BTE/stack/sdp/sdp_server.c"),
-            Object(NonMatching, "revolution/BTE/stack/sdp/sdp_utils.c"),
+            Object(Matching, "revolution/BTE/stack/sdp/sdp_main.c"),
+            Object(Matching, "revolution/BTE/stack/sdp/sdp_server.c"),
+            Object(Matching, "revolution/BTE/stack/sdp/sdp_utils.c"),
 
             # CNT
             Object(Matching, "revolution/CNT/cnt.c"),
@@ -571,7 +571,7 @@ config.libs = [
             # GX
             Object(Matching, "revolution/GX/GXAttr.c"),
             Object(Matching, "revolution/GX/GXBump.c"),
-            Object(NonMatching, "revolution/GX/GXDisplayList.c"),
+            Object(Matching, "revolution/GX/GXDisplayList.c"),
             Object(NonMatching, "revolution/GX/GXDraw.c"),
             Object(NonMatching, "revolution/GX/GXFifo.c"),
             Object(NonMatching, "revolution/GX/GXFrameBuf.c"),
