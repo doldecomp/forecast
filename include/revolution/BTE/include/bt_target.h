@@ -1356,12 +1356,12 @@ and USER_HW_DISABLE_API macros */
 
 /* The maximum number of simultaneous applications that can register with L2CAP. */
 #ifndef MAX_L2CAP_CLIENTS
-#define MAX_L2CAP_CLIENTS           15
+#define MAX_L2CAP_CLIENTS           8
 #endif
 
 /* The number of seconds of link inactivity before a link is disconnected. */
 #ifndef L2CAP_LINK_INACTIVITY_TOUT
-#define L2CAP_LINK_INACTIVITY_TOUT  4
+#define L2CAP_LINK_INACTIVITY_TOUT  2
 #endif
 
 /* The number of seconds of link inactivity after bonding before a link is disconnected. */

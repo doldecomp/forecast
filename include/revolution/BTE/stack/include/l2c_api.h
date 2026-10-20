@@ -172,7 +172,9 @@ typedef struct
 #ifdef REVOLUTION
     /* RVL: sizeof is 0x3C (rfc_mx_fsm memsets 0x3C, hh_cb.sdp_busy follows at
        +0x3C). The members in 0x32..0x3C are not identified yet. */
-    UINT8       reserved0[10];
+    UINT8       reserved0[6];
+    UINT16      flags;
+    UINT8       reserved1[2];
 #else
     BOOLEAN               ext_flow_spec_present;
     tHCI_EXT_FLOW_SPEC    ext_flow_spec;

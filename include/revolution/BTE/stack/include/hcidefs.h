@@ -40,6 +40,7 @@
 #define HCI_GRP_TESTING_CMDS            (0x06 << 10)            /* 0x1800 */
 
 #define HCI_GRP_VENDOR_SPECIFIC         (0x3F << 10)            /* 0xFC00 */
+#define HCI_GROUP_VENDOR_SPECIFIC       HCI_GRP_VENDOR_SPECIFIC
 
 /* Group occupies high 6 bits of the HCI command rest is opcode itself */
 #define HCI_OGF(p)  (UINT8)((0xFC00 & (p)) >> 10)
