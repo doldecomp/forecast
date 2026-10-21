@@ -5,6 +5,7 @@
 #include <revolution/OS.h>
 #include <revolution/NWC24/NWC24Download.h>
 #include <revolution/NWC24/NWC24Manage.h>
+#include <revolution/NWC24/NWC24Schedule.h>
 #include <revolution/NWC24/internal/NWC24iManage.h>
 #include <cstdio>
 #include <types.h>
@@ -20,7 +21,6 @@ void WC24Free(void* unused, void* block, s32 size);
 extern "C" s32 SOInit(void* init);
 extern "C" s32 SOStartup();
 extern "C" s32 SOGetLastError();
-extern "C" s32 NWC24ExecDownloadTask(s32 mode, u16 taskId, s32 flags);
 extern NWC24Work gNWC24Work;
 extern volatile u8 gNWC24LibOpened;
 
@@ -31,27 +31,6 @@ char sBinNameFormat[] = "%d.bin";
 char sForecastFileSuffix[] = "%sB";
 char sShortFileSuffix[] = "%sR";
 
-extern "C" s32 NWC24GetDlUrl(NWC24DlTask* pTask, char* url, u32 len);
-extern "C" s32 NWC24GetDlVfName(NWC24DlTask* pTask, char* name, u32 len);
-extern "C" s32 NWC24GetDlFilename(NWC24DlTask* pTask, char* name, u32 len);
-extern "C" s32 NWC24DeleteDlTask(NWC24DlTask* pTask);
-extern "C" s32 NWC24InitDlTask(NWC24DlTask* pTask, u32 type);
-extern "C" s32 NWC24SetDlId(NWC24DlTask* pTask, u16 id);
-extern "C" s32 NWC24GetDlId(NWC24DlTask* pTask, u32* pId);
-extern "C" s32 NWC24GetDlInterval(NWC24DlTask* pTask, u16* pInterval);
-extern "C" s32 NWC24SetDlInterval(NWC24DlTask* pTask, u16 interval);
-extern "C" s32 NWC24SetDlPriority(NWC24DlTask* pTask, s32 priority);
-extern "C" s32 NWC24SetDlFlags(NWC24DlTask* pTask, u32 flags);
-extern "C" s32 NWC24SetDlRetryMargin(NWC24DlTask* pTask, s32 margin);
-extern "C" s32 NWC24SetDlUrl(NWC24DlTask* pTask, const char* url);
-extern "C" s32 NWC24SetDlFilename(NWC24DlTask* pTask, const char* name);
-extern "C" s32 NWC24SetDlCount(NWC24DlTask* pTask, s16 count);
-extern "C" s32 NWC24AddDlTask(NWC24DlTask* pTask);
-extern "C" s32 NWC24UpdateDlTask(NWC24DlTask* pTask);
-extern "C" s32 NWC24CreateDlVf(NWC24DlTask* pTask, u32 size);
-extern "C" s32 NWC24iCheckDlTask(NWC24DlTask* pTask);
-extern "C" s32 NWC24GetDlLastUpdate(NWC24DlTask* pTask, s64* time);
-extern "C" s32 NWC24GetDlNextTime(NWC24DlTask* pTask, s64* time);
 
 s32 MapDownloadError(s32 error);
 s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort);

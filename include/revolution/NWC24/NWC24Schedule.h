@@ -10,6 +10,7 @@ extern "C" {
 
 s32 NWC24SuspendScheduler(void);
 s32 NWC24ResumeScheduler(void);
+NWC24Err NWC24ExecDownloadTask(s32 mode, u16 taskId, s32 flags);
 
 #ifdef __cplusplus
 }
