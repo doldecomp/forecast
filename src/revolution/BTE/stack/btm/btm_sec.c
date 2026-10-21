@@ -4175,7 +4175,7 @@ void btm_sec_conn_req (UINT8 *bda, UINT8 *dc)
     memcpy (btm_cb.connecting_bda, bda, BD_ADDR_LEN);
     memcpy (btm_cb.connecting_dc,  dc,  DEV_CLASS_LEN);
 
-    if (l2c_link_hci_conn_req (bda))
+    if (((BOOLEAN (*)(BD_ADDR))l2c_link_hci_conn_req)(bda))
     {
         if (!p_dev_rec)
         {
