@@ -1,5 +1,6 @@
 #include <channel/WiiConnect24.h>
 #include <channel/WiiConnect24Internal.h>
+#include <channel/System.h>
 #include <revolution/MEM.h>
 #include <revolution/CX.h>
 #include <revolution/NAND.h>
@@ -9,34 +10,74 @@
 #include <revolution/NWC24/NWC24Manage.h>
 #include <revolution/NWC24/NWC24Schedule.h>
 #include <revolution/NWC24/internal/NWC24iManage.h>
+#include <revolution/NWC24/internal/NWC24iSystem.h>
 #include <revolution/SC/scapi.h>
 #include <cstdio>
 #include <types.h>
 
+extern NWC24Work gNWC24Work;
+extern OSMessageQueue gWC24Queue;
+extern OSMessage gWC24QueueBuffer[16];
+extern OSThread gWC24Thread;
+extern u8 gWC24ThreadStack[0x8000];
+extern u8 gWC24FileBuffer[0x10000];
+extern WC24Task gWC24Tasks[8];
+extern u8 gWC24Spare[0x10];
+extern volatile u8 gNWC24LibOpened;
+extern volatile u8 gWC24DownloadComplete;
+extern volatile u8 gWC24ShutdownFlag1;
+extern volatile u8 gWC24NetInitialized;
+extern volatile u8 gWC24ShutdownFlag2;
+extern u8 gWC24ShutdownPadding[3];
+extern volatile s32 gWC24DownloadIndex;
+extern volatile s32 gWC24QueueIndex;
+extern volatile s32 gWC24TaskCount;
+extern void* gWC24HeapBlock;
+extern MEMiHeapHead* gWC24Heap;
+extern u8 gWC24HeapPadding[4];
 
+void* DownloaderThread(void* unused);
 
-NWC24Work gNWC24Work;
-OSMessageQueue gWC24Queue;
-OSMessage gWC24QueueBuffer[16];
-OSThread gWC24Thread;
-u8 gWC24ThreadStack[0x8000];
-u8 gWC24FileBuffer[0x10000];
-WC24Task gWC24Tasks[8];
-u8 gWC24Spare[0x10];
+void InitDownloader(void) {
+    void* block = MEM2Alloc(0x10000, 0x20);
+    gWC24HeapBlock = block;
+    gWC24Heap = MEMCreateExpHeapEx(block, 0x10000, 4);
 
-volatile u8 gNWC24LibOpened;
-volatile u8 gWC24DownloadComplete;
-volatile u8 gWC24ShutdownFlag1;
-volatile u8 gWC24NetInitialized;
-volatile u8 gWC24ShutdownFlag2;
-u8 gWC24ShutdownPadding[3];
-volatile s32 gWC24DownloadIndex;
-volatile s32 gWC24QueueIndex;
-volatile s32 gWC24TaskCount;
-void* gWC24HeapBlock;
-MEMiHeapHead* gWC24Heap;
-u8 gWC24HeapPadding[4];
+    OSThread* thread = &gWC24Thread;
+    OSInitMessageQueue(&gWC24Queue, gWC24QueueBuffer, 0x10);
+    OSCreateThread(thread, (OSThreadFunc)DownloaderThread, NULL, gWC24ThreadStack + 0x8000,
+                   0x8000, 8, 1);
+    OSResumeThread(thread);
 
+    gWC24DownloadIndex = 0;
+    gWC24QueueIndex = 0;
+    gWC24TaskCount = 0;
+}
+
+void UpdateDownloader(void) {
+    if (gWC24TaskCount <= 0)
+        return;
+
+    if (gWC24Tasks[gWC24DownloadIndex].mState != 0)
+        return;
+
+    gWC24DownloadIndex++;
+    gWC24TaskCount--;
+
+    if (gWC24DownloadIndex >= gWC24TaskCount)
+        gWC24DownloadIndex = 0;
+}
+
+void ShutdownDownloader(s32 event) {
+    int i = 0;
+    while (i < 10 && (gWC24ShutdownFlag1 || gWC24ShutdownFlag2)) {
+        NWC24iRequestShutdown(event);
+        OSSleepTicks(OS_TIME_SPEED);
+        i++;
+    }
+
+    OSJoinThread(&gWC24Thread, NULL);
+}
 
 s32 CWiiConnect24::getWeather(void* forecastBuf, s64* forecastTime, u32* forecastSize,
                               void* shortBuf, s64* shortTime, u32* shortSize,
@@ -211,7 +252,7 @@ char sBinNameFormat[] = "%d.bin";
 char sForecastFileSuffix[] = "%sB";
 char sShortFileSuffix[] = "%sR";
 
-s32 MapDownloadError(s32 error);
+NWC24Err MapDownloadError(s32 error);
 s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort);
 s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
                                    u16 newInterval, u16 count, u32* idOut);
@@ -245,7 +286,7 @@ static inline NWC24Err OpenLib(WC24Task* task, s64 retry) {
     }
 
     if (error != NWC24_OK)
-        return (NWC24Err)SetTaskError(task, "NWC24OpenLib() failed.", error);
+        return SetTaskError(task, "NWC24OpenLib() failed.", error);
 
     gNWC24LibOpened = 1;
     return NWC24_OK;
@@ -255,7 +296,7 @@ static inline NWC24Err CheckLib(WC24Task* task) {
     NWC24Err error = NWC24Check(2);
 
     if (error != NWC24_OK)
-        return (NWC24Err)SetTaskError(task, "NWC24Check() failed.", error);
+        return SetTaskError(task, "NWC24Check() failed.", error);
 
     SCIdleModeInfo idle;
     if (SCGetIdleMode(&idle) == 0 || idle.wc24 != 1)
@@ -268,7 +309,7 @@ static inline NWC24Err CloseLib(WC24Task* task) {
     NWC24Err error = NWC24CloseLib();
 
     if (error != NWC24_OK)
-        return (NWC24Err)SetTaskError(task, "NWC24CloseLib() failed.", error);
+        return SetTaskError(task, "NWC24CloseLib() failed.", error);
 
     gNWC24LibOpened = 0;
     return NWC24_OK;
@@ -942,30 +983,32 @@ s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort) {
     return 0;
 }
 
-s32 MapDownloadError(s32 error) {
-    s32 mapped = -6;
+NWC24Err MapDownloadError(s32 error) {
+    NWC24Err mapped = NWC24_ERR_FULL;
 
-    if ((error <= -0x10 && error >= -0x15) || error == -0x26 || error == -0x29 || error == -0x2B ||
-        error == -0x2E) {
-        mapped = -0xB;
-    } else if (error == -0x31) {
-        mapped = -0xC;
-    } else if (error == -1 || error == -0xB || error == -0x2A) {
-        mapped = -2;
+    if ((error <= NWC24_ERR_FILE_OPEN && error >= NWC24_ERR_FILE_OTHER) ||
+        error == NWC24_ERR_NAND_CORRUPT || error == NWC24_ERR_FILE_EXISTS ||
+        error == NWC24_ERR_INTERNAL_VF || error == NWC24_ERR_FILE_BROKEN) {
+        mapped = NWC24_ERR_NOMEM;
+    } else if (error == NWC24_ERR_OLD_SYSTEM) {
+        mapped = NWC24_ERR_CONFIG;
+    } else if (error == NWC24_ERR_FATAL || error == NWC24_ERR_NOMEM ||
+               error == NWC24_ERR_INTERNAL_IPC) {
+        mapped = NWC24_ERR_FAILED;
     } else if ((u32)(NWC24GetErrorCode() + 0x20000) == 0x55CE) {
-        mapped = -5;
+        mapped = NWC24_ERR_NULL;
     } else {
         switch (error) {
-        case -0x27:
-            mapped = -3;
+        case NWC24_ERR_DISABLED:
+            mapped = NWC24_ERR_INVALID_VALUE;
             break;
 
-        case -0x1F:
-            mapped = -4;
+        case NWC24_ERR_NETWORK:
+            mapped = NWC24_ERR_NOT_SUPPORTED;
             break;
 
-        case -0x20:
-            mapped = -5;
+        case NWC24_ERR_SERVER:
+            mapped = NWC24_ERR_NULL;
             break;
         }
     }
@@ -1020,3 +1063,44 @@ s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
     *outSize = uncompSize;
     return 0;
 }
+
+void* WC24Alloc(u32 unused, s32 size) {
+    void* block = NULL;
+
+    if (size > 0)
+        block = MEMAllocFromExpHeapEx(gWC24Heap, size, 0x20);
+
+    return block;
+}
+
+void WC24Free(void* unused, void* block, s32 size) {
+    if (block == NULL)
+        return;
+
+    if (size <= 0)
+        return;
+
+    MEMFreeToExpHeap(gWC24Heap, block);
+}
+
+NWC24Work gNWC24Work;
+OSMessageQueue gWC24Queue;
+OSMessage gWC24QueueBuffer[16];
+OSThread gWC24Thread;
+u8 gWC24ThreadStack[0x8000];
+u8 gWC24FileBuffer[0x10000];
+WC24Task gWC24Tasks[8];
+u8 gWC24Spare[0x10];
+
+volatile u8 gNWC24LibOpened;
+volatile u8 gWC24DownloadComplete;
+volatile u8 gWC24ShutdownFlag1;
+volatile u8 gWC24NetInitialized;
+volatile u8 gWC24ShutdownFlag2;
+u8 gWC24ShutdownPadding[3];
+volatile s32 gWC24DownloadIndex;
+volatile s32 gWC24QueueIndex;
+volatile s32 gWC24TaskCount;
+void* gWC24HeapBlock;
+MEMiHeapHead* gWC24Heap;
+u8 gWC24HeapPadding[4];
