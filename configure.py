@@ -1102,7 +1102,6 @@ config.libs = [
                 Object(Matching, "WiiConnect24Lifecycle.cpp"),
                 Object(Matching, "WiiConnect24Code.cpp"),
                 Object(Matching, "WiiConnect24.cpp"),
-                Object(Matching, "WiiConnect24Download.cpp"),
                 Object(Matching, "WiiConnect24Heap.cpp"),
                 Object(Matching, "WeatherUtil.cpp"),
                 Object(Matching, "ChannelMathData.cpp"),

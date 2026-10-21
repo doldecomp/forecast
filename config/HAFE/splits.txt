@@ -240,14 +240,11 @@ WiiConnect24Lifecycle.cpp:
 	.text       start:0x80032610 end:0x800327AC
 
 WiiConnect24.cpp:
-	.text       start:0x800327AC end:0x80033C80
-	.bss        start:0x801D99E0 end:0x801F6B28
-	.sbss       start:0x80330B78 end:0x80330B98
-
-WiiConnect24Download.cpp:
-	.text       start:0x80033C80 end:0x80035B70
+	.text       start:0x800327AC end:0x80035B70
 	.data       start:0x8019BD08 end:0x8019C189
+	.bss        start:0x801D99E0 end:0x801F6B28
 	.sdata      start:0x80330170 end:0x80330190
+	.sbss       start:0x80330B78 end:0x80330B98
 
 WiiConnect24Heap.cpp:
 	.text       start:0x80035B70 end:0x80035B8C
