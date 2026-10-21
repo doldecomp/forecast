@@ -10,8 +10,8 @@
 #include <new>
 
 // Not yet decompiled (channel)
-extern "C" void InitDownloader(void);
-extern "C" void UpdateDownloader(void);
+void InitDownloader(void);
+void UpdateDownloader(void);
 
 // Not yet decompiled (libraries)
 extern "C" void VFInit(void);

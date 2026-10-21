@@ -9,27 +9,27 @@
 #include <cstdio>
 #include <types.h>
 
-extern "C" OSMessageQueue gWC24Queue;
-extern "C" u8 gWC24FileBuffer[];
-extern "C" volatile u8 gWC24DownloadComplete;
-extern "C" volatile u8 gWC24NetInitialized;
-extern "C" volatile u8 gWC24ShutdownFlag1;
-extern "C" volatile u8 gWC24ShutdownFlag2;
-extern "C" void* WC24Alloc(u32 unused, s32 size);
-extern "C" void WC24Free(void* unused, void* block, s32 size);
+extern OSMessageQueue gWC24Queue;
+extern u8 gWC24FileBuffer[];
+extern volatile u8 gWC24DownloadComplete;
+extern volatile u8 gWC24NetInitialized;
+extern volatile u8 gWC24ShutdownFlag1;
+extern volatile u8 gWC24ShutdownFlag2;
+void* WC24Alloc(u32 unused, s32 size);
+void WC24Free(void* unused, void* block, s32 size);
 extern "C" s32 SOInit(void* init);
 extern "C" s32 SOStartup();
 extern "C" s32 SOGetLastError();
 extern "C" s32 NWC24ExecDownloadTask(s32 mode, u16 taskId, s32 flags);
-extern "C" NWC24Work gNWC24Work;
-extern "C" volatile u8 gNWC24LibOpened;
+extern NWC24Work gNWC24Work;
+extern volatile u8 gNWC24LibOpened;
 
-extern "C" char sVfDriveName[] = "@24";
-extern "C" char sVfRootPath[] = "@24:/*";
-extern "C" char sVfReadMode[] = "r";
-extern "C" char sBinNameFormat[] = "%d.bin";
-extern "C" char sForecastFileSuffix[] = "%sB";
-extern "C" char sShortFileSuffix[] = "%sR";
+char sVfDriveName[] = "@24";
+char sVfRootPath[] = "@24:/*";
+char sVfReadMode[] = "r";
+char sBinNameFormat[] = "%d.bin";
+char sForecastFileSuffix[] = "%sB";
+char sShortFileSuffix[] = "%sR";
 
 extern "C" s32 NWC24GetDlUrl(NWC24DlTask* pTask, char* url, u32 len);
 extern "C" s32 NWC24GetDlVfName(NWC24DlTask* pTask, char* name, u32 len);
@@ -53,13 +53,13 @@ extern "C" s32 NWC24iCheckDlTask(NWC24DlTask* pTask);
 extern "C" s32 NWC24GetDlLastUpdate(NWC24DlTask* pTask, s64* time);
 extern "C" s32 NWC24GetDlNextTime(NWC24DlTask* pTask, s64* time);
 
-extern "C" s32 MapDownloadError(s32 error);
-extern "C" s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort);
-extern "C" s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
+s32 MapDownloadError(s32 error);
+s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort);
+s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
                                    u16 newInterval, u16 count, u32* idOut);
-extern "C" s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2);
-extern "C" s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort);
-extern "C" s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
+s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2);
+s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort);
+s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
                                   u32* outSize);
 
 struct WC24IdleMode {
@@ -122,7 +122,7 @@ static inline s32 CloseLib(WC24Task* task) {
     return 0;
 }
 
-extern "C" void* DownloaderThread(void* unused) {
+void* DownloaderThread(void* unused) {
     WC24Task* task;
     void* message;
     s64 retry = 0;
@@ -267,7 +267,7 @@ extern "C" void* DownloaderThread(void* unused) {
     return NULL;
 }
 
-extern "C" s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
+s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
     NWC24DlTask dlTasks[2];
     u8 dta[0x448];
     char url[0x100];
@@ -432,7 +432,7 @@ extern "C" s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
     return 0;
 }
 
-extern "C" s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
+s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
                                    u16 newInterval, u16 count, u32* idOut) {
     NWC24DlTask dlTasks[2];
     u8 search[0x448];
@@ -687,7 +687,7 @@ struct WC24SOConfig {
     void* free;
 };
 
-extern "C" s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2) {
+s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2) {
     s32 initResult;
     s32 startupResult;
     s32 error;
@@ -735,7 +735,7 @@ extern "C" s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 un
     return 0;
 }
 
-extern "C" s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort) {
+s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort) {
     NWC24DlTask dlTask;
     char vfName[0x50];
     u16 ids[2];
@@ -790,7 +790,7 @@ extern "C" s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort) {
     return 0;
 }
 
-extern "C" s32 MapDownloadError(s32 error) {
+s32 MapDownloadError(s32 error) {
     s32 mapped = -6;
 
     if ((error <= -0x10 && error >= -0x15) || error == -0x26 || error == -0x29 || error == -0x2B ||
@@ -821,7 +821,7 @@ extern "C" s32 MapDownloadError(s32 error) {
     return mapped;
 }
 
-extern "C" s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
+s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
                                   u32* outSize) {
     u32 fileSize = VFGetFileSizeByFd(fd);
     u32 uncompSize = 0;

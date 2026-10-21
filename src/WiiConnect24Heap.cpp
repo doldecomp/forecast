@@ -1,9 +1,9 @@
 #include <revolution/MEM.h>
 #include <types.h>
 
-extern "C" MEMiHeapHead* gWC24Heap;
+extern MEMiHeapHead* gWC24Heap;
 
-extern "C" void* WC24Alloc(u32 unused, s32 size) {
+void* WC24Alloc(u32 unused, s32 size) {
     void* block = NULL;
 
     if (size > 0)

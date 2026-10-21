@@ -3,18 +3,18 @@
 #include <channel/System.h>
 #include <types.h>
 
-extern "C" OSMessageQueue gWC24Queue;
-extern "C" OSMessage gWC24QueueBuffer[16];
-extern "C" OSThread gWC24Thread;
-extern "C" u8 gWC24ThreadStack[];
-extern "C" void* gWC24HeapBlock;
-extern "C" MEMiHeapHead* gWC24Heap;
-extern "C" volatile s32 gWC24DownloadIndex;
-extern "C" volatile s32 gWC24QueueIndex;
-extern "C" volatile s32 gWC24TaskCount;
-extern "C" void* DownloaderThread(void*);
+extern OSMessageQueue gWC24Queue;
+extern OSMessage gWC24QueueBuffer[16];
+extern OSThread gWC24Thread;
+extern u8 gWC24ThreadStack[];
+extern void* gWC24HeapBlock;
+extern MEMiHeapHead* gWC24Heap;
+extern volatile s32 gWC24DownloadIndex;
+extern volatile s32 gWC24QueueIndex;
+extern volatile s32 gWC24TaskCount;
+void* DownloaderThread(void*);
 
-extern "C" void InitDownloader(void) {
+void InitDownloader(void) {
     void* block = MEM2Alloc(0x10000, 0x20);
     gWC24HeapBlock = block;
     gWC24Heap = MEMCreateExpHeapEx(block, 0x10000, 4);

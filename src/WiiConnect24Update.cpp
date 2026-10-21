@@ -1,10 +1,10 @@
 #include <channel/WiiConnect24.h>
 #include <types.h>
 
-extern "C" volatile s32 gWC24DownloadIndex;
-extern "C" volatile s32 gWC24TaskCount;
+extern volatile s32 gWC24DownloadIndex;
+extern volatile s32 gWC24TaskCount;
 
-extern "C" void UpdateDownloader(void) {
+void UpdateDownloader(void) {
     if (gWC24TaskCount <= 0)
         return;
 

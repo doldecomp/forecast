@@ -1,14 +1,14 @@
 #include <channel/System.h>
 #include <nw4r/math.h>
 
-extern "C" const f32 sDragScrollZero;
-extern "C" const f32 sDragScrollOffset;
-extern "C" const f32 sDragScrollThreshold;
-extern "C" const f32 sDragScrollNegThreshold;
-extern "C" const f32 sDragScrollMax;
-extern "C" const f32 sDragScrollAngleScale;
-extern "C" const f32 sDragScrollHalfPi;
-extern "C" const f32 sDragScrollTimerScale;
+extern const f32 sDragScrollZero;
+extern const f32 sDragScrollOffset;
+extern const f32 sDragScrollThreshold;
+extern const f32 sDragScrollNegThreshold;
+extern const f32 sDragScrollMax;
+extern const f32 sDragScrollAngleScale;
+extern const f32 sDragScrollHalfPi;
+extern const f32 sDragScrollTimerScale;
 
 // Layout matches gDragScroll in SceneBase.cpp (size 0x34).
 struct DragScroll {

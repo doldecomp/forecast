@@ -24,7 +24,7 @@
 #include <revolution/MEM.h>
 #include <revolution/OS.h>
 
-extern "C" void ShutdownDownloader(s32 event);
+void ShutdownDownloader(s32 event);
 wchar_t* FormatNumber(s32 value, wchar_t* pBuf, s32 digits, BOOL zeroPad);
 void WrapHour(s32* pHour);
 

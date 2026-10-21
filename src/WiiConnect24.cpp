@@ -2,9 +2,9 @@
 #include <revolution/OS.h>
 #include <types.h>
 
-extern "C" OSMessageQueue gWC24Queue;
-extern "C" volatile s32 gWC24QueueIndex;
-extern "C" volatile s32 gWC24TaskCount;
+extern OSMessageQueue gWC24Queue;
+extern volatile s32 gWC24QueueIndex;
+extern volatile s32 gWC24TaskCount;
 
 s32 CWiiConnect24::getWeather(void* forecastBuf, s64* forecastTime, u32* forecastSize,
                               void* shortBuf, s64* shortTime, u32* shortSize,

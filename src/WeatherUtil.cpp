@@ -3,16 +3,16 @@
 #include <revolution/OS.h>
 #include <revolution/NET/nettime.h>
 
-extern "C" const f32 sSmoothEpsilon;
-extern "C" const f32 sSmoothEpsilonNeg;
-extern "C" const f32 sAngleZero;
-extern "C" const f32 sAngleFull;
-extern "C" const f32 sAngleHalfNeg;
-extern "C" const f32 sAngleHalf;
-extern "C" const f32 sIdxToFIdx;
-extern "C" const f32 sHalf;
+extern const f32 sSmoothEpsilon;
+extern const f32 sSmoothEpsilonNeg;
+extern const f32 sAngleZero;
+extern const f32 sAngleFull;
+extern const f32 sAngleHalfNeg;
+extern const f32 sAngleHalf;
+extern const f32 sIdxToFIdx;
+extern const f32 sHalf;
 
-extern "C" const wchar_t sWeatherDigits[] = L"0123456789";
+extern const wchar_t sWeatherDigits[] = L"0123456789";
 
 void WrapHour(s32* pHour) {
     *pHour %= 24;
@@ -22,6 +22,8 @@ void WrapHourTo24(s32* pHour) {
     *pHour %= 25;
 }
 
+// Nintendo's usual addCalc idiom (cf. cLib_addCalc): step *value toward target
+// by rate * distance, clamped to [minStep, maxStep]; returns the distance left.
 f32 SmoothApproach(f32* value, f32 target, f32 rate, f32 maxStep, f32 minStep) {
     if (*value != target) {
         f32 diff = *value - target;
@@ -55,6 +57,8 @@ f32 SmoothApproach(f32* value, f32 target, f32 rate, f32 maxStep, f32 minStep) {
     return __fabsf(*value - target);
 }
 
+// addCalc for angles in degrees: like SmoothApproach, but takes the short way
+// around, wraps into [0, 360), has no minimum step and snaps once the step <= minStep.
 f32 SmoothApproachAngle(f32* value, f32 target, f32 rate, f32 maxStep, f32 minStep) {
     f32 angle = *value;
     if (angle < sAngleZero)
@@ -103,7 +107,7 @@ f32 EaseCos(u16 t) {
     return sHalf - sHalf * nw4r::math::CosFIdx(nw4r::math::U16ToF32(t) * sIdxToFIdx);
 }
 
-extern "C" s32 FormatDigits(s32 value, s32* digits, s32 maxDigits) {
+s32 FormatDigits(s32 value, s32* digits, s32 maxDigits) {
     s32 i;
     s32 count = 0;
     s32 v = value;
