@@ -1,5 +1,6 @@
 #include "revolution/CNT/cnt.h"
 #include <channel/System.h>
+#include <channel/WiiConnect24.h>
 #include <channel/Scene.h>
 
 #include <revolution/BASE.h>
@@ -8,10 +9,6 @@
 #include <revolution/SC.h>
 #include <revolution/VI.h>
 #include <new>
-
-// Not yet decompiled (channel)
-void InitDownloader(void);
-void UpdateDownloader(void);
 
 // Not yet decompiled (libraries)
 extern "C" void VFInit(void);

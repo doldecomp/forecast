@@ -30,9 +30,9 @@ s32 CWiiConnect24::getWeather(void* forecastBuf, s64* forecastTime, u32* forecas
                               const char* forecastUrl, const char* shortUrl,
                               u32 forecastBufSize, u32 forecastMaxSize, u32 shortBufSize) {
     WC24Task task;
-    task.mType = 0;
-    task.mTaskId = 3;
-    task.mSubTaskId = 4;
+    task.mType = WC24_TASK_GET_WEATHER;
+    task.mTaskId = WC24_TASK_ID_FORECAST;
+    task.mSubTaskId = WC24_TASK_ID_SHORT;
     task.mBuffers.forecast = forecastBuf;
     task.mBuffers.shortForecast = shortBuf;
     task.mTimes.forecast = forecastTime;
@@ -67,9 +67,9 @@ s32 CWiiConnect24::getWeather(void* forecastBuf, s64* forecastTime, u32* forecas
 
 s32 CWiiConnect24::downloadWeatherForecast(void* buf, s64* time, u32* size, u32 bufSize) {
     WC24Task task;
-    task.mType = 1;
-    task.mTaskId = 3;
-    task.mSubTaskId = 0;
+    task.mType = WC24_TASK_DOWNLOAD_WEATHER;
+    task.mTaskId = WC24_TASK_ID_FORECAST;
+    task.mSubTaskId = WC24_TASK_ID_NONE;
     task.mBuffers.forecast = buf;
     task.mTimes.forecast = time;
     task.mBufferSizes[0] = bufSize;
@@ -98,9 +98,9 @@ s32 CWiiConnect24::downloadWeatherForecast(void* buf, s64* time, u32* size, u32 
 
 s32 CWiiConnect24::downloadWeatherShort(void* buf, s64* time, u32* size, u32 bufSize) {
     WC24Task task;
-    task.mType = 1;
-    task.mTaskId = 4;
-    task.mSubTaskId = 0;
+    task.mType = WC24_TASK_DOWNLOAD_WEATHER;
+    task.mTaskId = WC24_TASK_ID_SHORT;
+    task.mSubTaskId = WC24_TASK_ID_NONE;
     task.mBuffers.forecast = buf;
     task.mTimes.forecast = time;
     task.mBufferSizes[0] = bufSize;
@@ -131,9 +131,9 @@ s32 CWiiConnect24::setWeather(const char* forecastUrl, const char* shortUrl, u32
                               u32 redownload, u32 interval) {
     WC24Task task;
     WC24Task* pTask = &task;
-    pTask->mType = 2;
-    pTask->mTaskId = 3;
-    pTask->mSubTaskId = 4;
+    pTask->mType = WC24_TASK_SET_WEATHER;
+    pTask->mTaskId = WC24_TASK_ID_FORECAST;
+    pTask->mSubTaskId = WC24_TASK_ID_SHORT;
     pTask->mForecastUrl = forecastUrl;
     pTask->mShortUrl = shortUrl;
     pTask->mForecastBufferSize = forecastBufSize;
@@ -167,9 +167,9 @@ s32 CWiiConnect24::setWeather(const char* forecastUrl, const char* shortUrl, u32
 s32 CWiiConnect24::deleteWeather() {
     WC24Task task;
     WC24Task* pTask = &task;
-    pTask->mType = 3;
-    pTask->mTaskId = 3;
-    pTask->mSubTaskId = 4;
+    pTask->mType = WC24_TASK_DELETE_WEATHER;
+    pTask->mTaskId = WC24_TASK_ID_FORECAST;
+    pTask->mSubTaskId = WC24_TASK_ID_SHORT;
 
     s32 result = -1;
     if (gWC24TaskCount < 8) {

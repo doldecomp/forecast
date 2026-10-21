@@ -51,6 +51,24 @@ struct WC24Task {
 
 extern WC24Task gWC24Tasks[];
 
+enum WC24TaskType {
+    WC24_TASK_GET_WEATHER = 0,
+    WC24_TASK_DOWNLOAD_WEATHER = 1,
+    WC24_TASK_SET_WEATHER = 2,
+    WC24_TASK_DELETE_WEATHER = 3,
+};
+
+enum WC24TaskId {
+    WC24_TASK_ID_NONE = 0,
+    WC24_TASK_ID_FORECAST = 3,
+    WC24_TASK_ID_SHORT = 4,
+};
+
+void InitDownloader(void);
+void UpdateDownloader(void);
+void ShutdownDownloader(s32 event);
+
+
 // WiiConnect24.cpp: weather download tasks
 class CWiiConnect24 {
 public:
