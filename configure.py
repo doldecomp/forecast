@@ -479,7 +479,6 @@ config.libs = [
             Object(Matching, "revolution/BTE/stack/btm/btm_sec.c"),
 
             # BTE/stack/btu
-            Object(Matching, "btu_hcif_data.s"),
             Object(Matching, "revolution/BTE/stack/btu/btu_hcif.c"),
             Object(Matching, "revolution/BTE/stack/btu/btu_init.c"),
             Object(Matching, "revolution/BTE/stack/btu/btu_task.c"),

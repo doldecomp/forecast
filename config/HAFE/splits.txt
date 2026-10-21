@@ -1791,11 +1791,9 @@ revolution/BTE/stack/btm/btm_sec.c:
 	.data       start:0x801D2230 end:0x801D2C40
 	.sdata2     start:0x80333138 end:0x8033313E
 
-btu_hcif_data.s:
-	.data       start:0x801D2C40 end:0x801D2CD0
-
 revolution/BTE/stack/btu/btu_hcif.c:
 	.text       start:0x80146A44 end:0x80147CA0
+	.data       start:0x801D2C40 end:0x801D2CD0
 
 revolution/BTE/stack/btu/btu_init.c:
 	.text       start:0x80147CA0 end:0x80147D18
