@@ -46,6 +46,16 @@
 #include "hidd_int.h"
 #include "l2c_int.h"
 
+extern char sHciControllerError[];
+extern unsigned char sHciControllerErrorPad[];
+extern char sHciEventMismatch[];
+extern unsigned char sHciEventMismatchPad[];
+extern char sHciCommandTimeout[];
+extern unsigned char sHciCommandTimeoutPad[];
+extern char sHciCommandTimeoutOpcode[];
+extern unsigned char sHciCommandTimeoutOpcodePad[];
+
+
 static void btu_hcif_store_cmd(BT_HDR *p_buf);
 
 static void btu_hcif_inquiry_comp_evt(UINT8 *p, UINT16 evt_len);
@@ -737,7 +747,7 @@ static void btu_hcif_command_status_evt(UINT8 *p, UINT16 evt_len)
             {
                 p_data = NULL;
                 BT_TRACE_2(TRACE_LAYER_HCI, TRACE_TYPE_WARNING,
-                         "Event mismatch opcode=%X cmd opcode=%X", opcode, cmd_opcode);
+                         sHciEventMismatch, opcode, cmd_opcode);
             }
         }
 
@@ -774,7 +784,7 @@ void btu_hcif_cmd_timeout(void)
 
     if ((p_cmd = GKI_dequeue(&btu_cb.cmd_cmpl_q)) == NULL)
     {
-        BT_TRACE_0(TRACE_LAYER_HCI, TRACE_TYPE_WARNING, "Cmd timeout; no cmd in queue");
+        BT_TRACE_0(TRACE_LAYER_HCI, TRACE_TYPE_WARNING, sHciCommandTimeout);
         return;
     }
 
@@ -792,7 +802,7 @@ void btu_hcif_cmd_timeout(void)
     STREAM_TO_UINT16(opcode, p);
 
     BT_TRACE_1(TRACE_LAYER_HCI, TRACE_TYPE_WARNING,
-             "BTU HCI command timeout - cmd opcode = 0x%02x\0\0", opcode);
+             sHciCommandTimeoutOpcode, opcode);
 
     switch (opcode)
     {
@@ -822,7 +832,7 @@ void btu_hcif_cmd_timeout(void)
 
 static void btu_hcif_hardware_error_evt(UINT8 *p, UINT16 evt_len)
 {
-    BT_TRACE_0(TRACE_LAYER_HCI, TRACE_TYPE_ERROR, "Ctlr H/w error event");
+    BT_TRACE_0(TRACE_LAYER_HCI, TRACE_TYPE_ERROR, sHciControllerError);
 
     if (BTM_IsDeviceUp())
         BTM_DeviceReset(NULL);
