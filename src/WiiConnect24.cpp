@@ -1,4 +1,5 @@
 #include <channel/WiiConnect24.h>
+#include <channel/WiiConnect24Internal.h>
 #include <revolution/MEM.h>
 #include <revolution/CX.h>
 #include <revolution/NAND.h>
@@ -8,15 +9,11 @@
 #include <revolution/NWC24/NWC24Manage.h>
 #include <revolution/NWC24/NWC24Schedule.h>
 #include <revolution/NWC24/internal/NWC24iManage.h>
+#include <revolution/SC/scapi.h>
 #include <cstdio>
 #include <types.h>
 
 
-void* WC24Alloc(u32 unused, s32 size);
-void WC24Free(void* unused, void* block, s32 size);
-extern "C" s32 SOInit(void* init);
-extern "C" s32 SOStartup();
-extern "C" s32 SOGetLastError();
 
 NWC24Work gNWC24Work;
 OSMessageQueue gWC24Queue;
@@ -223,13 +220,6 @@ s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort);
 s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
                                   u32* outSize);
 
-struct WC24IdleMode {
-    u8 wc24;
-    u8 slotLight;
-};
-// The SDK header declares this as void, but the channel uses the result.
-extern "C" BOOL SCGetIdleMode(WC24IdleMode* mode);
-
 static inline void SetTaskMessage(WC24Task* task, const char* msg, s32 code, s32 result) {
     task->mErrorCode = code;
     task->mNwc24Result = result;
@@ -267,7 +257,7 @@ static inline NWC24Err CheckLib(WC24Task* task) {
     if (error != NWC24_OK)
         return (NWC24Err)SetTaskError(task, "NWC24Check() failed.", error);
 
-    WC24IdleMode idle;
+    SCIdleModeInfo idle;
     if (SCGetIdleMode(&idle) == 0 || idle.wc24 != 1)
         return NWC24_ERR_INVALID_VALUE;
 

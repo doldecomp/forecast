@@ -56,15 +56,30 @@ NWC24Err NWC24iPrepareShutdown(void) {
     return result;
 }
 
-NWC24Err NWC24iRequestShutdown(u32 event, NWC24Err* pResult) {
+NWC24Err NWC24iRequestShutdown(u32 event) {
     static u8 shtBuffer[32] ALIGN(32);
     static u8 shtResult[32] ALIGN(32);
+    NWC24Err result;
 
     *(u32*)shtBuffer = event;
-    return NWC24_IOCTL_DEVICE_ASYNC(nwc24ShtFd, NWC24_IOCTL_SHUTDOWN, //
-                                    shtBuffer, sizeof(shtBuffer),     //
-                                    shtResult, sizeof(shtResult),     //
-                                    pResult);
+    result = NWC24_IOCTL_DEVICE_ASYNC(nwc24ShtFd, NWC24_IOCTL_SHUTDOWN, //
+                                      shtBuffer, sizeof(shtBuffer),     //
+                                      shtResult, sizeof(shtResult),     //
+                                      &result);
+
+    if (result < 0) {
+        return result;
+    }
+
+    while (NWC24iIsAsyncRequestPending()) {
+        OSSleepTicks(OS_TIME_SPEED);
+    }
+
+    if (*(NWC24Err*)shtResult < 0) {
+        return NWC24_ERR_FAILED;
+    }
+
+    return NWC24_OK;
 }
 
 BOOL NWC24Shutdown(BOOL final, u32 event) {
@@ -90,7 +105,7 @@ BOOL NWC24Shutdown(BOOL final, u32 event) {
         } else {
             return TRUE;
         }
-    } else if (NWC24iRequestShutdown(event, &result) >= 0) {
+    } else if ((result = NWC24iRequestShutdown(event)) >= 0) {
         shuttingdown = TRUE;
     }
 

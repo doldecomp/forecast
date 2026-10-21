@@ -1,7 +1,7 @@
 #include <revolution/MEM.h>
 #include <types.h>
 
-extern MEMiHeapHead* gWC24Heap;
+#include <channel/WiiConnect24Internal.h>
 
 void* WC24Alloc(u32 unused, s32 size) {
     void* block = NULL;

@@ -2,18 +2,9 @@
 #include <revolution/OS.h>
 #include <channel/System.h>
 #include <channel/WiiConnect24.h>
+#include <channel/WiiConnect24Internal.h>
+#include <revolution/NWC24/internal/NWC24iSystem.h>
 #include <types.h>
-
-extern OSMessageQueue gWC24Queue;
-extern OSMessage gWC24QueueBuffer[16];
-extern OSThread gWC24Thread;
-extern u8 gWC24ThreadStack[];
-extern void* gWC24HeapBlock;
-extern MEMiHeapHead* gWC24Heap;
-extern volatile s32 gWC24DownloadIndex;
-extern volatile s32 gWC24QueueIndex;
-extern volatile s32 gWC24TaskCount;
-void* DownloaderThread(void*);
 
 void InitDownloader(void) {
     void* block = MEM2Alloc(0x10000, 0x20);
@@ -44,10 +35,6 @@ void UpdateDownloader(void) {
     if (gWC24DownloadIndex >= gWC24TaskCount)
         gWC24DownloadIndex = 0;
 }
-
-extern volatile u8 gWC24ShutdownFlag1;
-extern volatile u8 gWC24ShutdownFlag2;
-extern "C" int NWC24iRequestShutdown(u32 event);
 
 void ShutdownDownloader(s32 event) {
     int i = 0;

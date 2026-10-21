@@ -47,8 +47,8 @@ u8 SCGetEuRgb60Mode(void) {
     return item;
 }
 
-void SCGetIdleMode(SCIdleModeInfo* mode) {
-    SCFindByteArrayItem(mode, sizeof(SCIdleModeInfo), SC_ITEM_IPL_IDL);
+BOOL SCGetIdleMode(SCIdleModeInfo* mode) {
+    return SCFindByteArrayItem(mode, sizeof(SCIdleModeInfo), SC_ITEM_IPL_IDL);
 }
 
 u8 SCGetLanguage(void) {
