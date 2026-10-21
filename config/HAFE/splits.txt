@@ -556,6 +556,29 @@ revolution/ARC/arc.c:
 	.data       start:0x801B46C0 end:0x801B4730
 	.sdata      start:0x803302F8 end:0x80330308
 
+revolution/HBM/HBMBase.cpp:
+	.text       start:0x80071FD8 end:0x8007B888
+	.rodata     start:0x80193DC8 end:0x80194078
+	.data       start:0x801B4730 end:0x801B5320
+	.bss        start:0x80288D60 end:0x80288D98
+	.sdata      start:0x80330308 end:0x803303D0
+	.sbss       start:0x80330D60 end:0x80330D68
+	.sdata2     start:0x80332168 end:0x803321E0
+
+revolution/HBM/HBMGui.cpp:
+	.text       start:0x8007B888 end:0x8007CF6C
+	.data       start:0x801B5320 end:0x801B5488
+	.sbss       start:0x80330D68 end:0x80330D70
+	.sdata2     start:0x803321E0 end:0x803321F8
+
+revolution/HBM/HBMController.cpp:
+	.text       start:0x8007CF6C end:0x8007E37C
+	.data       start:0x801B5488 end:0x801B5498
+	.bss        start:0x80288D98 end:0x80288F28
+	.sdata      start:0x803303D0 end:0x803303D8
+	.sbss       start:0x80330D70 end:0x80330DA0
+	.sdata2     start:0x803321F8 end:0x80332208
+
 vcmv/vcmv_www.cpp:
 	extab       start:0x80006648 end:0x80006698
 	extabindex  start:0x80006B5C end:0x80006BD4

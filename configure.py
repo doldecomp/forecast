@@ -589,6 +589,11 @@ config.libs = [
             Object(NonMatching, "revolution/GX/GXTexture.c"),
             Object(Matching, "revolution/GX/GXTransform.c"),
 
+            # HBM
+            Object(NonMatching, "revolution/HBM/HBMBase.cpp"),
+            Object(NonMatching, "revolution/HBM/HBMGui.cpp"),
+            Object(NonMatching, "revolution/HBM/HBMController.cpp"),
+
             # IPC
             Object(NonMatching, "revolution/IPC/ipcclt.c"),
             Object(Matching, "revolution/IPC/ipcMain.c"),
