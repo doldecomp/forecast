@@ -252,13 +252,13 @@ char sBinNameFormat[] = "%d.bin";
 char sForecastFileSuffix[] = "%sB";
 char sShortFileSuffix[] = "%sR";
 
-NWC24Err MapDownloadError(s32 error);
-s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort);
-s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
+NWC24Err MapDownloadError(NWC24Err error);
+NWC24Err DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort);
+NWC24Err CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
                                    u16 newInterval, u16 count, u32* idOut);
-s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2);
-s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort);
-s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
+NWC24Err ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2);
+NWC24Err DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort);
+NWC24Err ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
                                   u32* outSize);
 
 static inline void SetTaskMessage(WC24Task* task, const char* msg, s32 code, s32 result) {
@@ -460,7 +460,7 @@ void* DownloaderThread(void* unused) {
     return NULL;
 }
 
-s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
+NWC24Err DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
     NWC24DlTask dlTasks[2];
     u8 dta[0x448];
     char url[0x100];
@@ -472,7 +472,8 @@ s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
     u16 ids[2];
     u32 outSize;
 
-    s32 error;
+    NWC24Err error;
+    s32 vfError;
     BOOL found = FALSE;
 
     if (doForecast != 0) {
@@ -507,17 +508,17 @@ s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
             continue;
 
         error = NWC24GetDlTask(&dlTasks[i], ids[i]);
-        if (error == -0xD) {
+        if (error == NWC24_ERR_NOT_FOUND) {
             SetTaskMessage(task, "NWC24GetDlTask() failed.", NWC24GetErrorCode(), error);
-            return -1;
+            return NWC24_ERR_FATAL;
         }
 
-        if (error != 0) {
+        if (error != NWC24_OK) {
             return SetTaskError(task, "NWC24GetDlTask() failed.", error);
         }
 
         error = NWC24GetDlUrl(&urlTask[i], url, 0xFF);
-        if (error != 0) {
+        if (error != NWC24_OK) {
             return SetTaskError(task, "NWC24GetDlUrl() failed.", error);
         }
 
@@ -526,7 +527,7 @@ s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
             while (j < 0xFF && url[j] != 0) {
                 if (url[j] != (&task->mForecastUrl)[i][j]) {
                     SetTaskMessage(task, "URL is not same.", 0, 0);
-                    return -1;
+                    return NWC24_ERR_FATAL;
                 }
 
                 j++;
@@ -539,14 +540,14 @@ s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
             continue;
 
         error = NWC24GetDlVfName(&dlTasks[i], vfName, 0x50);
-        if (error != 0) {
+        if (error != NWC24_OK) {
             return SetTaskError(task, "NWC24GetDlVfName() failed.", error);
         }
 
-        error = VFMountDriveNANDFlashEx(sVfDriveName, vfName);
-        if (error != 0) {
-            SetTaskMessage(task, "VFMountDriveNANDFlash() failed.", 0, error);
-            return -1;
+        vfError = VFMountDriveNANDFlashEx(sVfDriveName, vfName);
+        if (vfError != 0) {
+            SetTaskMessage(task, "VFMountDriveNANDFlash() failed.", 0, vfError);
+            return NWC24_ERR_FATAL;
         }
 
         s32 searchResult = VFFileSearchFirst(dta, sVfRootPath, 0x7F);
@@ -566,7 +567,7 @@ s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
             continue;
 
         error = NWC24GetDlFilename(&dlTasks[i], fileName, 0x10);
-        if (error != 0) {
+        if (error != NWC24_OK) {
             return SetTaskError(task, "NWC24GetDlFilename() failed.", error);
         }
 
@@ -574,17 +575,17 @@ s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
         if (file == NULL) {
             SetTaskMessage(task, "VFOpenFile() failed.", NWC24GetErrorCode(), 0);
 
-            error = VFUnmountDrive(sVfDriveName);
-            if (error != 0) {
-                SetTaskMessage(task, "VFUnmountDrive() failed.", 0, error);
-                return -7;
+            vfError = VFUnmountDrive(sVfDriveName);
+            if (vfError != 0) {
+                SetTaskMessage(task, "VFUnmountDrive() failed.", 0, vfError);
+                return NWC24_ERR_PROTECTED;
             }
-            return -1;
+            return NWC24_ERR_FATAL;
         }
 
-        error = ReadCompressedFile(task, file, buffers[i], task->mBufferSizes[i], &outSize);
-        if (error != 0)
-            return error;
+        NWC24Err result = ReadCompressedFile(task, file, buffers[i], task->mBufferSizes[i], &outSize);
+        if (result != NWC24_OK)
+            return result;
 
         *sizes[i] = outSize;
 
@@ -598,34 +599,34 @@ s32 DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort) {
             size++;
         }
 
-        error = VFCloseFile(file);
-        if (error != 0) {
-            SetTaskMessage(task, "VFCloseFile() failed.", 0, error);
+        vfError = VFCloseFile(file);
+        if (vfError != 0) {
+            SetTaskMessage(task, "VFCloseFile() failed.", 0, vfError);
             VFUnmountDrive(sVfDriveName);
-            return -7;
+            return NWC24_ERR_PROTECTED;
         }
 
         error = NWC24GetDlLastUpdate(&dlTasks[i], times[i]);
-        if (error != 0) {
+        if (error != NWC24_OK) {
             return SetTaskError(task, "NWC24GetDlLastUpdate() failed.", error);
         }
 
         error = NWC24GetDlNextTime(&pTask[i], &task->mNextDownloadTimes[i]);
-        if (error != 0) {
+        if (error != NWC24_OK) {
             return SetTaskError(task, "NWC24GetDlNextTime() failed.", error);
         }
     }
 
-    error = VFUnmountDrive(sVfDriveName);
-    if (error != 0) {
-        SetTaskMessage(task, "VFUnmoundDrive() failed.", 0, error);
-        return -7;
+    vfError = VFUnmountDrive(sVfDriveName);
+    if (vfError != 0) {
+        SetTaskMessage(task, "VFUnmoundDrive() failed.", 0, vfError);
+        return NWC24_ERR_PROTECTED;
     }
 
-    return 0;
+    return NWC24_OK;
 }
 
-s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
+NWC24Err CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownload,
                                    u16 newInterval, u16 count, u32* idOut) {
     NWC24DlTask dlTasks[2];
     u8 search[0x448];
@@ -638,7 +639,8 @@ s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownlo
     u16 ids[2];
     u16 interval;
 
-    s32 error;
+    NWC24Err error;
+    s32 vfError;
     BOOL redo = redownload;
     BOOL init = redownload;
     BOOL mounted = FALSE;
@@ -668,30 +670,30 @@ s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownlo
             goto firstDone;
 
         error = NWC24GetDlTask(&dlTasks[i], ids[i]);
-        if (error == -0xD) {
+        if (error == NWC24_ERR_NOT_FOUND) {
             redo = TRUE;
             init = TRUE;
             goto firstDone;
         }
 
-        if (error != 0)
+        if (error != NWC24_OK)
             return SetTaskError(task, "NWC24GetDlTask() failed.", error);
 
         error = NWC24GetDlVfName(&pTask[i], vfName, 0x50);
-        if (error != 0)
+        if (error != NWC24_OK)
             return SetTaskError(task, "NWC24GetDlVfName() failed.", error);
 
         if (!mounted) {
-            error = VFMountDriveNANDFlashEx(sVfDriveName, vfName);
-            if (error == 2 || error == 0xB001) {
+            vfError = VFMountDriveNANDFlashEx(sVfDriveName, vfName);
+            if (vfError == 2 || vfError == 0xB001) {
                 redo = TRUE;
                 init = TRUE;
                 goto firstDone;
             }
 
-            if (error != 0) {
-                SetTaskMessage(task, "VFMountDriveNANDFlash() failed.", 0, error);
-                return -7;
+            if (vfError != 0) {
+                SetTaskMessage(task, "VFMountDriveNANDFlash() failed.", 0, vfError);
+                return NWC24_ERR_PROTECTED;
             }
 
             mounted = TRUE;
@@ -707,7 +709,7 @@ s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownlo
         case 3:
         case 4: {
             error = NWC24GetDlFilename(&pTask[i], fileName, 0x10);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24GetDlFilename() failed.", error);
 
             void* file = VFOpenFile(fileName, sVfReadMode, 0);
@@ -717,11 +719,11 @@ s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownlo
                 continue;
             }
 
-            error = VFCloseFile(file);
-            if (error != 0) {
-                SetTaskMessage(task, "VFCloseFile() failed.", 0, error);
+            vfError = VFCloseFile(file);
+            if (vfError != 0) {
+                SetTaskMessage(task, "VFCloseFile() failed.", 0, vfError);
                 VFUnmountDrive(sVfDriveName);
-                return -7;
+                return NWC24_ERR_PROTECTED;
             }
             break;
         }
@@ -730,10 +732,10 @@ s32 CreateDownloadTasks(WC24Task* task, u32 doForecast, u32 doShort, u8 redownlo
 
 firstDone:
     if (mounted) {
-        error = VFUnmountDrive(sVfDriveName);
-        if (error != 0) {
-            SetTaskMessage(task, "VFUnmountDrive() failed.", 0, error);
-            return -7;
+        vfError = VFUnmountDrive(sVfDriveName);
+        if (vfError != 0) {
+            SetTaskMessage(task, "VFUnmountDrive() failed.", 0, vfError);
+            return NWC24_ERR_PROTECTED;
         }
     }
 
@@ -743,7 +745,7 @@ firstDone:
                 continue;
 
             error = NWC24GetDlUrl(&dlTasks[i], url, 0xFF);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24GetDlUrl() failed.", error);
 
             const char* p = url;
@@ -759,7 +761,7 @@ firstDone:
             }
 
             error = NWC24GetDlInterval(&dlTasks[i], &interval);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24GetDlInterval() failed.", error);
 
             if (newInterval != interval)
@@ -777,26 +779,26 @@ firstDone:
 
             if (init) {
                 error = NWC24InitDlTask(&dlTasks[i], 1);
-                if (error != 0)
+                if (error != NWC24_OK)
                     return SetTaskError(task, "NWC24InitDlTask() failed.", error);
 
                 error = NWC24SetDlId(&dlTasks[i], ids[i]);
-                if (error != 0)
+                if (error != NWC24_OK)
                     return SetTaskError(task, "NWC24SetDlId() failed.", error);
 
                 error = NWC24GetDlVfName(&pTask2[i], vfName2, 0x50);
-                if (error != 0)
+                if (error != NWC24_OK)
                     return SetTaskError(task, "NWC24GetDlVfName() failed.", error);
 
                 if (!created) {
-                    error = NANDDelete(vfName2);
-                    if (error != -0xC && error != 0) {
-                        SetTaskMessage(task, "NANDDelete() failed.", 0, error);
-                        return -8;
+                    s32 nandResult = NANDDelete(vfName2);
+                    if (nandResult != NAND_RESULT_NOEXISTS && nandResult != NAND_RESULT_OK) {
+                        SetTaskMessage(task, "NANDDelete() failed.", 0, nandResult);
+                        return NWC24_ERR_OVERFLOW;
                     }
 
                     error = NWC24CreateDlVf(&pTask2[i], task->mForecastBufferSize);
-                    if (error != 0)
+                    if (error != NWC24_OK)
                         return SetTaskError(task, "NWC24CreateDlVf() failed.", error);
 
                     created = TRUE;
@@ -804,7 +806,7 @@ firstDone:
             }
 
             error = NWC24SetDlUrl(&dlTasks[i], urls[i]);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24SetDlUrl() failed.", error);
 
             s32 priority;
@@ -821,24 +823,24 @@ firstDone:
             }
 
             error = NWC24SetDlPriority(&dlTasks[i], priority);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24SetDlPriority() failed.", error);
 
             error = NWC24SetDlFlags(&dlTasks[i], 0x40000000);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24SetDlFlags() failed.", error);
 
             error = NWC24SetDlInterval(&dlTasks[i], newInterval);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24SetDlInterval() failed.", error);
 
             error = NWC24SetDlRetryMargin(&dlTasks[i], margin);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24SetDlRetryMargin() failed.", error);
 
             sprintf(nameBuf, sBinNameFormat, ids[i]);
             error = NWC24SetDlFilename(&dlTasks[i], nameBuf);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24SetDlFilename() failed.", error);
         }
     }
@@ -849,22 +851,22 @@ firstDone:
             continue;
 
         error = NWC24SetDlCount(&dlTasks[i], (s16)count);
-        if (error != 0)
+        if (error != NWC24_OK)
             return SetTaskError(task, "NWC24SetDlCount() failed.", error);
 
         if (redo) {
             error = NWC24AddDlTask(&dlTasks[i]);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24AddDlTask() failed.", error);
         } else {
             error = NWC24UpdateDlTask(&dlTasks[i]);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24UpdateDlTask() failed.", error);
         }
 
         if (idOut != NULL) {
             error = NWC24GetDlId(&pTask3[i], idOut);
-            if (error != 0)
+            if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24GetDlId() failed.", error);
         }
 
@@ -872,7 +874,7 @@ firstDone:
     }
 
     gWC24DownloadComplete = 1;
-    return 0;
+    return NWC24_OK;
 }
 
 struct WC24SOConfig {
@@ -880,10 +882,10 @@ struct WC24SOConfig {
     void* free;
 };
 
-s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2) {
+NWC24Err ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2) {
     s32 initResult;
     s32 startupResult;
-    s32 error;
+    NWC24Err error;
     s32 taskId;
     WC24SOConfig config;
 
@@ -898,14 +900,14 @@ s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2) {
         if (initResult < 0) {
             SetTaskMessage(task, "SOInit() failed.", 0, initResult);
             gWC24ShutdownFlag2 = 0;
-            return -9;
+            return NWC24_ERR_LIB_NOT_OPENED;
         }
 
         startupResult = SOStartup();
         if (startupResult < 0) {
             SetTaskMessage(task, "SOStartup() failed.", SOGetLastError(), startupResult);
             gWC24ShutdownFlag2 = 0;
-            return -9;
+            return NWC24_ERR_LIB_NOT_OPENED;
         }
 
         gWC24NetInitialized = 1;
@@ -919,16 +921,16 @@ s32 ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2) {
         error = NWC24ExecDownloadTask(2, taskId, 0);
         gWC24ShutdownFlag1 = 0;
 
-        if (error != 0) {
+        if (error != NWC24_OK) {
             SetTaskMessage(task, "NWC24ExecDownloadTask() failed.", NWC24GetErrorCode(), error);
             return MapDownloadError(error);
         }
         break;
     }
-    return 0;
+    return NWC24_OK;
 }
 
-s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort) {
+NWC24Err DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort) {
     NWC24DlTask dlTask;
     char vfName[0x50];
     u16 ids[2];
@@ -950,40 +952,40 @@ s32 DeleteTaskFiles(WC24Task* task, u32 doForecast, u32 doShort) {
         if (ids[i] == 0)
             continue;
 
-        s32 error = NWC24GetDlTask(&dlTask, ids[i]);
-        if (error == -0xD)
+        NWC24Err error = NWC24GetDlTask(&dlTask, ids[i]);
+        if (error == NWC24_ERR_NOT_FOUND)
             continue;
 
-        if (error != 0) {
+        if (error != NWC24_OK) {
             return SetTaskError(task, "NWC24GetDl*() failed.", error);
         }
 
         if (!found) {
             found = TRUE;
             error = NWC24GetDlVfName(&dlTask, vfName, 0x50);
-            if (error != 0) {
+            if (error != NWC24_OK) {
                 return SetTaskError(task, "NWC24GetDlVfName() failed.", error);
             }
         }
 
         error = NWC24DeleteDlTask(&dlTask);
-        if (error != 0) {
+        if (error != NWC24_OK) {
             return SetTaskError(task, "NWC24DeleteDlTask() failed.", error);
         }
     }
 
     if (found) {
-        s32 error = NANDDelete(vfName);
-        if (error != -0xC && error != 0) {
-            SetTaskMessage(task, "NANDDelete() failed.", 0, error);
-            return -8;
+        s32 nandResult = NANDDelete(vfName);
+        if (nandResult != NAND_RESULT_NOEXISTS && nandResult != NAND_RESULT_OK) {
+            SetTaskMessage(task, "NANDDelete() failed.", 0, nandResult);
+            return NWC24_ERR_OVERFLOW;
         }
     }
 
-    return 0;
+    return NWC24_OK;
 }
 
-NWC24Err MapDownloadError(s32 error) {
+NWC24Err MapDownloadError(NWC24Err error) {
     NWC24Err mapped = NWC24_ERR_FULL;
 
     if ((error <= NWC24_ERR_FILE_OPEN && error >= NWC24_ERR_FILE_OTHER) ||
@@ -1016,7 +1018,7 @@ NWC24Err MapDownloadError(s32 error) {
     return mapped;
 }
 
-s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
+NWC24Err ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
                                   u32* outSize) {
     u32 fileSize = VFGetFileSizeByFd(fd);
     u32 uncompSize = 0;
@@ -1030,22 +1032,22 @@ s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
         if (chunk > 0x10000)
             chunk = 0x10000;
 
-        s32 error = VFReadFile(fd, gWC24FileBuffer, chunk, NULL);
-        if (error != 0) {
-            SetTaskMessage(task, "VFReadFile() failed.", 0, error);
-            return -7;
+        s32 vfError = VFReadFile(fd, gWC24FileBuffer, chunk, NULL);
+        if (vfError != 0) {
+            SetTaskMessage(task, "VFReadFile() failed.", 0, vfError);
+            return NWC24_ERR_PROTECTED;
         }
 
         if (offset == 0) {
             if ((gWC24FileBuffer[0] & 0xF0) != 0x10) {
                 SetTaskMessage(task, "CXGetCompressionType() data is not LZ.", 0, 0);
-                return -5;
+                return NWC24_ERR_NULL;
             }
 
             uncompSize = CXGetUncompressedSize(gWC24FileBuffer);
             if (uncompSize > destSize) {
                 SetTaskMessage(task, "CXGetUncompressedSize() overflow.", 0, 0);
-                return -5;
+                return NWC24_ERR_NULL;
             }
         }
 
@@ -1057,11 +1059,11 @@ s32 ReadCompressedFile(WC24Task* task, void* fd, void* dest, u32 destSize,
     BOOL notFinished = ctx.destCount > 0 || ctx.headerSize > 0;
     if (notFinished) {
         SetTaskMessage(task, "CXIsFinisiedUncompLZ() is false.", 0, 0);
-        return -0xA;
+        return NWC24_ERR_LIB_OPENED;
     }
 
     *outSize = uncompSize;
-    return 0;
+    return NWC24_OK;
 }
 
 void* WC24Alloc(u32 unused, s32 size) {
