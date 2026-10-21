@@ -1,16 +1,9 @@
 #include <nw4r/math.h>
+#include <channel/ChannelMathData.h>
 #include <types.h>
 #include <revolution/OS.h>
 #include <revolution/NET/nettime.h>
 
-extern const f32 sSmoothEpsilon;
-extern const f32 sSmoothEpsilonNeg;
-extern const f32 sAngleZero;
-extern const f32 sAngleFull;
-extern const f32 sAngleHalfNeg;
-extern const f32 sAngleHalf;
-extern const f32 sIdxToFIdx;
-extern const f32 sHalf;
 
 extern const wchar_t sWeatherDigits[] = L"0123456789";
 

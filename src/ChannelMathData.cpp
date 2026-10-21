@@ -1,5 +1,9 @@
 #include <types.h>
 
+// Definitions deliberately live in a separate TU from the functions that use
+// them. This forces named external constants; same-TU definitions are folded
+// by MWCC into anonymous locals and break the target match.
+
 extern const f32 sDragScrollZero = 0.0f;
 extern const f32 sDragScrollOffset = 228.0f;
 extern const f32 sDragScrollThreshold = 20.0f;

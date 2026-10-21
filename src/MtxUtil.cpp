@@ -1,8 +1,7 @@
 #include <channel/MtxUtil.h>
+#include <channel/ChannelMathData.h>
 #include <nw4r/math.h>
 
-extern const f32 sDegToRad;
-extern const f32 sDegToFIdx;
 
 void TranslateMtx(nw4r::math::MTX34* m, f32 x, f32 y, f32 z) {
     Mtx trans;
