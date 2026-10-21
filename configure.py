@@ -1099,7 +1099,6 @@ config.libs = [
                 Object(Matching, "main.cpp"),
                 Object(Matching, "DrawUtil.cpp"),
                 Object(Matching, "GlobeDots.cpp"),
-                Object(Matching, "WiiConnect24_bss.cpp"),
                 Object(Matching, "WiiConnect24Init.cpp"),
                 Object(Matching, "WiiConnect24Shutdown.cpp"),
                 Object(Matching, "WiiConnect24Update.cpp"),

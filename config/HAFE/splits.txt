@@ -236,10 +236,6 @@ System.cpp:
 ChannelMathData.cpp:
 	.sdata2     start:0x80331F78 end:0x80331FC0
 
-WiiConnect24_bss.cpp:
-	.bss        start:0x801D99E0 end:0x801F6B28
-	.sbss       start:0x80330B78 end:0x80330B98
-
 WiiConnect24Init.cpp:
 	.text       start:0x80032610 end:0x800326BC
 
@@ -251,6 +247,8 @@ WiiConnect24Shutdown.cpp:
 
 WiiConnect24.cpp:
 	.text       start:0x800327AC end:0x80033C80
+	.bss        start:0x801D99E0 end:0x801F6B28
+	.sbss       start:0x80330B78 end:0x80330B98
 
 WiiConnect24Download.cpp:
 	.text       start:0x80033C80 end:0x80035B70
