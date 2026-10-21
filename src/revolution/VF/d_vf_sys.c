@@ -29,7 +29,6 @@ union VFSysDeviceTableEntry {
 };
 
 s32 VFSysSetSyncMode(s32 i_handle_idx, u32 i_mode);
-int VFipf2_format(s8 drive, const s8* param);
 
 static union VFSysDeviceTableEntry* l_vfsys_dev_table[26];
 static struct PDM_INIT_DISK l_dev_init_info_table[26];

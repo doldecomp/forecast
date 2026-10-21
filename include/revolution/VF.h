@@ -42,11 +42,15 @@ extern "C" {
 #include <revolution/VF/pf_fclose.h>
 #include <revolution/VF/pf_finfo.h>
 #include <revolution/VF/pf_fopen.h>
+#include <revolution/VF/pf_format.h>
 #include <revolution/VF/pf_fread.h>
 #include <revolution/VF/pf_fseek.h>
+#include <revolution/VF/pf_fsfirst.h>
+#include <revolution/VF/pf_fsnext.h>
 #include <revolution/VF/pf_fwrite.h>
 #include <revolution/VF/pf_getdev.h>
 #include <revolution/VF/pf_init_prfile2.h>
+#include <revolution/VF/pf_mkdir.h>
 #include <revolution/VF/pf_remove.h>
 #include <revolution/VF/pf_unmount.h>
 #include <revolution/VF/pf_filelock.h>
