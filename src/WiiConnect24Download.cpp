@@ -80,46 +80,47 @@ static inline void SetTaskMessage(WC24Task* task, const char* msg, s32 code, s32
 // NWC24GetErrorCode() in a callee-saved register, which the original does not do.
 #define SetTaskError(task, msg, result)     (SetTaskMessage(task, msg, NWC24GetErrorCode(), result), MapDownloadError(result))
 
-static inline s32 OpenLib(WC24Task* task, s64 retry) {
-    s32 error;
+static inline NWC24Err OpenLib(WC24Task* task, s64 retry) {
+    NWC24Err error;
 
     for (;;) {
         error = NWC24OpenLib(&gNWC24Work);
 
-        if (error != -0x16 && error != -0x1A && error != -0x1D)
+        if (error != NWC24_ERR_MUTEX && error != NWC24_ERR_BUSY &&
+            error != NWC24_ERR_INPROGRESS)
             break;
 
         OSSleepTicks(OS_MSEC_TO_TICKS(100 * (retry + 1)));
     }
 
-    if (error != 0)
-        return SetTaskError(task, "NWC24OpenLib() failed.", error);
+    if (error != NWC24_OK)
+        return (NWC24Err)SetTaskError(task, "NWC24OpenLib() failed.", error);
 
     gNWC24LibOpened = 1;
-    return 0;
+    return NWC24_OK;
 }
 
-static inline s32 CheckLib(WC24Task* task) {
-    s32 error = NWC24Check(2);
+static inline NWC24Err CheckLib(WC24Task* task) {
+    NWC24Err error = NWC24Check(2);
 
-    if (error != 0)
-        return SetTaskError(task, "NWC24Check() failed.", error);
+    if (error != NWC24_OK)
+        return (NWC24Err)SetTaskError(task, "NWC24Check() failed.", error);
 
     WC24IdleMode idle;
     if (SCGetIdleMode(&idle) == 0 || idle.wc24 != 1)
-        return -3;
+        return NWC24_ERR_INVALID_VALUE;
 
-    return 0;
+    return NWC24_OK;
 }
 
-static inline s32 CloseLib(WC24Task* task) {
-    s32 error = NWC24CloseLib();
+static inline NWC24Err CloseLib(WC24Task* task) {
+    NWC24Err error = NWC24CloseLib();
 
-    if (error != 0)
-        return SetTaskError(task, "NWC24CloseLib() failed.", error);
+    if (error != NWC24_OK)
+        return (NWC24Err)SetTaskError(task, "NWC24CloseLib() failed.", error);
 
     gNWC24LibOpened = 0;
-    return 0;
+    return NWC24_OK;
 }
 
 void* DownloaderThread(void* unused) {
@@ -147,31 +148,31 @@ void* DownloaderThread(void* unused) {
             for (;;) {
                 task->mState = 2;
                 task->mResult = OpenLib(task, retry);
-                if (task->mResult != 0)
+                if (task->mResult != NWC24_OK)
                     break;
 
                 opened = TRUE;
 
                 task->mResult = CheckLib(task);
-                if (task->mResult != 0)
+                if (task->mResult != NWC24_OK)
                     break;
 
                 task->mState = 3;
-                if ((task->mResult = DownloadFiles(task, 1, 1)) == 0)
+                if ((task->mResult = DownloadFiles(task, 1, 1)) == NWC24_OK)
                     break;
-                if (task->mResult == -1 && attempts != 1) {
+                if (task->mResult == NWC24_ERR_FATAL && attempts != 1) {
                     task->mState = 6;
                     task->mResult = CreateDownloadTasks(task, 1, 1, 1, 0x1E, 0x3C, 0);
-                    if (task->mResult == 0) {
+                    if (task->mResult == NWC24_OK) {
                         task->mState = 2;
                         task->mResult = CloseLib(task);
                         opened = FALSE;
-                        if (task->mResult == 0) {
+                        if (task->mResult == NWC24_OK) {
                             task->mState = 5;
                             task->mResult = ExecuteDownloadTask(task, 0, 0xFFFFFF, 0xFFFF);
-                            if (task->mResult == 0) {
+                            if (task->mResult == NWC24_OK) {
                                 task->mResult = ExecuteDownloadTask(task, 1, 0xFFFFFF, 0xFFFF);
-                                if (task->mResult == 0) {
+                                if (task->mResult == NWC24_OK) {
                                     attempts++;
                                     continue;
                                 }
@@ -185,7 +186,7 @@ void* DownloaderThread(void* unused) {
             if (opened) {
                 task->mState = 2;
                 result = CloseLib(task);
-                if (task->mResult == 0)
+                if (task->mResult == NWC24_OK)
                     task->mResult = result;
             }
             task->mState = 0;
@@ -194,12 +195,12 @@ void* DownloaderThread(void* unused) {
         case 1:
             task->mState = 5;
             task->mResult = ExecuteDownloadTask(task, 0, 0xFFFFFF, 0xFFFF);
-            if (task->mResult == 0) {
+            if (task->mResult == NWC24_OK) {
                 task->mState = 2;
                 task->mResult = OpenLib(task, retry);
-                if (task->mResult == 0) {
+                if (task->mResult == NWC24_OK) {
                     task->mResult = CheckLib(task);
-                    if (task->mResult == 0) {
+                    if (task->mResult == NWC24_OK) {
                         task->mState = 3;
                         switch (task->mTaskId) {
                         case 3:
@@ -212,7 +213,7 @@ void* DownloaderThread(void* unused) {
                     }
                     task->mState = 2;
                     result = CloseLib(task);
-                    if (task->mResult == 0)
+                    if (task->mResult == NWC24_OK)
                         task->mResult = result;
                 }
             }
@@ -222,16 +223,16 @@ void* DownloaderThread(void* unused) {
         case 2:
             task->mState = 2;
             task->mResult = OpenLib(task, retry);
-            if (task->mResult == 0) {
+            if (task->mResult == NWC24_OK) {
                 task->mResult = CheckLib(task);
-                if (task->mResult == 0) {
+                if (task->mResult == NWC24_OK) {
                     task->mState = 6;
                     task->mResult = CreateDownloadTasks(task, 1, 1, task->mRedownload, task->mDownloadInterval,
                                                          task->mDownloadCount, 0);
                 }
                 task->mState = 2;
                 result = CloseLib(task);
-                if (task->mResult == 0)
+                if (task->mResult == NWC24_OK)
                     task->mResult = result;
             }
             task->mState = 0;
@@ -240,15 +241,15 @@ void* DownloaderThread(void* unused) {
         case 3:
             task->mState = 2;
             task->mResult = OpenLib(task, retry);
-            if (task->mResult == 0) {
+            if (task->mResult == NWC24_OK) {
                 task->mResult = CheckLib(task);
-                if (task->mResult == 0) {
+                if (task->mResult == NWC24_OK) {
                     task->mState = 7;
                     task->mResult = DeleteTaskFiles(task, 1, 1);
                 }
                 task->mState = 2;
                 result = CloseLib(task);
-                if (task->mResult == 0)
+                if (task->mResult == NWC24_OK)
                     task->mResult = result;
             }
             task->mState = 0;
