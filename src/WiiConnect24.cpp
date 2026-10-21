@@ -32,11 +32,13 @@ volatile u8 gWC24DownloadComplete;
 volatile u8 gWC24ShutdownFlag1;
 volatile u8 gWC24NetInitialized;
 volatile u8 gWC24ShutdownFlag2;
+u8 gWC24ShutdownPadding[3];
 volatile s32 gWC24DownloadIndex;
 volatile s32 gWC24QueueIndex;
 volatile s32 gWC24TaskCount;
 void* gWC24HeapBlock;
 MEMiHeapHead* gWC24Heap;
+u8 gWC24HeapPadding[4];
 
 
 s32 CWiiConnect24::getWeather(void* forecastBuf, s64* forecastTime, u32* forecastSize,
