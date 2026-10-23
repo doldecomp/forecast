@@ -556,6 +556,49 @@ revolution/ARC/arc.c:
 	.data       start:0x801B46C0 end:0x801B4730
 	.sdata      start:0x803302F8 end:0x80330308
 
+vcmv/vcmv_cursor.cpp:
+	extab       start:0x800064E0 end:0x800064F0
+	extabindex  start:0x80006940 end:0x80006958
+	.text       start:0x8007E2A8 end:0x8007EAE0
+	.rodata     start:0x80194078 end:0x801940B8
+	.data       start:0x801B5498 end:0x801B54F8
+	.sdata      start:0x803303D0 end:0x803303D8
+	.sbss       start:0x80330D80 end:0x80330DA8
+	.sdata2     start:0x80332208 end:0x80332220
+
+vcmv/vcmv_draw.cpp:
+	extab       start:0x800064F0 end:0x80006570
+	extabindex  start:0x80006958 end:0x80006A18
+	.text       start:0x8007EAE0 end:0x8008194C
+	.ctors      start:0x8017929C end:0x801792A0
+	.rodata     start:0x801940B8 end:0x80194120
+	.data       start:0x801B54F8 end:0x801B5650
+	.bss        start:0x80288F28 end:0x802893B0
+	.sdata      start:0x803303D8 end:0x803303E8
+	.sbss       start:0x80330DA8 end:0x80330E28
+	.sdata2     start:0x80332220 end:0x80332270
+
+vcmv/vcmv_javascript.cpp:
+	extab       start:0x80006570 end:0x800065B8
+	extabindex  start:0x80006A18 end:0x80006A84
+	.text       start:0x8008194C end:0x80082118
+	.rodata     start:0x80194120 end:0x801941A8
+	.data       start:0x801B5650 end:0x801B56C4
+	.bss        start:0x802893B0 end:0x802893D0
+	.sdata      start:0x803303E8 end:0x803303F0
+	.sbss       start:0x80330E28 end:0x80330E50
+	.sdata2     start:0x80332270 end:0x80332280
+
+vcmv/vcmv_main.cpp:
+	extab       start:0x800065B8 end:0x80006648
+	extabindex  start:0x80006A84 end:0x80006B5C
+	.text       start:0x80082118 end:0x80083D08
+	.rodata     start:0x801941A8 end:0x80194278
+	.bss        start:0x802893D0 end:0x8028B980
+	.sdata      start:0x803303F0 end:0x803303F8
+	.sbss       start:0x80330E50 end:0x80330ED0
+	.sdata2     start:0x80332280 end:0x803322C8
+
 vcmv/vcmv_www.cpp:
 	extab       start:0x80006648 end:0x80006698
 	extabindex  start:0x80006B5C end:0x80006BD4
@@ -566,6 +609,13 @@ vcmv/vcmv_www.cpp:
 	.sdata      start:0x803303F8 end:0x80330408
 	.sbss       start:0x80330ED0 end:0x803310A0
 	.sdata2     start:0x803322C8 end:0x803322E0
+
+vcmv/vcmv_rso.cpp:
+	extab       start:0x80006698 end:0x800066A0
+	extabindex  start:0x80006BD4 end:0x80006BE0
+	.text       start:0x80084B70 end:0x80084C10
+	.rodata     start:0x80194C40 end:0x80195570
+	.sdata2     start:0x803322E0 end:0x803324C0
 
 nw4r/ef/ef_draworder.cpp:
 	.text       start:0x80084C10 end:0x80084D10

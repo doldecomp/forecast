@@ -329,9 +329,9 @@ cflags_msl = [
 cflags_vcmv = [
     "-i include/nw4r_compat",
     *cflags_base,
+    "-Cpp_exceptions on",
     "-enc SJIS",
     "-inline auto",
-    "-str reuse,pool,readonly",
     "-fp_contract off",
     "-i include/vcmv",
 ]
@@ -1120,7 +1120,12 @@ config.libs = [
         "cflags": cflags_vcmv,
         "progress_category": "vcmv",
         "objects": [
-            Object(NonMatching, "vcmv/vcmv_www.cpp")
+            Object(Matching, "vcmv/vcmv_cursor.cpp", extra_cflags=["-str reuse,readonly", "-use_lmw_stmw on", "-fp_contract on"]),
+            Object(NonMatching, "vcmv/vcmv_draw.cpp", extra_cflags=["-str reuse,readonly", "-use_lmw_stmw on", "-fp_contract on"]),
+            Object(Matching, "vcmv/vcmv_javascript.cpp", extra_cflags=["-str reuse,readonly"]),
+            Object(NonMatching, "vcmv/vcmv_main.cpp", extra_cflags=["-str reuse,readonly", "-use_lmw_stmw on", "-fp_contract on"]),
+            Object(Matching, "vcmv/vcmv_www.cpp", extra_cflags=["-str reuse,pool,readonly", "-fp_contract on"]),
+            Object(Matching, "vcmv/vcmv_rso.cpp"),
         ],
     }
 ]

@@ -27,21 +27,20 @@ extern "C" void HBMSetAdjustFlag(u8 widescreen);
 extern "C" void HBMCreateSound(void* soundData, void* soundBuffer, u32 soundBufferSize);
 extern "C" void HBMDeleteSound(void);
 extern "C" void HBMUpdateSound(void);
-extern "C" void ManualInit(MEMAllocator* allocator1, MEMAllocator* allocator2);
-extern "C" s32 ManualOpen(void);
-extern "C" void ManualClose(void);
-extern "C" void ManualSetRenderMode(GXRenderModeObj* rmode1, GXRenderModeObj* rmode2, s32 arg2);
-extern "C" s32 ManualCreateScreen(s32 width, s32 height);
-extern "C" void ManualSetMargin(s32 arg0);
-extern "C" void ManualDestroyScreen(void);
-extern "C" s32 ManualAllocHeap(u32 size);
-extern "C" void ManualFreeHeap(void);
-extern "C" void ManualSetArchive(void* data);
-extern "C" const char* ManualRun(void (*callback)(u8, GXRenderModeObj*), const char* page,
-                                   s32 chan);
-extern "C" void ManualSetStartPage(const char* page);
-extern "C" void ManualRequestExit(s32 arg0);
-extern "C" void ManualSetHBMInfo(HomeButtonInfo* info);
+void ManualInit(MEMAllocator* param1, MEMAllocator* param2);
+s32 ManualOpen(void);
+void ManualClose(void);
+void ManualSetRenderMode(GXRenderModeObj* param1, GXRenderModeObj* param2, u32 param3);
+s32 ManualCreateScreen(s32 param1, s32 param2);
+void ManualSetMargin(u16 param1);
+void ManualDestroyScreen(void);
+bool ManualAllocHeap(u32 param1);
+void ManualFreeHeap(void);
+void ManualSetArchive(void* param1);
+char* ManualRun(void (*param1)(u8, GXRenderModeObj*), char* param2, u8 param3);
+void ManualSetStartPage(const char* param1);
+void ManualRequestExit(s32 param1);
+void ManualSetHBMInfo(void** param1);
 extern "C" u32 MEMGetTotalFreeSizeForExpHeap(MEMiHeapHead* heap);
 
 
@@ -166,7 +165,7 @@ HomeButton::HomeButton(u32 manualContent, const char* manualPath, const char* ma
             mAllocator1 = allocator1;
             mAllocator2 = allocator2;
             ManualInit(allocator1, allocator2);
-            ManualSetHBMInfo(mInfo);
+            ManualSetHBMInfo((void**)mInfo);
             HBMCreate(mInfo);
             HBMCreateSound(mSoundData, mSoundBuffer, HOME_BUTTON_SOUND_BUFFER_SIZE);
             HBMSetAdjustFlag(gWidescreen);
