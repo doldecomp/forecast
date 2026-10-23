@@ -1,0 +1,25 @@
+#include <types.h>
+#include <channel/ChannelMathData.h>
+
+// Definitions deliberately live in a separate TU from the functions that use
+// them. This forces named external constants; same-TU definitions are folded
+// by MWCC into anonymous locals and break the target match.
+
+const f32 sDragScrollZero = 0.0f;
+const f32 sDragScrollOffset = 228.0f;
+const f32 sDragScrollThreshold = 20.0f;
+const f32 sDragScrollNegThreshold = -20.0f;
+const f32 sDragScrollMax = 185.2f;
+const f32 sDragScrollAngleScale = 40.743664f;
+const f32 sDragScrollHalfPi = 1.5707964f;
+const f32 sDragScrollTimerScale = 23.0f;
+const f32 sSmoothEpsilon = 0.0008f;
+const f32 sSmoothEpsilonNeg = -0.0008f;
+const f32 sAngleZero = 0.0f;
+const f32 sAngleFull = 360.0f;
+const f32 sAngleHalfNeg = -180.0f;
+const f32 sAngleHalf = 180.0f;
+const f32 sIdxToFIdx = 0.00390625f;
+const f32 sHalf = 0.5f;
+const f32 sDegToRad = 0.017453292f;
+const f32 sDegToFIdx = 0.7111111f;

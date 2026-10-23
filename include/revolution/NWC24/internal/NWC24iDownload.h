@@ -71,6 +71,7 @@ NWC24Err NWC24iCloseDlTaskList(void);
 NWC24iDlHeader* NWC24iGetCachedDlHeader(void);
 NWC24Err NWC24iCheckHeaderConsistency(NWC24iDlHeader* pHeader, BOOL clear)
     DECOMP_DONT_INLINE;
+NWC24Err NWC24iCheckDlTask(NWC24DlTask* pTask);
 NWC24Err NWC24iLoadDlHeader(void);
 
 #ifdef __cplusplus

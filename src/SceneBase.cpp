@@ -11,6 +11,7 @@
 #include <channel/Sound.h>
 #include <channel/WorkerThread.h>
 #include <channel/System.h>
+#include <channel/WiiConnect24.h>
 
 #include <revolution/VI.h>
 #include <cstring>
@@ -24,7 +25,6 @@
 #include <revolution/MEM.h>
 #include <revolution/OS.h>
 
-extern "C" void ShutdownDownloader(s32 event);
 wchar_t* FormatNumber(s32 value, wchar_t* pBuf, s32 digits, BOOL zeroPad);
 void WrapHour(s32* pHour);
 

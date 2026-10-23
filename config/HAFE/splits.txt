@@ -233,6 +233,26 @@ System.cpp:
 	.sbss       start:0x80330AD0 end:0x80330B78
 	.sdata2     start:0x80331F00 end:0x80331F78
 
+ChannelMathData.cpp:
+	.sdata2     start:0x80331F78 end:0x80331FC0
+
+WiiConnect24.cpp:
+	.text       start:0x80032610 end:0x80035BA8
+	.data       start:0x8019BD08 end:0x8019C189
+	.bss        start:0x801D99E0 end:0x801F6B28
+	.sdata      start:0x80330170 end:0x80330190
+	.sbss       start:0x80330B78 end:0x80330B98
+
+DragScroll.cpp:
+	.text       start:0x80035BA8 end:0x80035DC4
+
+WeatherUtil.cpp:
+	.text       start:0x80035DC4 end:0x800367F4
+	.rodata     start:0x8018F4D0 end:0x8018F4E6
+
+MtxUtil.cpp:
+	.text       start:0x800367F4 end:0x80036978
+
 Tween.cpp:
 	.text       start:0x80036994 end:0x800369F4
 	.sdata2     start:0x80331FC0 end:0x80331FC8
@@ -555,6 +575,29 @@ revolution/ARC/arc.c:
 	.text       start:0x80071620 end:0x80071FD8
 	.data       start:0x801B46C0 end:0x801B4730
 	.sdata      start:0x803302F8 end:0x80330308
+
+revolution/HBM/HBMBase.cpp:
+	.text       start:0x80071FD8 end:0x8007B888
+	.rodata     start:0x80193DC8 end:0x80194078
+	.data       start:0x801B4730 end:0x801B5320
+	.bss        start:0x80288D60 end:0x80288D98
+	.sdata      start:0x80330308 end:0x803303D0
+	.sbss       start:0x80330D60 end:0x80330D68
+	.sdata2     start:0x80332168 end:0x803321E0
+
+revolution/HBM/HBMGui.cpp:
+	.text       start:0x8007B888 end:0x8007CF6C
+	.data       start:0x801B5320 end:0x801B5488
+	.sbss       start:0x80330D68 end:0x80330D70
+	.sdata2     start:0x803321E0 end:0x803321F8
+
+revolution/HBM/HBMController.cpp:
+	.text       start:0x8007CF6C end:0x8007E37C
+	.data       start:0x801B5488 end:0x801B5498
+	.bss        start:0x80288D98 end:0x80288F28
+	.sdata      start:0x803303D0 end:0x803303D8
+	.sbss       start:0x80330D70 end:0x80330DA0
+	.sdata2     start:0x803321F8 end:0x80332208
 
 vcmv/vcmv_cursor.cpp:
 	extab       start:0x800064E0 end:0x800064F0

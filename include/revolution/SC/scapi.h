@@ -116,7 +116,7 @@ typedef struct SCSimpleAddress {
 u8 SCGetAspectRatio(void);
 s8 SCGetDisplayOffsetH(void);
 u8 SCGetEuRgb60Mode(void);
-void SCGetIdleMode(SCIdleModeInfo* mode);
+BOOL SCGetIdleMode(SCIdleModeInfo* mode);
 u8 SCGetLanguage(void);
 BOOL SCSetLanguage(u8 language);
 BOOL SCGetParentalControl(SCParentalControlsInfo* pcInfo);
