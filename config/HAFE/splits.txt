@@ -592,11 +592,10 @@ revolution/HBM/HBMGui.cpp:
 	.sdata2     start:0x803321E0 end:0x803321F8
 
 revolution/HBM/HBMController.cpp:
-	.text       start:0x8007CF6C end:0x8007E37C
+	.text       start:0x8007CF6C end:0x8007E2A8
 	.data       start:0x801B5488 end:0x801B5498
 	.bss        start:0x80288D98 end:0x80288F28
-	.sdata      start:0x803303D0 end:0x803303D8
-	.sbss       start:0x80330D70 end:0x80330DA0
+	.sbss       start:0x80330D70 end:0x80330D80
 	.sdata2     start:0x803321F8 end:0x80332208
 
 vcmv/vcmv_cursor.cpp:
