@@ -14,8 +14,9 @@ void SetRotateZ(Mtx m, f32 degrees);
 // Transforms a position by a 4x4 projection matrix, giving x, y, z and w
 void MultVec4(f32* out, const Mtx44 m, const Vec* v);
 
-// Mtx with an (empty) destructor. gModelMtx is one: its static initializer registers the
-// destructor, whose code ended up in GlobeView.cpp. Code that uses gModelMtx still sees an Mtx.
+// Mtx with an (empty) destructor.  gModelMtx is one: defining it in MtxUtil.cpp makes the
+// compiler emit the file's static initializer, which registers the destructor (the
+// destructor itself ended up in GlobeView.cpp).  Users work on the .m member.
 class Mtx34 {
 public:
     ~Mtx34();
@@ -23,6 +24,6 @@ public:
     Mtx m;
 };
 
-extern Mtx gModelMtx;
+extern Mtx34 gModelMtx;
 
 #endif

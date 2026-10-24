@@ -442,8 +442,8 @@ s32 SimpleGlobe::UpdateDrag(s32 chan) {
                     drag.y = factor * (gCursorX[chan] - mGrabCursor[chan].x);
                 }
                 drag.z = 0.0f;
-                SetRotateZ(gModelMtx, view->mOrientation.z);
-                PSMTXMultVec(gModelMtx, &drag, &drag);
+                SetRotateZ(gModelMtx.m, view->mOrientation.z);
+                PSMTXMultVec(gModelMtx.m, &drag, &drag);
 
                 view->mPosition.x = mGrabPos[chan].x + drag.x;
                 view->mPosition.y = mGrabPos[chan].y - drag.y;
@@ -735,12 +735,12 @@ void SimpleGlobe::UpdateWater() {
     up.y = 1.0f;
     up.z = 0.0f;
 
-    PSMTXTrans(gModelMtx, first.x, first.y, first.z);
-    RotateX(gModelMtx, -mView->mPosition.x);
-    RotateZ(gModelMtx, mView->mPosition.z);
-    RotateY(gModelMtx, mView->mPosition.y);
+    PSMTXTrans(gModelMtx.m, first.x, first.y, first.z);
+    RotateX(gModelMtx.m, -mView->mPosition.x);
+    RotateZ(gModelMtx.m, mView->mPosition.z);
+    RotateY(gModelMtx.m, mView->mPosition.y);
 
-    PSMTXCopy(gModelMtx, look);
+    PSMTXCopy(gModelMtx.m, look);
     target.x = look[0][3];
     target.y = look[1][3];
     target.z = look[2][3];
@@ -749,21 +749,21 @@ void SimpleGlobe::UpdateWater() {
     f32 z = second.z;
     f32 y = second.y;
     f32 x = second.x;
-    PSMTXTrans(gModelMtx, x, y, z);
-    RotateX(gModelMtx, mView->mOrientation.x);
-    RotateZ(gModelMtx, mView->mOrientation.z);
-    RotateY(gModelMtx, mView->mOrientation.y);
-    PSMTXConcat(look, gModelMtx, gModelMtx);
-    PSMTXCopy(gModelMtx, look);
+    PSMTXTrans(gModelMtx.m, x, y, z);
+    RotateX(gModelMtx.m, mView->mOrientation.x);
+    RotateZ(gModelMtx.m, mView->mOrientation.z);
+    RotateY(gModelMtx.m, mView->mOrientation.y);
+    PSMTXConcat(look, gModelMtx.m, gModelMtx.m);
+    PSMTXCopy(gModelMtx.m, look);
 
     position.x = look[0][3];
     position.y = look[1][3];
     position.z = look[2][3];
-    gModelMtx[0][3] = 0.0f;
-    gModelMtx[1][3] = 0.0f;
-    gModelMtx[2][3] = 0.0f;
+    gModelMtx.m[0][3] = 0.0f;
+    gModelMtx.m[1][3] = 0.0f;
+    gModelMtx.m[2][3] = 0.0f;
 
-    PSMTXMultVec(gModelMtx, &up, &cameraUp);
+    PSMTXMultVec(gModelMtx.m, &up, &cameraUp);
     camera.SetPosition(*(nw4r::math::VEC3*)&position);
 
     posture.tp = nw4r::g3d::Camera::POSTURE_LOOKAT;

@@ -69,13 +69,13 @@ void GlobeView::CalcCamera() {
     zoomOffset.y = 0.0f;
     zoomOffset.z = mZoom;
 
-    PSMTXTrans(gModelMtx, vec.x, vec.y, vec.z);
-    RotateX(gModelMtx, -mPosition.x);
-    RotateZ(gModelMtx, mPosition.z);
-    RotateY(gModelMtx, mPosition.y);
+    PSMTXTrans(gModelMtx.m, vec.x, vec.y, vec.z);
+    RotateX(gModelMtx.m, -mPosition.x);
+    RotateZ(gModelMtx.m, mPosition.z);
+    RotateY(gModelMtx.m, mPosition.y);
 
     Mtx look;
-    PSMTXCopy(gModelMtx, look);
+    PSMTXCopy(gModelMtx.m, look);
     mTarget.x = look[0][3];
     mTarget.y = look[1][3];
     mTarget.z = look[2][3];
@@ -84,12 +84,12 @@ void GlobeView::CalcCamera() {
     f32 tz = zoomOffset.z;
     f32 ty = zoomOffset.y;
     f32 tx = zoomOffset.x;
-    PSMTXTrans(gModelMtx, tx, ty, tz);
-    RotateX(gModelMtx, mOrientation.x);
-    RotateZ(gModelMtx, mOrientation.z);
-    RotateY(gModelMtx, mOrientation.y);
-    PSMTXConcat(look, gModelMtx, gModelMtx);
-    PSMTXCopy(gModelMtx, look);
+    PSMTXTrans(gModelMtx.m, tx, ty, tz);
+    RotateX(gModelMtx.m, mOrientation.x);
+    RotateZ(gModelMtx.m, mOrientation.z);
+    RotateY(gModelMtx.m, mOrientation.y);
+    PSMTXConcat(look, gModelMtx.m, gModelMtx.m);
+    PSMTXCopy(gModelMtx.m, look);
 
     mCameraPos.x = look[0][3];
     mCameraPos.y = look[1][3];
@@ -98,7 +98,7 @@ void GlobeView::CalcCamera() {
     vec.z = 0.0f;
     vec.x = 0.0f;
     vec.y = 1.0f;
-    PSMTXMultVec(gModelMtx, &vec, &mUp);
+    PSMTXMultVec(gModelMtx.m, &vec, &mUp);
 
     mCamera.SetPosition(mCameraPos.x, mCameraPos.y, mCameraPos.z);
 

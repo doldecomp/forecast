@@ -22,7 +22,6 @@ extern OSThread gWC24Thread;
 extern u8 gWC24ThreadStack[0x8000];
 extern u8 gWC24FileBuffer[0x10000];
 extern WC24Task gWC24Tasks[8];
-extern u8 gWC24Spare[0x10];
 extern volatile u8 gNWC24LibOpened;
 extern volatile u8 gWC24DownloadComplete;
 extern volatile u8 gWC24ShutdownFlag1;
@@ -1092,7 +1091,6 @@ OSThread gWC24Thread;
 u8 gWC24ThreadStack[0x8000];
 u8 gWC24FileBuffer[0x10000];
 WC24Task gWC24Tasks[8];
-u8 gWC24Spare[0x10];
 
 volatile u8 gNWC24LibOpened;
 volatile u8 gWC24DownloadComplete;

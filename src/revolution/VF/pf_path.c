@@ -1,5 +1,7 @@
 #include <revolution/VF.h>
 
+#pragma ppc_no_fp_blockmove on
+
 extern PF_VOLUME_SET VFipf_vol_set;
 extern const u8 VFipf_valid_fn_char[];
 
@@ -47,7 +49,7 @@ s32 VFiPFPATH_DoSplitPath(PF_STR* p_path, PF_STR* p_dir_path, PF_STR* p_filename
     token_prev = token;
 
     while (1) {
-        if (VFiPFSTR_StrNCmp(&token, (const s8*)"\\", 2, 0, 1) == 0) {
+        if (VFiPFSTR_StrNCmp(&token, (const s8*)"", 2, 0, 1) == 0) {
             p = (s8*)token_prev.p_tail;
             break;
         }
@@ -366,7 +368,7 @@ s32 VFiPFPATH_cmpName(const s8* sShort, PF_STR* p_pattern, u32 is_short_search) 
         return 1;
     }
 
-    if (VFipf_strcmp(sPattern, (const s8*)"*.*") == 0) {
+    if (VFipf_strcmp(sPattern, (const s8*)"*.") == 0) {
         for (; *p_tmpBuf != '\0' && *p_tmpBuf != '.'; p_tmpBuf++) {
         }
         if (*p_tmpBuf == '\0') {
@@ -402,7 +404,7 @@ s32 VFiPFPATH_GetNextTokenOfPath(PF_STR* p_str, u32 wildcard) {
     p_str->p_head = p_str->p_tail;
     extsfn_len = 0;
 
-    if (VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", 1, 0, 1) == 0) {
+    if (VFiPFSTR_StrNCmp(p_str, (const s8*)"", 1, 0, 1) == 0) {
         p_str->p_tail = 0;
         p_str->p_head = 0;
         return 0;
@@ -431,7 +433,7 @@ s32 VFiPFPATH_GetNextTokenOfPath(PF_STR* p_str, u32 wildcard) {
     }
 
     if (extsfn_len == 0) {
-        while (VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", 2, 0, 1) != 0) {
+        while (VFiPFSTR_StrNCmp(p_str, (const s8*)"", 2, 0, 1) != 0) {
             if (code_mode == 1 && VFipf_vol_set.codeset.is_oem_mb_char(*p_str->p_tail, 1) != 0) {
                 p_str->p_tail++;
                 if (VFipf_vol_set.codeset.is_oem_mb_char(*p_str->p_tail, 2) == 0 || *p_str->p_tail == '\0') {
@@ -483,7 +485,11 @@ s32 VFiPFPATH_GetNextTokenOfPath(PF_STR* p_str, u32 wildcard) {
 }
 
 s32 VFiPFPATH_SplitPath(PF_STR* p_path, PF_STR* p_dir_path, PF_STR* p_filename) {
-    VFiPFPATH_DoSplitPath(p_path, p_dir_path, p_filename, 0);
+    return VFiPFPATH_DoSplitPath(p_path, p_dir_path, p_filename, 0);
+}
+
+s32 VFiPFPATH_SplitPathWildcard(PF_STR* p_path, PF_STR* p_dir_path, PF_STR* p_filename) {
+    return VFiPFPATH_DoSplitPath(p_path, p_dir_path, p_filename, 1);
 }
 
 PF_VOLUME* VFiPFPATH_GetVolumeFromPath(PF_STR* p_path) {
@@ -504,16 +510,14 @@ PF_VOLUME* VFiPFPATH_GetVolumeFromPath(PF_STR* p_path) {
 }
 
 u32 VFiPFPATH_MatchFileNameWithPattern(const s8* file_name, PF_STR* p_pattern, u32 is_long_name) {
+    const s8 sig[2] = { 1, 2 };
     u16 c_name;
     u16 c_pat;
     PF_FILE_NAME_ITER name;
     PF_STR pattern;
     u32 is_match;
-    s8 sig[2];
 
     is_match = 1;
-    sig[0] = *(s8*)"~";
-    sig[1] = *(s8*)"1";
 
     name.buf = file_name;
     name.dot_inserted = 0;
@@ -1024,12 +1028,35 @@ s32 VFiPFPATH_parseShortNameNumeric(s8* p_char, u32 count) {
     return 0;
 }
 
-u32 VFiPFPATH_CheckExtShortNameSignature(PF_STR* p_str) {
-    u32 result;
-    s8 sig[2];
+void VFiPFPATH_SetSearchPattern(s8* p_dst_normal, u16* p_dst_uni, PF_STR* p_filename) {
+    if (VFiPFSTR_GetCodeMode(p_filename) == 1) {
+        if (VFipf_strcmp((const s8*)p_filename->p_head, (const s8*)"*.*") == 0) {
+            VFipf_strcpy(p_dst_normal, (const s8*)"*");
+        } else {
+            VFipf_strcpy(p_dst_normal, (const s8*)p_filename->p_head);
+        }
+    } else {
+        if (VFiPFSTR_StrCmp(p_filename, (const s8*)"*.*") == 0) {
+            u16 star[2];
+            star[0] = '*';
+            star[1] = 0;
+            VFipf_w_strcpy(p_dst_uni, star);
+        } else {
+            VFipf_w_strcpy(p_dst_uni, (const u16*)p_filename->p_head);
+        }
+        if ((VFipf_vol_set.setting & 2) == 2) {
+            VFipf_vol_set.setting = (VFipf_vol_set.setting & ~3) | 1;
+            VFiPFPATH_transformFromUnicodeToNormal(p_dst_normal, p_dst_uni);
+            VFipf_vol_set.setting = (VFipf_vol_set.setting & ~3) | 2;
+        } else {
+            VFiPFPATH_transformFromUnicodeToNormal(p_dst_normal, p_dst_uni);
+        }
+    }
+}
 
-    sig[0] = *(s8*)"~";
-    sig[1] = *(s8*)"1";
+u32 VFiPFPATH_CheckExtShortNameSignature(PF_STR* p_str) {
+    s8 sig[2] = { 1, 2 };
+    u32 result;
 
     result = 0;
 
@@ -1043,24 +1070,22 @@ u32 VFiPFPATH_CheckExtShortNameSignature(PF_STR* p_str) {
 }
 
 u32 VFiPFPATH_CheckExtShortName(PF_STR* p_str, u32 target, u32 wildcard) {
+    const s8 sig[2] = { 1, 2 };
     u32 result;
     s16 i;
     s16 num;
     u32 is_wildcard;
-    s8 sig[2];
     s8* p_c;
     u16* p_wc;
 
     result = 0;
     is_wildcard = 0;
-    sig[0] = *(s8*)"~";
-    sig[1] = *(s8*)"1";
 
     if (p_str == NULL) {
         return 10;
     }
 
-    if (VFiPFSTR_StrNCmp(p_str, sig, target, 0, 2) == 0 || (VFiPFSTR_StrNCmp(p_str, (const s8*)".", target, 0, 1) == 0 && (VFiPFSTR_StrNCmp(p_str, (const s8*)".", target, 1, 1) == 0 || VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", target, 0, 1) == 0)) || VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", target, 0, 1) == 0) {
+    if (VFiPFSTR_StrNCmp(p_str, sig, target, 0, 2) == 0 || (VFiPFSTR_StrNCmp(p_str, (const s8*)"?", target, 0, 1) == 0 && (VFiPFSTR_StrNCmp(p_str, (const s8*)"?", target, 1, 1) == 0 || VFiPFSTR_StrNCmp(p_str, (const s8*)"*", target, 0, 1) == 0)) || VFiPFSTR_StrNCmp(p_str, (const s8*)"*", target, 0, 1) == 0) {
         i = 2;
         goto jump;
         while (1) {
@@ -1077,8 +1102,8 @@ u32 VFiPFPATH_CheckExtShortName(PF_STR* p_str, u32 target, u32 wildcard) {
                     break;
                 }
 
-                if (VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", target, i, 1) == 0 || VFiPFSTR_StrNCmp(p_str, (const s8*)".", target, i, 1) == 0) {
-                    if (wildcard == 1 && VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", target, i, 1) == 0) {
+                if (VFiPFSTR_StrNCmp(p_str, (const s8*)"*", target, i, 1) == 0 || VFiPFSTR_StrNCmp(p_str, (const s8*)"?", target, i, 1) == 0) {
+                    if (wildcard == 1 && VFiPFSTR_StrNCmp(p_str, (const s8*)"*", target, i, 1) == 0) {
                         is_wildcard = 1;
                     }
                 } else {
@@ -1089,7 +1114,7 @@ u32 VFiPFPATH_CheckExtShortName(PF_STR* p_str, u32 target, u32 wildcard) {
             i++;
         jump:;
             if (i < 8) {
-                if ((VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", target, i, 1) == 0 || VFiPFSTR_StrNCmp(p_str, (const s8*)"/", target, i, 1) == 0) == 0 && (VFiPFSTR_StrNCmp(p_str, (const s8*)"\0", target, i, 1) != 0 && VFiPFSTR_StrNCmp(p_str, (const s8*)" ", target, i, 1) != 0)) {
+                if ((VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", target, i, 1) == 0 || VFiPFSTR_StrNCmp(p_str, (const s8*)"/", target, i, 1) == 0) == 0 && (VFiPFSTR_StrNCmp(p_str, (const s8*)" ", target, i, 1) != 0 && VFiPFSTR_StrNCmp(p_str, (const s8*)"", target, i, 1) != 0)) {
                     continue;
                 }
             }
@@ -1097,7 +1122,7 @@ u32 VFiPFPATH_CheckExtShortName(PF_STR* p_str, u32 target, u32 wildcard) {
         }
 
         if (i == 8 || is_wildcard == 1) {
-            if (((VFiPFSTR_StrNCmp(p_str, (const s8*)"\0", target, i, 1) == 0) || (VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", target, i, 1) == 0 || VFiPFSTR_StrNCmp(p_str, (const s8*)"/", target, i, 1) == 0) == 0) || (VFiPFSTR_StrNCmp(p_str, (const s8*)" ", target, i, 1) == 0)) {
+            if (((VFiPFSTR_StrNCmp(p_str, (const s8*)" ", target, i, 1) == 0) || (VFiPFSTR_StrNCmp(p_str, (const s8*)"\\", target, i, 1) == 0 || VFiPFSTR_StrNCmp(p_str, (const s8*)"/", target, i, 1) == 0) == 0) || (VFiPFSTR_StrNCmp(p_str, (const s8*)"", target, i, 1) == 0)) {
                 result = i;
             }
         }
@@ -1106,17 +1131,15 @@ u32 VFiPFPATH_CheckExtShortName(PF_STR* p_str, u32 target, u32 wildcard) {
 }
 
 u32 VFiPFPATH_GetExtShortNameIndex(PF_STR* p_str, u32* p_index) {
+    const s8 sig[2] = { 1, 2 };
     u32 result;
     s16 i;
     s16 num;
     u32 index;
-    s8 sig[2];
     s8* p_c;
     u16* p_wc;
 
     result = 0;
-    sig[0] = *(s8*)"~";
-    sig[1] = *(s8*)"1";
 
     if (p_str == NULL || p_index == NULL) {
         return 10;

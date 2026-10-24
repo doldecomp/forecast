@@ -36,3 +36,6 @@ void RotateMtxDeg(nw4r::math::MTX34* m, f32 x, f32 y, f32 z) {
 void SetRotateZ(Mtx m, f32 degrees) {
     PSMTXRotRad(m, 'z', sDegToRad * degrees);
 }
+
+// The static initializer this global needs is the __sinit that closes this unit.
+Mtx34 gModelMtx;
