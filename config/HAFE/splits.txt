@@ -304,7 +304,7 @@ SimpleGlobe.cpp:
 	.ctors      start:0x80179290 end:0x80179294
 	.rodata     start:0x8018F730 end:0x8018F7B0
 	.data       start:0x8019C630 end:0x8019C640
-	.bss        start:0x801F76A0 end:0x801F76C4
+	.bss        start:0x801F76A0 end:0x801F76C8
 	.sdata      start:0x803301E0 end:0x803301E8
 	.sbss       start:0x80330C28 end:0x80330C34
 	.sdata2     start:0x80332098 end:0x80332130
@@ -312,15 +312,15 @@ SimpleGlobe.cpp:
 Sound.cpp:
 	.text       start:0x80041704 end:0x80041884
 	.ctors      start:0x80179294 end:0x80179298
-	.bss        start:0x801F76C4 end:0x801F76E8
+	.bss        start:0x801F76C8 end:0x801F76E8
 
-sound_manager.cpp:
+SoundManager.cpp:
 	.text       start:0x80041884 end:0x80044AAC
 	.ctors      start:0x80179298 end:0x8017929C
 	.data       start:0x8019C640 end:0x801B3C80
 	.bss        start:0x801F76E8 end:0x801F7740
 	.sdata      start:0x803301E8 end:0x803301F0
-	.sbss       start:0x80330C34 end:0x80330C88
+	.sbss       start:0x80330C38 end:0x80330C88
 	.sdata2     start:0x80332130 end:0x80332150
 
 revolution/CNT/cnt.c:

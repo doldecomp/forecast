@@ -826,6 +826,7 @@ config.libs = [
         "lib": "MSL_C",
         "mw_version": "GC/3.0a3",
         "cflags": [*cflags_msl, "-Cpp_exceptions off"],
+        "progress_category": "mslc",
         "objects": [
             Object(Matching, "MSL_C/MSL_Common_Embedded/Math/Double_precision/e_acos.c"),
             Object(Matching, "MSL_C/MSL_Common_Embedded/Math/Double_precision/e_asin.c"),
@@ -1105,6 +1106,7 @@ config.libs = [
                 Object(Matching, "main.cpp"),
                 Object(Matching, "DrawUtil.cpp"),
                 Object(Matching, "GlobeDots.cpp"),
+                Object(NonMatching, "GlobeDotsTable.cpp"),
                 Object(Matching, "WiiConnect24.cpp"),
                 Object(Matching, "WeatherUtil.cpp"),
                 Object(Matching, "ChannelMathData.cpp"),
@@ -1122,7 +1124,8 @@ config.libs = [
                 Object(Matching, "GlobeView.cpp"),
                 Object(Matching, "SceneBase.cpp", extra_cflags=["-ipa file"]),
                 Object(Matching, "SimpleGlobe.cpp", extra_cflags=["-ipa file"]),
-                Object(NonMatching, "GlobeDotsTable.cpp"),
+                Object(NonMatching, "Sound.cpp"),
+                Object(NonMatching, "SoundManager.cpp"),
             ],
     },
     {

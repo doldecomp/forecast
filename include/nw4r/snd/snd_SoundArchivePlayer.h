@@ -1,5 +1,6 @@
 #ifndef NW4R_SND_SOUND_ARCHIVE_PLAYER_H
 #define NW4R_SND_SOUND_ARCHIVE_PLAYER_H
+#include "nw4r/snd/snd_SoundArchiveLoader.h"
 #include <nw4r/types_nw4r.h>
 
 #include <nw4r/snd/snd_DisposeCallback.h>
