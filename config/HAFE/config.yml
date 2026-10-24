@@ -15,6 +15,7 @@ extract_objects: true
 
 symbols: config/HAFE/symbols.txt
 splits: config/HAFE/splits.txt
+ldscript_template: config/HAFE/ldscript.tpl
 
 mw_comment_version: 14
 
@@ -42,6 +43,14 @@ block_relocations:
 
 # System.cpp: lis/addi pairs split by register spills, which analysis cannot pair
 add_relocations:
+# OSExec.c __OSBootDolSimple: the last OS_DOL_EXEC_PARAMS store goes through the
+# linker symbol __OSDolExecParams (0x800030F0), so it is a relocation, not a constant
+- source: 0x800E8CB0
+  type: ha
+  target: __OSDolExecParams
+- source: 0x800E8CB8
+  type: l
+  target: __OSDolExecParams
 # CityLabel.cpp: sDigits and the first .bss object start their sections, which analysis names _f_rodata/_f_bss
 - source: 0x8000810C
   type: ha

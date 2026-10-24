@@ -7,13 +7,35 @@
 #include <cstring>
 
 static OSShutdownFunctionQueue ShutdownFunctionQueue;
+BOOL __OSShutdownToMenu;
+static u32 bootThisDol;
+static void* SaveEnd;
+static void* SaveStart;
 
 static void KillThreads(void);
+void __OSHotResetForError(void);
+
+#pragma dont_inline on
+void __OSReboot(u32 resetCode, u32 bootDol) {
+    OSDisableInterrupts();
+    OSSetArenaLo((void*)0x81280000);
+    OSSetArenaHi((void*)0x812F0000);
+    {
+        char* argvToPass = NULL;
+        __OSLaunchPartitionType = OS_BOOT_PARTITION_TYPE;
+        __OSBootDol(bootDol, resetCode | 0x80000000, (const char**)&argvToPass);
+    }
+}
+#pragma dont_inline reset
+
+void OSGetSaveRegion(void** start, void** end) {
+    *start = SaveStart;
+    *end = SaveEnd;
+}
 
 void OSRegisterShutdownFunction(OSShutdownFunctionInfo* info) {
     OSShutdownFunctionInfo* it;
     OSShutdownFunctionInfo* prev;
-    OSShutdownFunctionInfo* tail;
 
     for (it = ShutdownFunctionQueue.head; it != NULL && it->prio <= info->prio;
          it = it->next) {
@@ -21,15 +43,14 @@ void OSRegisterShutdownFunction(OSShutdownFunctionInfo* info) {
     }
 
     if (it == NULL) {
-
-        tail = ShutdownFunctionQueue.tail;
-        if (tail == NULL) {
+        prev = ShutdownFunctionQueue.tail;
+        if (prev == NULL) {
             ShutdownFunctionQueue.head = info;
         } else {
             ShutdownFunctionQueue.tail->next = info;
         }
 
-        info->prev = tail;
+        info->prev = prev;
         info->next = NULL;
 
         it = ShutdownFunctionQueue.head;
@@ -78,14 +99,14 @@ void __OSShutdownDevices(u32 event) {
 
     switch (event) {
     case OS_SD_EVENT_FATAL:
-    case OS_SD_EVENT_RESTART:
     case OS_SD_EVENT_RETURN_TO_MENU:
     case OS_SD_EVENT_LAUNCH_APP:
         keepEnable = FALSE;
         break;
-    case 1:
+    case OS_SD_EVENT_1:
     case OS_SD_EVENT_SHUTDOWN:
-    case 3:
+    case OS_SD_EVENT_3:
+    case OS_SD_EVENT_RESTART:
     default:
         keepEnable = TRUE;
         break;
@@ -116,24 +137,21 @@ void __OSShutdownDevices(u32 event) {
     KillThreads();
 }
 
-// TODO(kiwi) There must be a better way....
-void __OSGetDiscState(u8* out) {
+u8 __OSGetDiscState(u8 last) {
     u32 flags;
 
     if (__DVDGetCoverStatus() != DVD_COVER_CLOSED) {
-        *out = 3;
-    } else if (*out == 1) {
+        return 3;
+    } else if (last == 1) {
         if (!__OSGetRTCFlags(&flags) || flags == 0) {
             goto status_1;
         }
-
-    status_2:
-        *out = 2;
+status_2:
+        return 2;
     } else {
         goto status_2;
-
-    status_1:
-        *out = 1;
+status_1:
+        return 1;
     }
 }
 
@@ -148,6 +166,8 @@ static void KillThreads(void) {
         case OS_THREAD_STATE_SLEEPING:
         case OS_THREAD_STATE_READY:
             OSCancelThread(iter);
+            break;
+        default:
             break;
         }
     }
@@ -170,7 +190,7 @@ void OSShutdownSystem(void) {
     __DVDPrepareReset();
     __OSReadStateFlags(&stateFlags);
 
-    __OSGetDiscState(&stateFlags.discState);
+    stateFlags.discState = __OSGetDiscState(stateFlags.discState);
     if (idleMode.wc24 == TRUE) {
         stateFlags.BYTE_0x5 = 5;
     } else {
@@ -182,6 +202,7 @@ void OSShutdownSystem(void) {
     __OSGetIOSRev(&iosRev);
 
     if (idleMode.wc24 == TRUE) {
+        __OSShutdownToMenu = TRUE;
         OSDisableScheduler();
         __OSShutdownDevices(OS_SD_EVENT_RETURN_TO_MENU);
         OSEnableScheduler();
@@ -193,7 +214,30 @@ void OSShutdownSystem(void) {
     }
 }
 
-void OSReturnToMenu(void) {
+void OSRestart(u32 resetCode) {
+    u8 appType = OSGetAppType();
+
+    __OSStopPlayRecord();
+    __OSUnRegisterStateEvent();
+
+    if (appType == OS_APP_TYPE_CHANNEL) {
+        OSDisableScheduler();
+        __OSShutdownDevices(OS_SD_EVENT_RESTART);
+        OSEnableScheduler();
+        __OSRelaunchTitle();
+    } else if (appType == OS_APP_TYPE_DVD) {
+        OSDisableScheduler();
+        __OSShutdownDevices(OS_SD_EVENT_RESTART);
+        OSEnableScheduler();
+        __OSReboot(resetCode, bootThisDol);
+    }
+
+    OSDisableScheduler();
+    __OSShutdownDevices(OS_SD_EVENT_1);
+    __OSHotResetForError();
+}
+
+static void ReturnToMenu(u8 menuMode) {
     OSStateFlags stateFlags;
 
     __OSStopPlayRecord();
@@ -201,8 +245,9 @@ void OSReturnToMenu(void) {
     __DVDPrepareReset();
 
     __OSReadStateFlags(&stateFlags);
-    __OSGetDiscState(&stateFlags.discState);
+    stateFlags.discState = __OSGetDiscState(stateFlags.discState);
     stateFlags.BYTE_0x5 = 3;
+    stateFlags.BYTE_0x7 = menuMode;
     __OSClearRTCFlags();
     __OSWriteStateFlags(&stateFlags);
 
@@ -213,12 +258,78 @@ void OSReturnToMenu(void) {
     __OSLaunchMenu();
     OSDisableScheduler();
     __VISetRGBModeImm();
-    __OSHotReset();
+    __OSHotResetForError();
+}
 
-    // clang-format off
-#line 843
-    OS_ERROR("OSReturnToMenu(): Falied to boot system menu.\n");
-    // clang-format on
+void OSReturnToMenu(void) {
+    ReturnToMenu(0);
+#line 834
+    OSPanic("OSReset.c", 834, "OSReturnToMenu(): Falied to boot system menu.\n");
+}
+
+void OSReturnToDataManager(void) {
+    ReturnToMenu(1);
+    OSPanic("OSReset.c", 850, "OSReturnToDataManager(): Falied to boot system menu.\n");
+}
+
+void OSReturnToSetting(u8 setting) {
+    const char* arg;
+
+    switch (setting) {
+    case 1:
+        arg = "Calendar/Calendar_index.html";
+        break;
+    case 2:
+        arg = "Display/Display_index.html";
+        break;
+    case 3:
+        arg = "Sound/Sound_index.html";
+        break;
+    case 4:
+        arg = "Parental_Control/Parental_Control_index.html";
+        break;
+    case 5:
+        arg = "Internet/Internet_index.html";
+        break;
+    case 6:
+        arg = "WiiConnect24/Wiiconnect24_index.html";
+        break;
+    case 7:
+        arg = "Update/Update_index.html";
+        break;
+    case 0:
+    default:
+        OSReport("OSReturnToSetting(): You can't specify %d.  \n", setting);
+        OSPanic("OSReset.c", 910, "");
+        break;
+    }
+
+    __OSReturnToMenul(1, arg, NULL);
+}
+
+void __OSReturnToMenuForError(void) {
+    OSStateFlags stateFlags;
+
+    __OSReadStateFlags(&stateFlags);
+    stateFlags.discState = 2;
+    stateFlags.BYTE_0x5 = 3;
+    __OSClearRTCFlags();
+    __OSWriteStateFlags(&stateFlags);
+
+    __OSLaunchMenu();
+    OSDisableScheduler();
+    __VISetRGBModeImm();
+    __OSHotResetForError();
+    OSPanic("OSReset.c", 949, "__OSReturnToMenu(): Falied to boot system menu.\n");
+}
+
+void __OSHotResetForError(void) {
+    if (__OSInNandBoot || __OSInReboot) {
+        __OSInitSTM();
+    }
+
+    __OSHotReset();
+    OSPanic("OSReset.c", 973, "__OSHotReset(): Falied to reset system.\n");
 }
 
 u32 OSGetResetCode(void) {
@@ -229,13 +340,15 @@ u32 OSGetResetCode(void) {
     return PI_HW_REGS[PI_RESET] >> 3;
 }
 
-void OSResetSystem(u32 arg0, u32 arg1, u32 arg2) {
-#pragma unused(arg0)
-#pragma unused(arg1)
-#pragma unused(arg2)
+void OSResetSystem(int reset, u32 resetCode, BOOL forceMenu) {
+#pragma unused(reset)
+#pragma unused(resetCode)
+#pragma unused(forceMenu)
 
-    // clang-format off
-#line 1020
-    OS_ERROR("OSResetSystem() is obsoleted. It doesn't work any longer.\n");
-    // clang-format on
+    OSPanic("OSReset.c", 1124, "OSResetSystem() is obsoleted. It doesn't work any longer.\n");
+}
+
+void OSSetBootDol(u32 bootDol) {
+#pragma unused(bootDol)
+    OSPanic("OSReset.c", 1138, "OSSetBootDol() is obsoleted. It doesn't work any longer.\n");
 }

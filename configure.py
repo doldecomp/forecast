@@ -565,7 +565,7 @@ config.libs = [
             Object(Matching, "revolution/EUART/euart.c"),
 
             # EXI
-            Object(NonMatching, "revolution/EXI/EXIBios.c"),
+            Object(Matching, "revolution/EXI/EXIBios.c", extra_cflags=["-schedule off"]),
             Object(Matching, "revolution/EXI/EXICommon.c"),
             Object(Matching, "revolution/EXI/EXIUart.c"),
 
@@ -655,20 +655,20 @@ config.libs = [
             Object(Matching, "revolution/OS/OSCache.c"),
             Object(Matching, "revolution/OS/OSContext.c"),
             Object(Matching, "revolution/OS/OSError.c"),
-            Object(NonMatching, "revolution/OS/OSExec.c"),
+            Object(Matching, "revolution/OS/OSExec.c", mw_version="GC/3.0a5.2"),
             Object(Matching, "revolution/OS/OSFatal.c"),
-            Object(NonMatching, "revolution/OS/OSFont.c"),
+            Object(Matching, "revolution/OS/OSFont.c"),
             Object(Matching, "revolution/OS/OSInterrupt.c"),
             Object(Matching, "revolution/OS/OSIpc.c"),
-            Object(NonMatching, "revolution/OS/OSLink.c"),
+            Object(Matching, "revolution/OS/OSLink.c"),
             Object(Matching, "revolution/OS/OSMemory.c"),
-            Object(NonMatching, "revolution/OS/OSMessage.c"),
+            Object(Matching, "revolution/OS/OSMessage.c"),
             Object(Matching, "revolution/OS/OSMutex.c"),
             Object(Matching, "revolution/OS/OSNandboot.c"),
             Object(Matching, "revolution/OS/OSNet.c"),
             Object(Matching, "revolution/OS/OSPlayRecord.c"),
             Object(Matching, "revolution/OS/OSPlayTime.c"),
-            Object(NonMatching, "revolution/OS/OSReset.c"),
+            Object(Matching, "revolution/OS/OSReset.c"),
             Object(Matching, "revolution/OS/OSRtc.c"),
             Object(Matching, "revolution/OS/OSStateFlags.c"),
             Object(Matching, "revolution/OS/OSStateTM.c"),
@@ -686,7 +686,7 @@ config.libs = [
             Object(Matching, "revolution/SC/scsystem.c"),
 
             # SI
-            Object(NonMatching, "revolution/SI/SIBios.c"),
+            Object(Matching, "revolution/SI/SIBios.c"),
             Object(NonMatching, "revolution/SI/SISamplingRate.c"),
 
             # TPL

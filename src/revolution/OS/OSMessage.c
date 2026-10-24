@@ -56,26 +56,3 @@ BOOL OSReceiveMessage(OSMessageQueue* queue, OSMessage* mesg, u32 flags) {
     return TRUE;
 }
 
-BOOL OSJamMessage(OSMessageQueue* queue, OSMessage mesg, u32 flags) {
-    s32 lastMesg;
-    BOOL enabled = OSDisableInterrupts();
-
-    while (queue->capacity <= queue->size) {
-        if (!(flags & OS_MSG_BLOCKING)) {
-            OSRestoreInterrupts(enabled);
-            return FALSE;
-        }
-
-        OSSleepThread(&queue->sendQueue);
-    }
-
-    // Find last position in queue
-    lastMesg = (queue->front + queue->capacity - 1) % queue->capacity;
-    queue->front = lastMesg;
-    queue->buffer[lastMesg] = mesg;
-    queue->size++;
-
-    OSWakeupThread(&queue->recvQueue);
-    OSRestoreInterrupts(enabled);
-    return TRUE;
-}

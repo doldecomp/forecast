@@ -189,7 +189,9 @@ BOOL EXISync(EXIChannel chan) {
     return ret;
 }
 
-void EXIClearInterrupts(EXIChannel chan, BOOL exi, BOOL tc, BOOL ext) {
+// Public SDK API, but the DOL has no out-of-line copy (every call is inlined and
+// the linker dead-stripped the original). `inline` keeps it out of the object.
+inline void EXIClearInterrupts(EXIChannel chan, BOOL exi, BOOL tc, BOOL ext) {
     u32 cpr = EXI_CHAN_PARAMS[chan].cpr & 0xFFF &
               ~(EXI_CPR_EXIINT | EXI_CPR_TCINT | EXI_CPR_EXTINT);
 
@@ -229,7 +231,9 @@ EXICallback EXISetExiCallback(EXIChannel chan, EXICallback callback) {
     return old;
 }
 
-void EXIProbeReset(void) {
+// Public SDK API, but the DOL has no out-of-line copy (every call is inlined and
+// the linker dead-stripped the original). `inline` keeps it out of the object.
+inline void EXIProbeReset(void) {
     OS_EXI_LAST_INSERT[0] = OS_EXI_LAST_INSERT[1] = 0;
     Ecb[EXI_CHAN_0].lastInsert = Ecb[EXI_CHAN_1].lastInsert = 0;
     __EXIProbe(EXI_CHAN_0);
@@ -281,7 +285,9 @@ static BOOL __EXIProbe(EXIChannel chan) {
     return ret;
 }
 
-BOOL EXIProbe(EXIChannel chan) {
+// Public SDK API, but the DOL has no out-of-line copy (every call is inlined and
+// the linker dead-stripped the original). `inline` keeps it out of the object.
+inline BOOL EXIProbe(EXIChannel chan) {
     EXIData* exi = &Ecb[chan];
 
     BOOL ret = __EXIProbe(chan);

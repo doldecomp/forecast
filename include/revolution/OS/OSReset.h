@@ -29,15 +29,21 @@ typedef struct OSShutdownFunctionQueue {
     OSShutdownFunctionInfo* tail; // at 0x4
 } OSShutdownFunctionQueue;
 
+void __OSReboot(u32 resetCode, u32 bootDol);
+void OSGetSaveRegion(void** start, void** end);
 void OSRegisterShutdownFunction(OSShutdownFunctionInfo* info);
 BOOL __OSCallShutdownFunctions(u32 pass, u32 event);
 void __OSShutdownDevices(u32 event);
-void __OSGetDiscState(u8* out);
+u8 __OSGetDiscState(u8 last);
 void OSShutdownSystem(void);
+void OSRestart(u32 resetCode);
 void OSReturnToMenu(void);
+void OSReturnToSetting(u8 setting);
+void __OSReturnToMenuForError(void);
+void __OSHotResetForError(void);
 u32 OSGetResetCode(void);
 BOOL OSGetResetButtonState(void);
-void OSResetSystem(u32 arg0, u32 arg1, u32 arg2);
+void OSResetSystem(int reset, u32 resetCode, BOOL forceMenu);
 
 #ifdef __cplusplus
 }
