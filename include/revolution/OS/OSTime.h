@@ -25,6 +25,8 @@ extern "C" {
 // Interpret as signed to find tick delta
 #define OS_TICKS_DELTA(x, y) ((s32)x - (s32)y)
 
+typedef s64 OSTime;
+
 typedef struct OSCalendarTime {
     s32 sec;   // at 0x0
     s32 min;   // at 0x4

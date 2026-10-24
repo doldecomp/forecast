@@ -7,6 +7,7 @@ extern "C" {
 
 void dCommon_DevideBuff32(void* i_buf, u32 i_size, u32* i_1st_size_p, void* i_2nd_pp, u32* i_2nd_size_p, void* i_3rd_pp, u32* i_3rd_size_p);
 int dCommon_IsPrfFile(void* i_buff_p);
+void dCommon_CopyPrfFileHeader(void* dst, u32 fileSize, u32 version, u8 volatile_memory);
 void dCommon_PrintSignature(struct PR_BINHEADER* i_header_p);
 s32 dCommon_MakeFsInfoSec(u8* buf, u32 fsInfoSize);
 u32 dCommon_GetPhysicalOffset(u32 startBlock, u32 BPS, u32 reservedSecNum);
@@ -29,6 +30,7 @@ void dCommon_setResvSecNumToDisk(struct PDM_DISK* p_disk, u32 i_reservedSecNum);
 u32 dCommon_getRootEntNumFromDisk(struct PDM_DISK* p_disk);
 void dCommon_setRootEntNumToDisk(struct PDM_DISK* p_disk, u32 i_rootEntNum);
 s32 dCommon_flush_from_handle_p(struct VF_HANDLE_TYPE* i_handle_p, int i_setLastDeviceError);
+s32 dCommon_FlushFromHandleIdx(s32 handle_idx, int i_setLastDeviceError);
 
 #ifdef __cplusplus
 }
