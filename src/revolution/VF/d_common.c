@@ -45,6 +45,30 @@ int dCommon_IsPrfFile(void* i_buff_p) {
     return 1;
 }
 
+void dCommon_CopyPrfFileHeader(void* dst, u32 fileSize, u32 version, u8 volatile_memory) {
+    struct PR_BINHEADER header;
+    s32 i;
+
+    header.signature[0] = 'V';
+    header.signature[1] = 'F';
+    header.signature[2] = 'F';
+    header.signature[3] = ' ';
+    header.byteOrder = 0xFEFF;
+    header.version[0] = version >> 8;
+    header.version[1] = version >> 0;
+    header.fileSize[0] = fileSize >> 24;
+    header.fileSize[1] = fileSize >> 16;
+    header.fileSize[2] = fileSize >> 8;
+    header.fileSize[3] = fileSize >> 0;
+    header.headerSize = 32;
+    header.dataBlocks = 0;
+    header.volatile_memory = volatile_memory;
+    for (i = 0; i < 15; i++) {
+        header.pad[i] = 0;
+    }
+    VFipf_memcpy(dst, &header, 32);
+}
+
 void dCommon_PrintSignature(struct PR_BINHEADER* i_header_p) {
     ;
 }
@@ -363,3 +387,24 @@ s32 dCommon_flush_from_handle_p(struct VF_HANDLE_TYPE* i_handle_p, int i_setLast
     }
     return err;
 }
+
+s32 dCommon_FlushFromHandleIdx(s32 handle_idx, int i_setLastDeviceError) {
+    struct VF_HANDLE_DRIVE* vol;
+    s32 err;
+    s32 handle_idx2;
+
+    vol = (struct VF_HANDLE_DRIVE*)VFSysGetHandleP(handle_idx);
+    err = -1;
+    if (vol != NULL && vol->file_p != NULL) {
+        if (((u32*)vol->file_p)[2] == 0) {
+            handle_idx2 = VFSysHandleP2Idx((struct VF_HANDLE_TYPE*)vol);
+            if (handle_idx2 != -1) {
+                err = VFi_NandFlushNANDFromHandleIdx(handle_idx2, i_setLastDeviceError);
+            }
+        } else {
+            err = 0;
+        }
+    }
+    return err;
+}
+

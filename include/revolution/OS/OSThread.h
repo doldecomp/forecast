@@ -60,6 +60,7 @@ typedef void* (*OSThreadFunc)(void* arg);
 
 OSSwitchThreadCallback
 OSSetSwitchThreadCallback(OSSwitchThreadCallback callback);
+extern OSThreadQueue __OSActiveThreadQueue;
 void __OSThreadInit(void);
 void OSSetCurrentThread(OSThread* thread);
 void OSInitMutexQueue(OSMutexQueue* queue);

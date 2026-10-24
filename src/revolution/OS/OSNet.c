@@ -1,9 +1,7 @@
 #include <revolution/OS.h>
-
-// @bug Wrong prototypes. Somebody forgot to include the header!!!
-int NWC24iPrepareShutdown();
-int NWC24SuspendScheduler();
-int NWC24iSynchronizeRtcCounter();
+#include <revolution/NWC24/NWC24Schedule.h>
+#include <revolution/NWC24/internal/NWC24iSystem.h>
+#include <revolution/NWC24/internal/NWC24iTime.h>
 
 void __OSInitNet(void) {
     s32 error;
@@ -28,21 +26,21 @@ void __OSInitNet(void) {
         }
     }
 
-    // @bug Wrong prototype. Somebody forgot to include the header!!!
-    error = NWC24iSynchronizeRtcCounter();
-    if (error != 0) {
-        OSReport(
-            "Failed to synchronize time with network resource managers. %d\n",
-            error);
+    if (!__OSInIPL) {
+        error = NWC24iSynchronizeRtcCounter(FALSE);
+        if (error != 0) {
+            OSReport(
+                "Failed to synchronize time with network resource managers. %d\n",
+                error);
+        }
     }
 }
 
-DECOMP_FORCEACTIVE(OSNet_c,
-                   "NWC24iPrepareShutdown",
-                   "/dev/net/kd/request",
-                   "NWC24SuspendScheduler",
-                   "NWC24ResumeScheduler",
-                   "NWC24iRequestShutdown",
-                   "NWC24Shutdown_: Give up!\n",
-                   "NWC24iSetRtcCounter_",
-                   "/dev/net/kd/time");
+char sNWC24iPrepareShutdown[] = "NWC24iPrepareShutdown";
+char sDevNetKdRequest[] = "/dev/net/kd/request";
+char sNWC24SuspendScheduler[] = "NWC24SuspendScheduler";
+char sNWC24ResumeScheduler[] = "NWC24ResumeScheduler";
+char sNWC24iRequestShutdown[] = "NWC24iRequestShutdown";
+char sShutdownGiveUp[] = "NWC24Shutdown_: Give up!\n";
+char sNWC24iSetRtcCounter[] = "NWC24iSetRtcCounter_";
+char sDevNetKdTime[] = "/dev/net/kd/time";

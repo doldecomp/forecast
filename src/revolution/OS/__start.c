@@ -371,3 +371,16 @@ DECL_SECTION(".init") static void __init_data(void) {
         bs++;
     }
 }
+
+s64 __get_clock(void) {
+    return __OSGetSystemTime();
+}
+
+u32 __get_time(void) {
+    return OSGetTime() / (OS_BUS_CLOCK_SPEED / 4) + 0xBC17C200;
+}
+
+int __to_gm_time(void) {
+    return 0;
+}
+
