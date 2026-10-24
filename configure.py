@@ -667,7 +667,7 @@ config.libs = [
             Object(Matching, "revolution/OS/OSNandboot.c"),
             Object(Matching, "revolution/OS/OSNet.c"),
             Object(Matching, "revolution/OS/OSPlayRecord.c"),
-            Object(NonMatching, "revolution/OS/OSPlayTime.c"),
+            Object(Matching, "revolution/OS/OSPlayTime.c"),
             Object(NonMatching, "revolution/OS/OSReset.c"),
             Object(Matching, "revolution/OS/OSRtc.c"),
             Object(Matching, "revolution/OS/OSStateFlags.c"),
