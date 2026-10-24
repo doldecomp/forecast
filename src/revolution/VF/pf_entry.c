@@ -1,7 +1,9 @@
 #include <revolution/VF.h>
 
 extern PF_VOLUME_SET VFipf_vol_set;
+#pragma section sdata_type ".sdata2"
 static u8 FAT_DELETED = 0xE5;
+#pragma section sdata_type ".sdata"
 
 static u32 VFiPFENT_compareAttr(u8 attr, u8 attr_required, u8 attr_unwanted) {
     u32 is_valid;
@@ -221,6 +223,23 @@ static s32 VFiPFENT_findEmptyTailSFN(struct PF_DIR_ENT* p_ent_containig_dir, con
     return 0;
 }
 
+void VFiPFENT_setDotEntry(s8* sfn) {
+    u32 i;
+    sfn[0] = '.';
+    for (i = 1; i < 11; i++) {
+        sfn[i] = ' ';
+    }
+}
+
+void VFiPFENT_setDotDotEntry(s8* sfn) {
+    u32 i;
+    sfn[0] = '.';
+    sfn[1] = '.';
+    for (i = 2; i < 11; i++) {
+        sfn[i] = ' ';
+    }
+}
+
 u8 VFiPFENT_CalcCheckSum(struct PF_DIR_ENT* p_ent) {
     u16 i;
     u8 sum;
@@ -254,6 +273,21 @@ void VFiPFENT_loadEntryNumericFieldsFromBuf(struct PF_DIR_ENT* p_ent, const u8* 
     p_ent->file_size = SWAP32(*(u32*)&buf[28]);
 
     p_ent->start_cluster = ((SWAP16(*(u16*)&buf[20])) << 16) | ((u16)(SWAP16(*(u16*)&buf[26])));
+}
+
+void VFiPFENT_storeEntryNumericFieldsToBuf(u8* buf, const struct PF_DIR_ENT* p_ent) {
+    buf[11] = p_ent->attr;
+    buf[12] = p_ent->small_letter_flag;
+    buf[13] = p_ent->create_time_ms;
+
+    *(u16*)&buf[14] = SWAP16(p_ent->create_time);
+    *(u16*)&buf[16] = SWAP16(p_ent->create_date);
+    *(u16*)&buf[18] = SWAP16(p_ent->access_date);
+    *(u16*)&buf[22] = SWAP16(p_ent->modify_time);
+    *(u16*)&buf[24] = SWAP16(p_ent->modify_date);
+    *(u16*)&buf[20] = SWAP16((u16)(p_ent->start_cluster >> 16));
+    *(u16*)&buf[26] = SWAP16(p_ent->start_cluster);
+    *(u32*)&buf[28] = SWAP32(p_ent->file_size);
 }
 
 s32 VFiPFENT_LoadLFNEntryFieldsFromBuf(struct PF_DIR_ENT* p_ent, const u8* buf) {
@@ -721,8 +755,7 @@ s32 VFiPFENT_MakeRootDir(struct PF_VOLUME* p_vol) {
             return 7;
     }
 
-    // VFiPFVOL_LoadVolumeLabelFromBuf((const u8*)"NO NAME    ", p_vol);
-    VFiPFVOL_LoadVolumeLabelFromBuf((const u8*)"NO NAME    \0\0\0\0", p_vol);
+    VFiPFVOL_LoadVolumeLabelFromBuf((const u8*)"NO NAME    ", p_vol);
     return 0;
 }
 

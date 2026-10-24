@@ -239,7 +239,7 @@ ChannelMathData.cpp:
 WiiConnect24.cpp:
 	.text       start:0x80032610 end:0x80035BA8
 	.data       start:0x8019BD08 end:0x8019C189
-	.bss        start:0x801D99E0 end:0x801F6B28
+	.bss        start:0x801D99E0 end:0x801F6B18
 	.sdata      start:0x80330170 end:0x80330190
 	.sbss       start:0x80330B78 end:0x80330B98
 
@@ -251,7 +251,9 @@ WeatherUtil.cpp:
 	.rodata     start:0x8018F4D0 end:0x8018F4E6
 
 MtxUtil.cpp:
-	.text       start:0x800367F4 end:0x80036978
+	.text       start:0x800367F4 end:0x80036994
+	.ctors      start:0x80179280 end:0x80179284
+	.bss        start:0x801F6B18 end:0x801F6B58
 
 Tween.cpp:
 	.text       start:0x80036994 end:0x800369F4
@@ -372,10 +374,14 @@ revolution/VF/pf_cluster.c:
 revolution/VF/pf_dir.c:
 	.text       start:0x8004D2C8 end:0x8004E064
 
+revolution/VF/pf_dir_api.c:
+	.text       start:0x8004E064 end:0x8004E3C0
+	.sdata      start:0x803301F8 end:0x803301FA
+
 revolution/VF/pf_entry.c:
 	.text       start:0x8004E3C0 end:0x8004FF64
-	.data       start:0x801B3E98 end:0x801B3EA8
-	.sdata2     start:0x80332150 end:0x80332158
+	.data       start:0x801B3E98 end:0x801B3EA4
+	.sdata2     start:0x80332150 end:0x80332151
 
 revolution/VF/pf_entry_iterator.c:
 	.text       start:0x8004FF64 end:0x80051988
