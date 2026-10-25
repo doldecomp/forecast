@@ -809,6 +809,7 @@ config.libs = [
             Object(Matching, "MSL_C/string.c"),
             Object(Matching, "MSL_C/strtold.c"),
             Object(Matching, "MSL_C/strtoul.c"),
+            Object(Matching, "MSL_C/time.c", mw_version="GC/3.0a5"),
             Object(Matching, "MSL_C/wctype.c"),
             Object(Matching, "MSL_C/wmem.c"),
             Object(Matching, "MSL_C/wprintf.c", mw_version="GC/3.0a5.2"),

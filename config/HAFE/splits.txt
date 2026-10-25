@@ -2440,14 +2440,23 @@ MSL_C/strtold.c:
 	.rodata     start:0x80198090 end:0x801980A0
 	.sdata2     start:0x803331A8 end:0x803331C8
 
-MSL_C/wctype.c:
-	.rodata     start:0x801981C8 end:0x801987C8
-
 MSL_C/strtoul.c:
 	extab       start:0x80006870 end:0x800068A0
 	extabindex  start:0x80006E68 end:0x80006EB0
 	.text       start:0x8016ADC0 end:0x8016B9D0
 	.data       start:0x801D6820 end:0x801D68A8
+
+MSL_C/time.c:
+	extab       start:0x800068A0 end:0x800068E8
+	extabindex  start:0x80006EB0 end:0x80006F1C
+	.text       start:0x8016B9D0 end:0x8016D2F8
+	.rodata     start:0x801980A0 end:0x801981C8
+	.data       start:0x801D68A8 end:0x801D6A00
+	.bss        start:0x8032CFE0 end:0x8032D064
+	.sdata2     start:0x803331C8 end:0x803331E8
+
+MSL_C/wctype.c:
+	.rodata     start:0x801981C8 end:0x801987C8
 
 MSL_C/wmem.c:
 	.text       start:0x8016D2F8 end:0x8016D328
