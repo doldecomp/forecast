@@ -11,11 +11,12 @@ extern "C" {
 #define NWC24i_DL_TASK_MAX 120
 #define NWC24i_DL_SUBTASK_MAX 32
 
+// Times are in minutes since the NWC24 epoch
 typedef struct NWC24iDlEntry {
     u32 app;        // at 0x0
-    u32 nextTime;   // at 0x4
-    u32 lastAccess; // at 0x8
-    u8 flags;       // at 0xC
+    s32 nextTime;   // at 0x4
+    s32 lastAccess; // at 0x8
+    u8 priority;    // at 0xC
     char UNK_0xD[0x10 - 0xD];
 } NWC24iDlEntry;
 
@@ -54,7 +55,7 @@ typedef struct NWC24iDlTask {
     char UNK_0x27[0x1];
     u32 subTaskMask;                              // at 0x28
     u32 serverInterval;                           // at 0x2C
-    u32 lastUpdate;                               // at 0x30
+    s32 lastUpdate;                               // at 0x30
     u32 lastUpdateSubTask[NWC24i_DL_SUBTASK_MAX]; // at 0x34
     char url[236];                                // at 0xB4
     char fileName[NAND_MAX_PATH];                 // at 0x1A0
@@ -68,11 +69,10 @@ typedef struct NWC24iDlTask {
 
 NWC24Err NWC24iOpenDlTaskList(void);
 NWC24Err NWC24iCloseDlTaskList(void);
-NWC24iDlHeader* NWC24iGetCachedDlHeader(void);
 NWC24Err NWC24iCheckHeaderConsistency(NWC24iDlHeader* pHeader, BOOL clear)
     DECOMP_DONT_INLINE;
 NWC24Err NWC24iCheckDlTask(NWC24DlTask* pTask);
-NWC24Err NWC24iLoadDlHeader(void);
+NWC24Err NWC24iLoadDlHeader(void) DECOMP_DONT_INLINE;
 
 #ifdef __cplusplus
 }

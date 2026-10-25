@@ -54,6 +54,7 @@ NWC24Err NWC24iGetSchedulerStat(NWC24ScdStat* pStat, u32 size);
 NWC24Err NWC24iRequestGenerateUserId(u64* pId, u32* arg1);
 NWC24Err NWC24iTrySuspendForOpenLib(void);
 NWC24Err NWC24iResumeForCloseLib(void);
+NWC24Err NWC24iSetScriptMode(s32 mode);
 
 #ifdef __cplusplus
 }

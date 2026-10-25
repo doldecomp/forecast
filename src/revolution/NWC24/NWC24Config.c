@@ -16,11 +16,15 @@ static const char* MBoxDir = "/shared2/wc24/mbox";
 static const char* ConfigFile = "/shared2/wc24/nwc24msg.cfg";
 static const char* CfgBakFile = "/shared2/wc24/nwc24msg.cbk";
 
+static u16 VirtualGroupId = COMPANY_CODE_NINTENDO;
+
 static u32 GetConfigCheckSum(void);
 static NWC24Err CheckConfig(void) DECOMP_DONT_INLINE;
 static NWC24Err GenerateUserId(u64* pId);
+static void CacheUserIdToLoMem(u64 id);
 
-NWC24Err NWC24GetMyUserId(u64* pId) {
+// Not in the DOL (dead-stripped): inline, so that no copy is emitted
+inline NWC24Err NWC24GetMyUserId(u64* pId) {
     NWC24Err scdErr;
     NWC24Err result;
 
@@ -49,7 +53,8 @@ NWC24Err NWC24GetMyUserId(u64* pId) {
     return result;
 }
 
-NWC24Err NWC24GenerateNewUserId(u64* pId) {
+// Not in the DOL (dead-stripped): inline, so that no copy is emitted
+inline NWC24Err NWC24GenerateNewUserId(u64* pId) {
     NWC24Err open;
     NWC24Err close;
 
@@ -65,9 +70,17 @@ NWC24Err NWC24GenerateNewUserId(u64* pId) {
 }
 
 NWC24Err NWC24iConfigOpen(void) {
-    config = (NWC24iConfig*)NWC24WorkP->config;
+    NWC24Err result;
+
     ConfigModified = FALSE;
-    return NWC24iConfigReload();
+    config = (NWC24iConfig*)NWC24WorkP->config;
+
+    result = NWC24iConfigReload();
+    if (result != NWC24_ERR_FILE_NOEXISTS && result == NWC24_OK) {
+        CacheUserIdToLoMem(config->userId);
+    }
+
+    return result;
 }
 
 NWC24Err NWC24iConfigReload(void) {
@@ -157,7 +170,8 @@ NWC24Err NWC24iConfigFlush(void) {
     return result;
 }
 
-const char* NWC24GetAccountDomain(void) {
+// Not in the DOL (dead-stripped): inline, so that no copy is emitted
+inline const char* NWC24GetAccountDomain(void) {
     return config->acctDomain;
 }
 
@@ -169,7 +183,7 @@ const char* NWC24GetMBoxDir(void) {
     if (rev.idLo == 0 &&
         (rev.verMajor == 7 && rev.verMinor == 0 || rev.verMajor < 7)) {
         // clang-format off
-#line 666
+#line 695
     OS_ERROR("stopped.");
         // clang-format on
     }
@@ -192,7 +206,7 @@ u16 NWC24GetGroupId(void) {
     u16 groupId;
     char* pHomeDir;
 
-    groupId = COMPANY_CODE_NINTENDO;
+    groupId = VirtualGroupId;
 
     switch (OSGetAppType()) {
     case OS_APP_TYPE_IPL: {
@@ -218,6 +232,11 @@ u16 NWC24GetGroupId(void) {
     }
 
     return groupId;
+}
+
+NWC24Err NWC24GetIdCreationStage(NWC24IDCreationStage* pStage) {
+    *pStage = (NWC24IDCreationStage)config->createStage;
+    return NWC24_OK;
 }
 
 static u32 GetConfigCheckSum(void) {
@@ -258,6 +277,7 @@ static NWC24Err CheckConfig(void) {
 }
 
 static NWC24Err GenerateUserId(u64* pId) {
+    NWC24Err result;
     u32 dummy = 0;
 
     if (pId == NULL) {
@@ -265,5 +285,12 @@ static NWC24Err GenerateUserId(u64* pId) {
     }
 
     *pId = 9999999999999999;
-    return NWC24iRequestGenerateUserId(pId, &dummy);
+    result = NWC24iRequestGenerateUserId(pId, &dummy);
+    CacheUserIdToLoMem(*pId);
+    return result;
+}
+
+static void CacheUserIdToLoMem(u64 id) {
+    OS_NWC24_USER_ID = id;
+    DCStoreRange(OS_NWC24_USER_ID_BUFFER, sizeof(OS_NWC24_USER_ID_BUFFER));
 }
