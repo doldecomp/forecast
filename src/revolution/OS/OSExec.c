@@ -3,6 +3,7 @@
 #include <revolution/IPC.h>
 #include <revolution/NAND.h>
 #include <revolution/OS.h>
+#include <revolution/OS/OSPlayTime.h>
 #include <revolution/SC.h>
 
 #include <cstdarg>
@@ -38,22 +39,6 @@ typedef struct PartInfo {
     u32 offset; // at 0x0
     u32 type;   // at 0x4
 } PartInfo;
-
-extern void IPCCltReInit(void);
-extern BOOL DVDLowOpenPartitionWithTmdAndTicketView(
-    u32 offset, const ESTicketView* ticketView, u32 tmdSize,
-    const ESTitleMeta* tmd, u32 certsSize, const void* certs,
-    DVDLowCallback callback);
-extern BOOL DVDLowFinalize(void);
-extern BOOL DVDSetAutoInvalidation(BOOL autoInval);
-extern void __DVDResetWithNoSpinup(void);
-extern BOOL OSPlayTimeIsLimited(void);
-extern s32 __OSGetPlayTime(ESTicketView* ticketView, u32* type,
-                           u32* remainingTime);
-extern BOOL __OSWriteExpiredFlag(void);
-extern BOOL __OSCreateNandbootInfo(void);
-extern BOOL __OSWriteNandbootInfo(OSNandbootInfo* info);
-extern void __OSHotResetForError(void);
 
 // OS_DOL_EXEC_PARAMS (0x800030F0) under its SDK name, as a linker-defined
 // symbol. The final store in RunApploader goes through it: the compiler does not
