@@ -40,6 +40,15 @@ void MEMiInitHeapHead(MEMiHeapHead* heap, u32 magic, void* start, void* end,
 void MEMiFinalizeHeap(MEMiHeapHead* heap);
 MEMiHeapHead* MEMFindContainHeap(const void* memBlock);
 
+// The SDK's rounding: (value + (align - 1)) & ~(align - 1).
+// Its operand order differs from ROUND_UP in macros.h.
+#define MEM_ROUND_UP(value, align)                                             \
+    (((value) + ((align) - 1)) & ~((align) - 1))
+#define MEM_ROUND_DOWN(value, align) ((value) & ~((align) - 1))
+#define MEM_ROUND_UP_PTR(p, align) ((void*)MEM_ROUND_UP(GetUIntPtr(p), align))
+#define MEM_ROUND_DOWN_PTR(p, align)                                           \
+    ((void*)MEM_ROUND_DOWN(GetUIntPtr(p), align))
+
 static inline uintptr_t GetUIntPtr(const void* p) {
     return (uintptr_t)p;
 }

@@ -30,6 +30,11 @@ s32 ISFS_CreateDirAsync(const char* path, u32 attr, u32 ownerPerm,
 s32 ISFS_ReadDir(const char* path, char* filesOut, u32* fileCountOut);
 s32 ISFS_ReadDirAsync(const char* path, char* filesOut, u32* fileCountOut,
                       FSAsyncCallback callback, void* callbackArg);
+s32 ISFS_SetAttr(const char* path, u32 ownerId, u16 groupId, u32 attr,
+                 u32 ownerPerm, u32 groupPerm, u32 otherPerm);
+s32 ISFS_SetAttrAsync(const char* path, u32 ownerId, u16 groupId, u32 attr,
+                      u32 ownerPerm, u32 groupPerm, u32 otherPerm,
+                      FSAsyncCallback callback, void* callbackArg);
 s32 ISFS_GetAttr(const char* path, u32* ownerIdOut, u16* groupIdOut,
                  u32* attrOut, u32* ownerPermOut, u32* groupPermOut,
                  u32* otherPermOut);

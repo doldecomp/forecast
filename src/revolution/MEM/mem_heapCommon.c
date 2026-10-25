@@ -60,6 +60,7 @@ void MEMiFinalizeHeap(MEMiHeapHead* heap) {
     heap->magic = 0;
 }
 
-MEMiHeapHead* MEMFindContainHeap(const void* memBlock) {
+// Not in the DOL (dead-stripped): inline, so that no copy is emitted
+inline MEMiHeapHead* MEMFindContainHeap(const void* memBlock) {
     return FindContainHeap_(&sRootList, memBlock);
 }

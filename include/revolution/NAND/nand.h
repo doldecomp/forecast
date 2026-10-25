@@ -177,6 +177,8 @@ s32 NANDSeek(NANDFileInfo* info, s32 offset, NANDSeekMode whence);
 s32 NANDSeekAsync(NANDFileInfo* info, s32 offset, NANDSeekMode whence,
                   NANDAsyncCallback callback, NANDCommandBlock* block);
 
+s32 NANDReadDir(const char* path, char* nameList, u32* num);
+
 s32 NANDCreateDir(const char* path, u8 perm, u8 attr);
 s32 NANDPrivateCreateDir(const char* path, u8 perm, u8 attr);
 s32 NANDPrivateCreateDirAsync(const char* path, u8 perm, u8 attr,

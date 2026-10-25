@@ -3,8 +3,6 @@
 #include <revolution/OS.h>
 #include <cstring>
 
-DECOMP_FORCELITERAL(AXVPB_c, 2.0f);
-
 /**
  * It's really even worse than this: what appears to be manually unrolled
  * copies.
@@ -228,7 +226,7 @@ void __AXServiceVPB(AXVPB* vpb) {
     }
 }
 
-void __AXDumpVPB(AXVPB* vpb) {
+inline void __AXDumpVPB(AXVPB* vpb) {
     AXPB* pb = &__AXPB[vpb->index];
 
     if (pb->state == AX_VOICE_RUN) {
@@ -427,6 +425,35 @@ static void __AXVPBInitCommon(void) {
     DCFlushRange(__AXPB, __AXMaxVoices * sizeof(AXPB));
 }
 
+void AXSetVoiceSrcType(AXVPB* vpb, u32 type) {
+    BOOL enabled = OSDisableInterrupts();
+    AXPB* pb = &vpb->pb;
+
+    switch (type) {
+    case AX_SRC_TYPE_NONE:
+        pb->srcSelect = 2;
+        break;
+    case AX_SRC_TYPE_LINEAR:
+        pb->srcSelect = 1;
+        break;
+    case AX_SRC_TYPE_4TAP_8K:
+        pb->srcSelect = 0;
+        pb->coefSelect = 0;
+        break;
+    case AX_SRC_TYPE_4TAP_12K:
+        pb->srcSelect = 0;
+        pb->coefSelect = 1;
+        break;
+    case AX_SRC_TYPE_4TAP_16K:
+        pb->srcSelect = 0;
+        pb->coefSelect = 2;
+        break;
+    }
+
+    vpb->sync |= AX_PBSYNC_SELECT;
+    OSRestoreInterrupts(enabled);
+}
+
 void AXSetVoiceState(AXVPB* vpb, u16 state) {
     BOOL enabled = OSDisableInterrupts();
 
@@ -441,6 +468,68 @@ void AXSetVoiceState(AXVPB* vpb, u16 state) {
     if (state == AX_VOICE_STOP) {
         vpb->depop = TRUE;
     }
+
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceType(AXVPB* vpb, u16 type) {
+    BOOL enabled = OSDisableInterrupts();
+
+    vpb->pb.type = type;
+    vpb->sync |= AX_PBSYNC_TYPE;
+
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceMix(AXVPB* vpb, AXPBMIX* mix) {
+    BOOL enabled;
+    u32 mixerCtrl;
+    u16* dst;
+    u16* src;
+
+    src = (u16*)mix;
+    dst = (u16*)&vpb->pb.mix;
+    mixerCtrl = 0;
+
+    enabled = OSDisableInterrupts();
+
+    if ((*dst++ = *src++)) mixerCtrl |= 0x1;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x5;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x2;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x6;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x10000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x50000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x20000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x60000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x200000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0xA00000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x400000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0xC00000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x4000000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x14000000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x8000000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x18000000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x8;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x18;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x80000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x180000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x1000000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x3000000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x20000000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x60000000;
+
+    vpb->pb.mixerCtrl = mixerCtrl;
+    vpb->sync |= AX_PBSYNC_MIXER_CTRL | AX_PBSYNC_MIX;
+
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceVe(AXVPB* vpb, AXPBVE* ve) {
+    BOOL enabled = OSDisableInterrupts();
+
+    vpb->pb.ve.currentVolume = ve->currentVolume;
+    vpb->pb.ve.currentDelta = ve->currentDelta;
+    vpb->sync |= AX_PBSYNC_VE;
 
     OSRestoreInterrupts(enabled);
 }
@@ -505,15 +594,166 @@ void AXSetVoiceAddr(AXVPB* vpb, AXPBADDR* addr) {
     OSRestoreInterrupts(enabled);
 }
 
+void AXSetVoiceAdpcm(AXVPB* vpb, AXPBADPCM* adpcm) {
+    BOOL enabled;
+    u32* dst;
+    u32* src;
+
+    dst = (u32*)&vpb->pb.adpcm;
+    src = (u32*)adpcm;
+
+    enabled = OSDisableInterrupts();
+
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+
+    vpb->sync |= AX_PBSYNC_ADPCM;
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceSrc(AXVPB* vpb, AXPBSRC* src_) {
+    BOOL enabled;
+    u16* dst;
+    u16* src;
+
+    dst = (u16*)&vpb->pb.src;
+    src = (u16*)src_;
+
+    enabled = OSDisableInterrupts();
+
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+
+    vpb->sync &= ~AX_PBSYNC_SRC_RATIO;
+    vpb->sync |= AX_PBSYNC_SRC;
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceSrcRatio(AXVPB* vpb, f32 ratio) {
+    u32 r;
+    BOOL enabled = OSDisableInterrupts();
+
+    r = 65536.0f * ratio;
+    vpb->pb.src.ratioHi = r >> 16;
+    vpb->pb.src.ratioLo = r;
+    vpb->sync |= AX_PBSYNC_SRC_RATIO;
+
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceAdpcmLoop(AXVPB* vpb, AXPBADPCMLOOP* adpcmLoop) {
+    BOOL enabled;
+    u16* dst;
+    u16* src;
+
+    dst = (u16*)&vpb->pb.adpcmLoop;
+    src = (u16*)adpcmLoop;
+
+    enabled = OSDisableInterrupts();
+
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+
+    vpb->sync |= AX_PBSYNC_ADPCM_LOOP;
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceLpf(AXVPB* vpb, AXPBLPF* lpf) {
+    BOOL enabled;
+    u16* dst;
+    u16* src;
+
+    dst = (u16*)&vpb->pb.lpf;
+    src = (u16*)lpf;
+
+    enabled = OSDisableInterrupts();
+
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+    *dst++ = *src++;
+
+    vpb->sync |= AX_PBSYNC_LPF;
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceLpfCoefs(AXVPB* vpb, u16 a0, u16 b0) {
+    BOOL enabled = OSDisableInterrupts();
+
+    vpb->pb.lpf.a0 = a0;
+    vpb->pb.lpf.b0 = b0;
+    vpb->sync |= AX_PBSYNC_LPF_COEFS;
+
+    OSRestoreInterrupts(enabled);
+}
+
 void AXGetLpfCoefs(u16 freq, u16* a, u16* b) {
-    f32 rf31 = 2.0f - cosf(2 * M_PI * freq / AX_SAMPLE_RATE);
-    f32 rf30 = sqrtf(rf31 * rf31 - 1.0f) - rf31;
+    f32 rf31 = 2.0f - (f32)cos(2 * M_PI * freq / AX_SAMPLE_RATE);
+    f32 rf30 = (f32)sqrt(rf31 * rf31 - 1.0f) - rf31;
 
     *b = 32768 * -rf30;
     *a = 32767 - *b;
 }
 
-void AXSetMaxDspCycles(u32 num) {
+void AXSetVoiceRmtOn(AXVPB* vpb, u16 on) {
+    BOOL enabled = OSDisableInterrupts();
+
+    vpb->pb.remote = on;
+    vpb->sync |= AX_PBSYNC_REMOTE;
+
+    OSRestoreInterrupts(enabled);
+}
+
+void AXSetVoiceRmtMix(AXVPB* vpb, AXPBRMTMIX* mix) {
+    BOOL enabled;
+    u16 mixerCtrl;
+    u16* dst;
+    u16* src;
+
+    src = (u16*)mix;
+    dst = (u16*)&vpb->pb.rmtMix;
+    mixerCtrl = 0;
+
+    enabled = OSDisableInterrupts();
+
+    if ((*dst++ = *src++)) mixerCtrl |= 0x1;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x2;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x4;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x8;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x10;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x20;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x40;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x80;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x100;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x200;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x400;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x800;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x1000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x2000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x4000;
+    if ((*dst++ = *src++)) mixerCtrl |= 0x8000;
+
+    vpb->pb.rmtMixerCtrl = mixerCtrl;
+    vpb->sync |= AX_PBSYNC_RMT_MIXER_CTRL | AX_PBSYNC_RMTMIX;
+
+    OSRestoreInterrupts(enabled);
+}
+
+inline void AXSetMaxDspCycles(u32 num) {
     __AXMaxDspCycles = num;
 }
 
@@ -531,6 +771,6 @@ static u32 __AXGetSrcCycles(u16 select, const AXPBSRC* src) {
     return 605;
 }
 
-s32 AXGetMaxVoices(void) {
+inline s32 AXGetMaxVoices(void) {
     return __AXMaxVoices;
 }
