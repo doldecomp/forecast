@@ -42,6 +42,8 @@ block_relocations:
 - source: .data:0x801CDD5C
 # vi3in1.c gammaSet: the gamma 1.0 values 0x8000, 0xA000 happen to form a .text address
 - source: 0x801C75F0
+# vcmv_www data: the constant 0x801B5080 happens to equal HBMBase's scFuncTouchPaneName
+- source: .data:0x801B5CB8
 
 # System.cpp: lis/addi pairs split by register spills, which analysis cannot pair
 add_relocations:

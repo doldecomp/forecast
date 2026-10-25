@@ -601,31 +601,43 @@ revolution/NWC24/NWC24System.c:
 	.sbss       start:0x80330D50 end:0x80330D5C
 
 revolution/ARC/arc.c:
-	.text       start:0x80071620 end:0x80071FD8
+	.text       start:0x80071620 end:0x80071FC0
 	.data       start:0x801B46C0 end:0x801B4730
-	.sdata      start:0x803302F8 end:0x80330308
+	.sdata      start:0x803302F8 end:0x80330300
 
 revolution/HBM/HBMBase.cpp:
-	.text       start:0x80071FD8 end:0x8007B888
+	.text       start:0x80071FC0 end:0x8007B888
 	.rodata     start:0x80193DC8 end:0x80194078
 	.data       start:0x801B4730 end:0x801B5320
 	.bss        start:0x80288D60 end:0x80288D98
-	.sdata      start:0x80330308 end:0x803303D0
+	.sdata      start:0x80330300 end:0x803303D0
 	.sbss       start:0x80330D60 end:0x80330D68
 	.sdata2     start:0x80332168 end:0x803321E0
 
-revolution/HBM/HBMGui.cpp:
-	.text       start:0x8007B888 end:0x8007CF6C
-	.data       start:0x801B5320 end:0x801B5488
+revolution/HBM/HBMAnmController.cpp:
+	.text       start:0x8007B888 end:0x8007B994
+	.data       start:0x801B5320 end:0x801B5330
+
+revolution/HBM/HBMFrameController.cpp:
+	.text       start:0x8007B994 end:0x8007BB34
+	.sdata2     start:0x803321E0 end:0x803321E4
+
+revolution/HBM/HBMGUIManager.cpp:
+	.text       start:0x8007BB34 end:0x8007CF6C
+	.data       start:0x801B5330 end:0x801B5488
 	.sbss       start:0x80330D68 end:0x80330D70
-	.sdata2     start:0x803321E0 end:0x803321F8
+	.sdata2     start:0x803321E8 end:0x803321F4
 
 revolution/HBM/HBMController.cpp:
-	.text       start:0x8007CF6C end:0x8007E2A8
-	.data       start:0x801B5488 end:0x801B5498
+	.text       start:0x8007CF6C end:0x8007DAB4
 	.bss        start:0x80288D98 end:0x80288F28
-	.sbss       start:0x80330D70 end:0x80330D80
-	.sdata2     start:0x803321F8 end:0x80332208
+	.sbss       start:0x80330D70 end:0x80330D78
+	.sdata2     start:0x803321F8 end:0x80332204
+
+revolution/HBM/HBMRemoteSpk.cpp:
+	.text       start:0x8007DAB4 end:0x8007E2A8
+	.data       start:0x801B5488 end:0x801B5494
+	.sbss       start:0x80330D78 end:0x80330D80
 
 vcmv/vcmv_cursor.cpp:
 	extab       start:0x800064E0 end:0x800064F0
