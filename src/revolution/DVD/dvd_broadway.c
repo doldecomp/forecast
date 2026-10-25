@@ -1,4 +1,5 @@
 #include <revolution/DVD.h>
+#include <revolution/ESP.h>
 #include <revolution/ESP/esp.h>
 #include <revolution/IPC.h>
 #include <revolution/OS.h>
@@ -12,6 +13,8 @@
 // Your guess is as good as mine
 #define DVD_LOW_CTX_IN_USE(ctx) ((u8)((ctx).inUse != FALSE))
 
+#define DVD_LOW_H3_HASH_SIZE 0x18000
+
 typedef enum {
     DVD_IOCTL_INQUIRY = 0x12,
     DVD_IOCTL_READ_DISK_ID = 0x70,
@@ -21,6 +24,7 @@ typedef enum {
     DVD_IOCTL_RESET = 0x8A,
     DVD_IOCTL_CLOSE_PARTITION = 0x8C,
     DVD_IOCTL_UNENCRYPTED_READ = 0x8D,
+    DVD_IOCTL_PREPARE_STATUS_REGISTER = 0x95,
     DVD_IOCTL_SEEK = 0xAB,
     DVD_IOCTL_SET_MAX_ROTATION = 0xDD,
     DVD_IOCTL_REQUEST_ERROR = 0xE0,
@@ -30,6 +34,9 @@ typedef enum {
 
 typedef enum {
     DVD_IOCTLV_OPEN_PARTITION = 0x8B,
+    DVD_IOCTLV_GET_NO_DISC_OPEN_PARTITION_PARAMS = 0x90,
+    DVD_IOCTLV_GET_NO_DISC_BUFFER_SIZES = 0x92,
+    DVD_IOCTLV_OPEN_PARTITION_WITH_TMD_AND_TICKET_VIEW = 0x94,
 } DVDLowIoctlv;
 
 typedef struct DVDLowContext {
@@ -63,27 +70,32 @@ typedef struct DVDLowRegBuffer {
     char padding[32 - 0x4];
 } DVDLowRegBuffer;
 
-static s32 DiFD = -1;
-
+static u8 requestInProgress = FALSE;
 static u8 breakRequested;
+static u8 callbackInProgress = FALSE;
+
+s32 DiFD = -1;
+
+static s32 freeCommandBuf = 0;
+
+static s32 freeDvdContext = 0;
+static u8 dvdContextsInited = FALSE;
+static u8 DVDLowInitCalled = FALSE;
 static DVDLowDICommand* diCommand;
 static char* pathBuf;
+
 static u32 readLength;
 static BOOL spinUpValue;
-static u8 DVDLowInitCalled;
-static u8 dvdContextsInited;
-static s32 freeDvdContext;
-static s32 freeCommandBuf;
-static u8 callbackInProgress;
-static u8 requestInProgress;
 
-static DVDLowContext dvdContexts[DVD_LOW_CTX_MAX] ALIGN(32);
-static DVDLowDiRegs diRegValCache ALIGN(32);
-static DVDLowRegBuffer registerBuf ALIGN(32);
-static IPCIOVector ioVec[5] ALIGN(32);
-static u8 lastTicketError[32] ALIGN(32);
-
-DECOMP_FORCEACTIVE(dvd_broadway_c, dvdContexts);
+static DVDLowContext dvdContexts[DVD_LOW_CTX_MAX] ALIGN(32) = {0};
+static DVDLowDiRegs diRegValCache ALIGN(32) = {0};
+static DVDLowRegBuffer registerBuf ALIGN(32) = {0};
+static IPCIOVector ioVec[10] ALIGN(32) = {0};
+static u8 lastTicketError[32] ALIGN(32) = {0};
+// Only used by functions that are not in this program
+DVDLowRegBuffer coverStatus ALIGN(32) = {0};
+DVDLowRegBuffer coverRegister ALIGN(32) = {0};
+static DVDLowRegBuffer statusRegister ALIGN(32) = {0};
 
 static void nextCommandBuf(void);
 static DVDLowContext* newContext(DVDLowCallback callback, UNKWORD arg2);
@@ -166,8 +178,8 @@ static s32 doTransactionCallback(s32 intType, void* arg) {
     return IPC_RESULT_OK;
 }
 
-DECOMP_FORCEACTIVE(dvd_broadway_c,
-                   "(doCoverCallback) Error - context mangled!\n");
+// Message of doCoverCallback (not in this program)
+char sCoverCallbackMangledMsg[] = "(doCoverCallback) Error - context mangled!\n";
 
 static s32 doPrepareCoverRegisterCallback(s32 intType, void* arg) {
     DVDLowContext* ctx = (DVDLowContext*)arg;
@@ -195,6 +207,16 @@ static s32 doPrepareCoverRegisterCallback(s32 intType, void* arg) {
 
     ctx->inUse = FALSE;
     return IPC_RESULT_OK;
+}
+
+BOOL DVDLowFinalize(void) {
+    if (IOS_Close(DiFD) != IPC_RESULT_OK) {
+        OSReport("(DVDLowFinish) Error: IOS_Close failed\n");
+        return FALSE;
+    }
+
+    DVDLowInitCalled = FALSE;
+    return TRUE;
 }
 
 BOOL DVDLowInit(void) {
@@ -389,6 +411,232 @@ BOOL DVDLowOpenPartition(u32 offset, const ESPTicket* ticket, u32 certsSize,
     return TRUE;
 }
 
+// Messages of DVDLowOpenPartitionWithTmdAndTicket (not in this program)
+char sOpenPartitionWithTmdAndTicketName[] =
+    "DVDLowOpenPartitionWithTmdAndTicket";
+char sTicketUnalignedMsg[] = "(%s) eTicket memory is unaligned\n";
+char sTmdNullMsg[] = "(%s) tmd parameter cannot be NULL\n";
+char sTmdUnalignedMsg[] = "(%s) tmd memory is unaligned\n";
+char sTicketNullMsg[] = "(%s) eTicket parameter cannot be NULL\n";
+
+BOOL DVDLowOpenPartitionWithTmdAndTicketView(u32 offset,
+                                             const ESTicketView* ticketView,
+                                             u32 tmdSize, const ESTitleMeta* tmd,
+                                             u32 certsSize, const u8* certs,
+                                             DVDLowCallback callback) {
+    DVDLowContext* ctx;
+    IPCResult result;
+
+    if (certs != NULL && (u32)certs % 32 != 0) {
+        return FALSE;
+    }
+
+    if (tmd == NULL) {
+        OSReport(sTmdNullMsg, __FUNCTION__);
+        return FALSE;
+    } else if ((u32)tmd % 32 != 0) {
+        OSReport(sTmdUnalignedMsg, __FUNCTION__);
+        return FALSE;
+    }
+
+    if (ticketView == NULL) {
+        OSReport("(%s) eTicketView parameter cannot be NULL\n", __FUNCTION__);
+        return FALSE;
+    } else if ((u32)ticketView % 32 != 0) {
+        OSReport("(%s) eTicketView memory is unaligned\n", __FUNCTION__);
+        return FALSE;
+    }
+
+    requestInProgress = TRUE;
+    ctx = newContext(callback, 1);
+
+    nextCommandBuf();
+    diCommand[freeCommandBuf].command =
+        DVD_IOCTLV_OPEN_PARTITION_WITH_TMD_AND_TICKET_VIEW;
+    diCommand[freeCommandBuf].arg1 = offset;
+
+    // Input vector 1: DI command
+    ioVec[0].base = &diCommand[freeCommandBuf];
+    ioVec[0].length = sizeof(DVDLowDICommand);
+
+    // Input vector 2: eTicket view
+    ioVec[1].base = (void*)ticketView;
+    ioVec[1].length = sizeof(ESTicketView);
+
+    // Input vector 3: TMD
+    ioVec[2].base = (void*)tmd;
+    ioVec[2].length = tmdSize;
+
+    // Input vector 4: Shared certs
+    ioVec[3].base = (void*)certs;
+    if (certs == NULL) {
+        ioVec[3].length = 0;
+    } else {
+        ioVec[3].length = certsSize;
+    }
+
+    // Output vector 1: Ticket error
+    ioVec[4].base = &lastTicketError;
+    ioVec[4].length = sizeof(lastTicketError);
+
+    result = IOS_IoctlvAsync(DiFD,
+                             DVD_IOCTLV_OPEN_PARTITION_WITH_TMD_AND_TICKET_VIEW,
+                             4, 1, ioVec, doTransactionCallback, ctx);
+
+    if (result != IPC_RESULT_OK) {
+        OSReport(
+            "@@@ (DVDLowOpenPartition) IOS_IoctlvAsync returned error: %d\n",
+            result);
+        ctx->inUse = FALSE;
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOL DVDLowGetNoDiscBufferSizes(u32 offset, u32* tmdSize, u32* certsSize,
+                                DVDLowCallback callback) {
+    DVDLowContext* ctx;
+    IPCResult result;
+
+    if (tmdSize == NULL || certsSize == NULL) {
+        OSReport("(%s) Error: NULL pointer argument\n", __FUNCTION__);
+        return FALSE;
+    }
+
+    if ((u32)tmdSize % 32 != 0) {
+        OSReport("(%s) numTmdBytes memory is unaligned\n", __FUNCTION__);
+        return FALSE;
+    }
+
+    if ((u32)certsSize % 32 != 0) {
+        OSReport("(%s) certificates memory is unaligned\n", __FUNCTION__);
+        return FALSE;
+    }
+
+    requestInProgress = TRUE;
+    ctx = newContext(callback, 1);
+
+    nextCommandBuf();
+    diCommand[freeCommandBuf].command = DVD_IOCTLV_GET_NO_DISC_BUFFER_SIZES;
+    diCommand[freeCommandBuf].arg1 = offset;
+
+    // Input vector 1: DI command
+    ioVec[0].base = &diCommand[freeCommandBuf];
+    ioVec[0].length = sizeof(DVDLowDICommand);
+
+    // Output vector 1: TMD size
+    ioVec[1].base = tmdSize;
+    ioVec[1].length = sizeof(u32);
+
+    // Output vector 2: Shared certs size
+    ioVec[2].base = certsSize;
+    ioVec[2].length = sizeof(u32);
+
+    result = IOS_IoctlvAsync(DiFD, DVD_IOCTLV_GET_NO_DISC_BUFFER_SIZES, 1, 2,
+                             ioVec, doTransactionCallback, ctx);
+
+    if (result != IPC_RESULT_OK) {
+        OSReport("@@@ (%s) IOS_IoctlvAsync returned error: %d\n", __FUNCTION__,
+                 result);
+        ctx->inUse = FALSE;
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+#define IS_ALIGNED_32(x) ((u32)(x) % 32 == 0)
+
+BOOL DVDLowGetNoDiscOpenPartitionParams(u32 offset, ESTicket* ticket,
+                                        u32* tmdSize, ESTitleMeta* tmd,
+                                        u32* certsSize, u8* certs,
+                                        u32* dataWordOffset, u8* h3Hash,
+                                        DVDLowCallback callback) {
+    DVDLowContext* ctx;
+    IPCResult result;
+
+    if (ticket == NULL || tmdSize == NULL || tmd == NULL || certsSize == NULL ||
+        certs == NULL || dataWordOffset == NULL || h3Hash == NULL) {
+        OSReport("(%s) Error: NULL pointer argument\n", __FUNCTION__);
+        return FALSE;
+    }
+
+    if (!IS_ALIGNED_32(ticket) || !IS_ALIGNED_32(tmdSize) ||
+        !IS_ALIGNED_32(tmd) || !IS_ALIGNED_32(certsSize) ||
+        !IS_ALIGNED_32(certs) || !IS_ALIGNED_32(dataWordOffset) ||
+        !IS_ALIGNED_32(h3Hash)) {
+        OSReport("(%s) pointer argument is unaligned\n", __FUNCTION__);
+        return FALSE;
+    }
+
+    requestInProgress = TRUE;
+    ctx = newContext(callback, 1);
+
+    nextCommandBuf();
+    diCommand[freeCommandBuf].command =
+        DVD_IOCTLV_GET_NO_DISC_OPEN_PARTITION_PARAMS;
+    diCommand[freeCommandBuf].arg1 = offset;
+
+    // Input vector 1: DI command
+    ioVec[0].base = &diCommand[freeCommandBuf];
+    ioVec[0].length = sizeof(DVDLowDICommand);
+
+    // Input vector 2: TMD size
+    ioVec[1].base = tmdSize;
+    ioVec[1].length = sizeof(u32);
+
+    // Input vector 3: Shared certs size
+    ioVec[2].base = certsSize;
+    ioVec[2].length = sizeof(u32);
+
+    // Output vector 1: eTicket
+    ioVec[3].base = ticket;
+    ioVec[3].length = sizeof(ESTicket);
+
+    // Output vector 2: TMD size
+    ioVec[4].base = tmdSize;
+    ioVec[4].length = sizeof(u32);
+
+    // Output vector 3: TMD
+    ioVec[5].base = tmd;
+    ioVec[5].length = *tmdSize;
+
+    // Output vector 4: Shared certs size
+    ioVec[6].base = certsSize;
+    ioVec[6].length = sizeof(u32);
+
+    // Output vector 5: Shared certs
+    ioVec[7].base = certs;
+    ioVec[7].length = *certsSize;
+
+    // Output vector 6: Data offset
+    ioVec[8].base = dataWordOffset;
+    ioVec[8].length = sizeof(u32);
+
+    // Output vector 7: H3 hash table
+    ioVec[9].base = h3Hash;
+    ioVec[9].length = DVD_LOW_H3_HASH_SIZE;
+
+    result = IOS_IoctlvAsync(DiFD, DVD_IOCTLV_GET_NO_DISC_OPEN_PARTITION_PARAMS,
+                             3, 7, ioVec, doTransactionCallback, ctx);
+
+    if (result != IPC_RESULT_OK) {
+        OSReport("@@@ (%s) IOS_IoctlvAsync returned error: %d\n", __FUNCTION__,
+                 result);
+        ctx->inUse = FALSE;
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+// Name of DVDLowNoDiscOpenPartition (not in this program)
+char sNoDiscOpenPartitionName[] = "DVDLowNoDiscOpenPartition";
+
 BOOL DVDLowClosePartition(DVDLowCallback callback) {
     DVDLowContext* ctx;
     IPCResult result;
@@ -474,8 +722,9 @@ BOOL DVDLowStopMotor(BOOL eject, BOOL kill, DVDLowCallback callback) {
     return TRUE;
 }
 
-DECOMP_FORCEACTIVE(dvd_broadway_c,
-                   "@@@ (DVDLowWaitForCoverClose) IOS_IoctlAsync returned error: %d\n");
+// Message of DVDLowWaitForCoverClose (not in this program)
+char sWaitForCoverCloseErrorMsg[] =
+    "@@@ (DVDLowWaitForCoverClose) IOS_IoctlAsync returned error: %d\n";
 
 BOOL DVDLowInquiry(DVDDriveInfo* out, DVDLowCallback callback) {
     DVDLowContext* ctx;
@@ -528,14 +777,16 @@ BOOL DVDLowRequestError(DVDLowCallback callback) {
     return TRUE;
 }
 
-DECOMP_FORCEACTIVE(dvd_broadway_c,
-                   "(DVDLowSetSpinupFlag): Synch functions can't be called in callbacks\n",
-                   "@@@ (DVDLowNotifyReset) IOS_IoctlAsync returned error: %d\n");
-
 BOOL DVDLowSetSpinupFlag(BOOL enable) {
     spinUpValue = enable;
     return TRUE;
 }
+
+// Messages of DVDLowNotifyReset (not in this program)
+char sNotifyResetInCallbackMsg[] =
+    "(DVDLowSetSpinupFlag): Synch functions can't be called in callbacks\n";
+char sNotifyResetErrorMsg[] =
+    "@@@ (DVDLowNotifyReset) IOS_IoctlAsync returned error: %d\n";
 
 BOOL DVDLowReset(DVDLowCallback callback) {
     DVDLowContext* ctx;
@@ -592,21 +843,36 @@ BOOL DVDLowAudioBufferConfig(BOOL enable, u32 size, DVDLowCallback callback) {
     return TRUE;
 }
 
-DECOMP_FORCEACTIVE(dvd_broadway_c,
-                   "(DVDLowGetCoverStatus): Synch functions can't be called in callbacks\n",
-                   "@@@ (DVDLowGetCoverStatus) IOS_Ioctl returned error: %d\n",
-                   "@@@ (DVDLowReadDVD) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowReadDVDConfig) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowReadDvdCopyright) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowReadDvdPhysical) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowReadDvdDiscKey) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowReportKey) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowOffset) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowStopLaser) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowReadDiskBca) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowSerMeasControl) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowRequestDiscStatus) IOS_IoctlAsync returned error: %d\n",
-                   "@@@ (DVDLowRequestRetryNumber) IOS_IoctlAsync returned error: %d\n");
+// Messages of DVDLowGetCoverStatus through DVDLowRequestRetryNumber
+// (not in this program)
+char sGetCoverStatusInCallbackMsg[] =
+    "(DVDLowGetCoverStatus): Synch functions can't be called in callbacks\n";
+char sGetCoverStatusErrorMsg[] =
+    "@@@ (DVDLowGetCoverStatus) IOS_Ioctl returned error: %d\n";
+char sReadDvdErrorMsg[] =
+    "@@@ (DVDLowReadDVD) IOS_IoctlAsync returned error: %d\n";
+char sReadDvdConfigErrorMsg[] =
+    "@@@ (DVDLowReadDVDConfig) IOS_IoctlAsync returned error: %d\n";
+char sReadDvdCopyrightErrorMsg[] =
+    "@@@ (DVDLowReadDvdCopyright) IOS_IoctlAsync returned error: %d\n";
+char sReadDvdPhysicalErrorMsg[] =
+    "@@@ (DVDLowReadDvdPhysical) IOS_IoctlAsync returned error: %d\n";
+char sReadDvdDiscKeyErrorMsg[] =
+    "@@@ (DVDLowReadDvdDiscKey) IOS_IoctlAsync returned error: %d\n";
+char sReportKeyErrorMsg[] =
+    "@@@ (DVDLowReportKey) IOS_IoctlAsync returned error: %d\n";
+char sOffsetErrorMsg[] =
+    "@@@ (DVDLowOffset) IOS_IoctlAsync returned error: %d\n";
+char sStopLaserErrorMsg[] =
+    "@@@ (DVDLowStopLaser) IOS_IoctlAsync returned error: %d\n";
+char sReadDiskBcaErrorMsg[] =
+    "@@@ (DVDLowReadDiskBca) IOS_IoctlAsync returned error: %d\n";
+char sSerMeasControlErrorMsg[] =
+    "@@@ (DVDLowSerMeasControl) IOS_IoctlAsync returned error: %d\n";
+char sRequestDiscStatusErrorMsg[] =
+    "@@@ (DVDLowRequestDiscStatus) IOS_IoctlAsync returned error: %d\n";
+char sRequestRetryNumberErrorMsg[] =
+    "@@@ (DVDLowRequestRetryNumber) IOS_IoctlAsync returned error: %d\n";
 
 BOOL DVDLowSetMaximumRotation(u32 speed, DVDLowCallback callback) {
     DVDLowContext* ctx;
@@ -696,12 +962,18 @@ BOOL DVDLowSeek(u32 offset, DVDLowCallback callback) {
     return TRUE;
 }
 
-DECOMP_FORCEACTIVE(dvd_broadway_c,
-                   "(DVDLowGetCoverReg): Synch functions can't be called in callbacks\n",
-                   "@@@ (DVDLowGetCoverReg) IOS_Ioctl returned error: %d\n");
+// Messages of DVDLowGetCoverReg (not in this program)
+char sGetCoverRegInCallbackMsg[] =
+    "(DVDLowGetCoverReg): Synch functions can't be called in callbacks\n";
+char sGetCoverRegErrorMsg[] =
+    "@@@ (DVDLowGetCoverReg) IOS_Ioctl returned error: %d\n";
 
 u32 DVDLowGetCoverRegister(void) {
     return diRegValCache.dicvr;
+}
+
+u32 DVDLowGetStatusRegister(void) {
+    return statusRegister.reg;
 }
 
 BOOL DVDLowPrepareCoverRegister(DVDLowCallback callback) {
@@ -721,6 +993,33 @@ BOOL DVDLowPrepareCoverRegister(DVDLowCallback callback) {
 
     if (result != IPC_RESULT_OK) {
         OSReport("@@@ (DVDLowPrepareCoverRegsiter) IOS_IoctlAsync returned "
+                 "error: %d\n",
+                 result);
+        ctx->inUse = FALSE;
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOL DVDLowPrepareStatusRegister(DVDLowCallback callback) {
+    DVDLowContext* ctx;
+    IPCResult result;
+
+    nextCommandBuf();
+    diCommand[freeCommandBuf].command = DVD_IOCTL_PREPARE_STATUS_REGISTER;
+
+    requestInProgress = TRUE;
+    ctx = newContext(callback, 1);
+
+    result = IOS_IoctlAsync(DiFD, DVD_IOCTL_PREPARE_STATUS_REGISTER,
+                            &diCommand[freeCommandBuf], sizeof(DVDLowDICommand),
+                            &statusRegister, sizeof(DVDLowRegBuffer),
+                            doTransactionCallback, ctx);
+
+    if (result != IPC_RESULT_OK) {
+        OSReport("@@@ (DVDLowPrepareStatusRegsiter) IOS_IoctlAsync returned "
                  "error: %d\n",
                  result);
         ctx->inUse = FALSE;
@@ -775,5 +1074,6 @@ BOOL __DVDLowTestAlarm(const OSAlarm* alarm) {
     return FALSE;
 }
 
-DECOMP_FORCEACTIVE(dvd_broadway_c,
-                   "@@@ (DVDLowEnableDvdVideo) IOS_IoctlAsync returned error: %d\n");
+// Message of DVDLowEnableDvdVideo (not in this program)
+char sEnableDvdVideoErrorMsg[] =
+    "@@@ (DVDLowEnableDvdVideo) IOS_IoctlAsync returned error: %d\n";

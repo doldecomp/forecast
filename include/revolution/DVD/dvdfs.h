@@ -9,6 +9,18 @@
 extern "C" {
 #endif
 
+typedef struct DVDDir {
+    u32 entryNum; // at 0x0
+    u32 location; // at 0x4
+    u32 next;     // at 0x8
+} DVDDir;
+
+typedef struct DVDDirEntry {
+    u32 entryNum; // at 0x0
+    BOOL isDir;   // at 0x4
+    char* name;   // at 0x8
+} DVDDirEntry;
+
 extern OSThreadQueue __DVDThreadQueue;
 extern BOOL __DVDLongFileNameFlag;
 

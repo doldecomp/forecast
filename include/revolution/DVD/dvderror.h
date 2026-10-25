@@ -29,6 +29,7 @@ typedef struct DVDErrorInfo {
 } DVDErrorInfo;
 
 extern DVDErrorInfo __ErrorInfo;
+extern DVDErrorInfo __FirstErrorInfo;
 
 void __DVDStoreErrorCode(u32 error, DVDErrorCallback callback);
 
