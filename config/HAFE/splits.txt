@@ -1759,17 +1759,11 @@ revolution/AI/ai.c:
 	.sdata      start:0x80330660 end:0x80330668
 	.sbss       start:0x80331598 end:0x803315D8
 
-revolution/AX/AXComp.c:
-	.data       start:0x801C9CA0 end:0x801CAC60
-
 revolution/AX/AX.c:
 	.text       start:0x8010B3C4 end:0x8010B418
-	.sdata      start:0x80330668 end:0x80330670
-	.sbss       start:0x803315D8 end:0x803315E0
-
-revolution/AX/DSPCode.c:
-	.data       start:0x801CAC60 end:0x801CCC60
-	.sdata      start:0x80330670 end:0x80330678
+	.data       start:0x801C9BC8 end:0x801C9C0F
+	.sdata      start:0x80330668 end:0x8033066C
+	.sbss       start:0x803315D8 end:0x803315DC
 
 revolution/AX/AXAlloc.c:
 	.text       start:0x8010B418 end:0x8010B8D0
@@ -1779,7 +1773,7 @@ revolution/AX/AXAlloc.c:
 revolution/AX/AXAux.c:
 	.text       start:0x8010B8D0 end:0x8010C0E8
 	.bss        start:0x802D24E0 end:0x802D5660
-	.sbss       start:0x803315E8 end:0x80331630
+	.sbss       start:0x803315E8 end:0x8033162F
 
 revolution/AX/AXCL.c:
 	.text       start:0x8010C0E8 end:0x8010CB6C
@@ -1789,7 +1783,7 @@ revolution/AX/AXCL.c:
 revolution/AX/AXOut.c:
 	.text       start:0x8010CB6C end:0x8010D358
 	.bss        start:0x802D5760 end:0x802D6560
-	.sbss       start:0x80331650 end:0x80331690
+	.sbss       start:0x80331650 end:0x8033168C
 
 revolution/AX/AXSPB.c:
 	.text       start:0x8010D358 end:0x8010D778
@@ -1798,9 +1792,17 @@ revolution/AX/AXSPB.c:
 
 revolution/AX/AXVPB.c:
 	.text       start:0x8010D778 end:0x8010ED88
+	.data       start:0x801C9C10 end:0x801C9CA0
 	.bss        start:0x802D65E0 end:0x802E7CE0
 	.sbss       start:0x803316E0 end:0x80331700
 	.sdata2     start:0x80332F90 end:0x80332FB0
+
+revolution/AX/AXComp.c:
+	.data       start:0x801C9CA0 end:0x801CAC60
+
+revolution/AX/DSPCode.c:
+	.data       start:0x801CAC60 end:0x801CCC60
+	.sdata      start:0x80330670 end:0x80330676
 
 revolution/AX/AXProf.c:
 	.text       start:0x8010ED88 end:0x8010EDC8

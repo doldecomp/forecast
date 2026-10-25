@@ -405,7 +405,7 @@ config.libs = [
             Object(NonMatching, "revolution/ARC/arc.c"),
 
             # AX
-            Object(NonMatching, "revolution/AX/AX.c"),
+            Object(Matching, "revolution/AX/AX.c"),
             Object(Matching, "revolution/AX/AXAlloc.c"),
             Object(Matching, "revolution/AX/AXAux.c"),
             Object(Matching, "revolution/AX/AXCL.c"),
@@ -559,7 +559,7 @@ config.libs = [
             Object(Matching, "revolution/DVD/dvdqueue.c"),
 
             # ESP
-            Object(NonMatching, "revolution/ESP/esp.c"),
+            Object(Matching, "revolution/ESP/esp.c"),
 
             # EUART
             Object(Matching, "revolution/EUART/euart.c"),

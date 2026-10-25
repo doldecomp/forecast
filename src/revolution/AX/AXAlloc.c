@@ -38,7 +38,7 @@ void __AXInitVoiceStacks(void) {
     }
 }
 
-void __AXAllocInit(void) {
+inline void __AXAllocInit(void) {
     __AXInitVoiceStacks();
 }
 
@@ -48,7 +48,7 @@ void __AXPushFreeStack(AXVPB* vpb) {
     vpb->priority = AX_PRIORITY_FREE;
 }
 
-AXVPB* __AXPopFreeStack(void) {
+inline AXVPB* __AXPopFreeStack(void) {
     AXVPB* head = __AXStackHead[AX_PRIORITY_FREE];
 
     if (head != NULL) {
@@ -63,7 +63,7 @@ void __AXPushCallbackStack(AXVPB* vpb) {
     __AXCallbackStack = vpb;
 }
 
-AXVPB* __AXPopCallbackStack(void) {
+inline AXVPB* __AXPopCallbackStack(void) {
     AXVPB* head = __AXCallbackStack;
 
     if (head != NULL) {
@@ -95,7 +95,7 @@ void __AXRemoveFromStack(AXVPB* vpb) {
     }
 }
 
-void __AXPushStackHead(AXVPB* vpb, u32 prio) {
+inline void __AXPushStackHead(AXVPB* vpb, u32 prio) {
     vpb->next = __AXStackHead[prio];
     vpb->prev = NULL;
 
@@ -110,7 +110,7 @@ void __AXPushStackHead(AXVPB* vpb, u32 prio) {
     vpb->priority = prio;
 }
 
-AXVPB* __AXPopStackFromBottom(u32 prio) {
+inline AXVPB* __AXPopStackFromBottom(u32 prio) {
     AXVPB* vpb = NULL;
 
     if (__AXStackHead[prio] != NULL) {

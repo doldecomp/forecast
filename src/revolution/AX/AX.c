@@ -11,7 +11,7 @@ void AXInit(void) {
     AXInitEx(0);
 }
 
-void AXInitEx(u32 mode) {
+inline void AXInitEx(u32 mode) {
     if (!__init) {
         OSRegisterVersion(__AXVersion);
 
