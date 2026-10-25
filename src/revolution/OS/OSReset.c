@@ -18,11 +18,11 @@ void __OSHotResetForError(void);
 #pragma dont_inline on
 void __OSReboot(u32 resetCode, u32 bootDol) {
     OSDisableInterrupts();
-    OSSetArenaLo((void*)0x81280000);
-    OSSetArenaHi((void*)0x812F0000);
+    OSSetArenaLo(OS_EXEC_ARENA_LO);
+    OSSetArenaHi(OS_EXEC_ARENA_HI);
     {
         char* argvToPass = NULL;
-        __OSLaunchPartitionType = OS_BOOT_PARTITION_TYPE;
+        __OSNextPartitionType = OS_BOOT_PARTITION_TYPE;
         __OSBootDol(bootDol, resetCode | 0x80000000, (const char**)&argvToPass);
     }
 }
@@ -263,14 +263,14 @@ static void ReturnToMenu(u8 menuMode) {
 
 void OSReturnToMenu(void) {
     ReturnToMenu(0);
-#line 834
     OSPanic("OSReset.c", 834, "OSReturnToMenu(): Falied to boot system menu.\n");
 }
 
-void OSReturnToDataManager(void) {
-    ReturnToMenu(1);
-    OSPanic("OSReset.c", 850, "OSReturnToDataManager(): Falied to boot system menu.\n");
-}
+// OSReturnToDataManager and OSSetBootDol are not in this DOL: the game never
+// calls them, so the linker dead-stripped their code, but their pooled strings
+// stayed in .data. Keep only the strings.
+char OSReturnToDataManagerMsg[] =
+    "OSReturnToDataManager(): Falied to boot system menu.\n";
 
 void OSReturnToSetting(u8 setting) {
     const char* arg;
@@ -348,7 +348,5 @@ void OSResetSystem(int reset, u32 resetCode, BOOL forceMenu) {
     OSPanic("OSReset.c", 1124, "OSResetSystem() is obsoleted. It doesn't work any longer.\n");
 }
 
-void OSSetBootDol(u32 bootDol) {
-#pragma unused(bootDol)
-    OSPanic("OSReset.c", 1138, "OSSetBootDol() is obsoleted. It doesn't work any longer.\n");
-}
+char OSSetBootDolMsg[] =
+    "OSSetBootDol() is obsoleted. It doesn't work any longer.\n";

@@ -115,12 +115,14 @@ OS_DEF_GLOBAL_VAR(void*, LAST_REL,                       0x800030CC);
 OS_DEF_GLOBAL_VAR(void*, REL_NAME_TABLE,                 0x800030D0);
 OS_DEF_GLOBAL_VAR(u32, DOL_TOTAL_TEXT_DATA,              0x800030D4);
 OS_DEF_GLOBAL_VAR(s64, SYSTEM_TIME,                      0x800030D8);
+OS_DEF_GLOBAL_VAR(u8, REBOOT_BOOL,                       0x800030E2);
 OS_DEF_GLOBAL_VAR(s8, PAD_FLAGS,                         0x800030E3);
 OS_DEF_GLOBAL_VAR(u16, GC_PAD_3_BTN,                     0x800030E4);
 OS_DEF_GLOBAL_VAR(volatile u16, DVD_DEVICE_CODE,         0x800030E6);
 OS_DEF_GLOBAL_VAR(u8, BI2_DEBUG_FLAG,                    0x800030E8);
 OS_DEF_GLOBAL_VAR(u8, PAD_SPEC,                          0x800030E9);
 OS_DEF_GLOBAL_VAR(OSExecParams*, DOL_EXEC_PARAMS,        0x800030F0);
+OS_DEF_GLOBAL_VAR(s32, CURRENT_TGC_OFFSET,               0x800030F4);
 OS_DEF_GLOBAL_VAR(u32, PHYSICAL_MEM1_SIZE,               0x80003100);
 OS_DEF_GLOBAL_VAR(u32, SIMULATED_MEM1_SIZE,              0x80003104);
 OS_DEF_GLOBAL_VAR(void*, USABLE_MEM1_START,              0x8000310C);
@@ -143,6 +145,7 @@ OS_DEF_GLOBAL_VAR(u8, APPLOADER_TARGET,                  0x8000315D);
 OS_DEF_GLOBAL_VAR(BOOL, MIOS_SHUTDOWN_FLAG,              0x80003164);
 OS_DEF_GLOBAL_VAR(u32, CURRENT_APP_NAME,                 0x80003180);
 OS_DEF_GLOBAL_VAR(u8, CURRENT_APP_TYPE,                  0x80003184);
+OS_DEF_GLOBAL_VAR(u8, LOCKED_FLAG,                       0x80003187);
 OS_DEF_GLOBAL_VAR(u32, MINIMUM_IOS_VERSION,              0x80003188);
 OS_DEF_GLOBAL_VAR(u32, NAND_TITLE_LAUNCH_CODE,           0x8000318C);
 OS_DEF_GLOBAL_VAR(u32, NAND_TITLE_RETURN_CODE,           0x80003190);
@@ -152,6 +155,15 @@ OS_DEF_GLOBAL_VAR(s8, WIFI_AFH_CHANNEL,                  0x800031A2);
 OS_DEF_GLOBAL_ARR(u8, NWC24_USER_ID_BUFFER, [32],        0x800031C0);
 OS_DEF_GLOBAL_VAR(u64, NWC24_USER_ID,                    0x800031C0);
 OS_DEF_GLOBAL_ARR(u8, SC_PRDINFO, [0x100],               0x80003800);
+// clang-format on
+
+/**
+ * 0x812FDFEC - 0x812FDFF4
+ * The memory region the reboot code keeps when it boots the next program.
+ */
+// clang-format off
+OS_DEF_GLOBAL_VAR(void*, BOOT_REGION_END,                0x812FDFEC);
+OS_DEF_GLOBAL_VAR(void*, BOOT_REGION_START,              0x812FDFF0);
 // clang-format on
 
 /**

@@ -44,13 +44,13 @@ block_relocations:
 # System.cpp: lis/addi pairs split by register spills, which analysis cannot pair
 add_relocations:
 # OSExec.c __OSBootDolSimple: the last OS_DOL_EXEC_PARAMS store goes through the
-# linker symbol __OSDolExecParams (0x800030F0), so it is a relocation, not a constant
+# linker symbol __OSExecParamsAddr (0x800030F0), so it is a relocation, not a constant
 - source: 0x800E8CB0
   type: ha
-  target: __OSDolExecParams
+  target: __OSExecParamsAddr
 - source: 0x800E8CB8
   type: l
-  target: __OSDolExecParams
+  target: __OSExecParamsAddr
 # CityLabel.cpp: sDigits and the first .bss object start their sections, which analysis names _f_rodata/_f_bss
 - source: 0x8000810C
   type: ha

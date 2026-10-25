@@ -55,10 +55,11 @@ extern BOOL __OSCreateNandbootInfo(void);
 extern BOOL __OSWriteNandbootInfo(OSNandbootInfo* info);
 extern void __OSHotResetForError(void);
 
-// OS_DOL_EXEC_PARAMS (0x800030F0) as a linker-defined symbol. The final store in
-// RunApploader goes through it: the compiler does not share the 0x80000000 base
-// of the stores just before it, which a constant address would.
-DECL_SECTION(".data") extern OSExecParams* __OSDolExecParams;
+// OS_DOL_EXEC_PARAMS (0x800030F0) under its SDK name, as a linker-defined
+// symbol. The final store in RunApploader goes through it: the compiler does not
+// share the 0x80000000 base of the stores just before it, which a constant
+// address would.
+DECL_SECTION(".data") extern OSExecParams* __OSExecParamsAddr;
 
 static DVDDiskID DiskID;
 
@@ -66,7 +67,7 @@ static volatile BOOL Prepared;
 BOOL __OSInReboot;
 static volatile u32 intTypeTmp;
 // Zero-initialized so it is laid out ahead of the function-local statics.
-u32 __OSLaunchPartitionType = 0;
+u32 __OSNextPartitionType = 0;
 
 static int PackArgs(void* addr, s32 argc, char* argv[]) {
     int argCount;
@@ -242,20 +243,21 @@ static s32 GetApploaderPosition(void) {
         return apploaderPosition;
     }
 
-    if (*(s32*)0x800030F4 != 0) {
+    if (OS_CURRENT_TGC_OFFSET != 0) {
         s32* header = (s32*)OSAllocFromMEM1ArenaLo(0x40, 0x20);
-        ReadDisc(header, 0x40, *(s32*)0x800030F4 >> 2);
+        ReadDisc(header, 0x40, OS_CURRENT_TGC_OFFSET >> 2);
         off = header[14];
-        apploaderPosition = (*(s32*)0x800030F4 + off) >> 2;
+        apploaderPosition = (OS_CURRENT_TGC_OFFSET + off) >> 2;
     } else {
-        apploaderPosition = 0x910;
+        // The apploader's disc offset, in words.
+        apploaderPosition = 0x2440 >> 2;
     }
 
     return apploaderPosition;
 }
 
 void __OSGetExecParams(OSExecParams* out) {
-    if ((void*)OS_DOL_EXEC_PARAMS >= (void*)0x80000000) {
+    if ((u32)OS_DOL_EXEC_PARAMS >= 0x80000000) {
         memcpy(out, OS_DOL_EXEC_PARAMS, sizeof(OSExecParams));
     } else {
         out->WORD_0x0 = 0;
@@ -294,8 +296,8 @@ void __OSLaunchNextFirmware(void) {
     tmd = (ESTitleMeta*)OSAllocFromMEM1ArenaLo(0x4A00, 0x40);
     ticketView = (ESTicketView*)OSAllocFromMEM1ArenaLo(0xE0, 0x20);
 
-    if (__OSLaunchPartitionType == *(u32*)0x80003194 &&
-        *(u32*)0x80003198 != 0) {
+    if (__OSNextPartitionType == OS_BOOT_PARTITION_TYPE &&
+        OS_BOOT_PARTITION_OFFSET != 0) {
         rv = ESP_InitLib();
         if (rv == 0) {
             rv = ESP_DiGetTicketView(NULL, ticketView);
@@ -321,8 +323,8 @@ void __OSLaunchNextFirmware(void) {
 
     if (rv == 0) {
         targetPart = partInfo;
-        targetPart->type = *(u32*)0x80003194;
-        targetPart->offset = *(u32*)0x80003198;
+        targetPart->type = OS_BOOT_PARTITION_TYPE;
+        targetPart->offset = OS_BOOT_PARTITION_OFFSET;
     } else {
         intTypeTmp = 0;
         DVDLowClosePartition(__OSDVDLowCallback);
@@ -357,7 +359,7 @@ void __OSLaunchNextFirmware(void) {
 
         targetPart = NULL;
         for (p = partInfo, i = 0; i < tableInfo->numGamePartitions; p++, i++) {
-            if (p->type == __OSLaunchPartitionType) {
+            if (p->type == __OSNextPartitionType) {
                 targetPart = p;
             }
         }
@@ -365,7 +367,7 @@ void __OSLaunchNextFirmware(void) {
         if (targetPart == NULL) {
             for (p = partInfo + 4, i = 0; i < tableInfo->numOtherPartitions;
                  p++, i++) {
-                if (p->type == __OSLaunchPartitionType) {
+                if (p->type == __OSNextPartitionType) {
                     targetPart = p;
                 }
             }
@@ -377,11 +379,11 @@ void __OSLaunchNextFirmware(void) {
             __OSReturnToMenuForError();
         }
 
-        *(u32*)0x80003194 = targetPart->type;
-        *(u32*)0x80003198 = targetPart->offset;
+        OS_BOOT_PARTITION_TYPE = targetPart->type;
+        OS_BOOT_PARTITION_OFFSET = targetPart->offset;
 
         intTypeTmp = 0;
-        if (*(u8*)0x80003187 == 0x80) {
+        if (OS_LOCKED_FLAG == 0x80) {
             DVDLowOpenPartitionWithTmdAndTicketView(
                 targetPart->offset, ticketView, tmdSize, tmd, 0, NULL,
                 __OSDVDLowCallback);
@@ -430,9 +432,11 @@ void __OSLaunchNextFirmware(void) {
     }
 
     DVDLowFinalize();
-    mem2Size = *(u32*)0x8000311C;
-    mem2End = *(u32*)0x80003120;
-    DCStoreRange((void*)0x80003100, 0x100);
+    mem2Size = OS_SIMULATED_MEM2_SIZE;
+    mem2End = (u32)OS_ACCESSIBLE_MEM2_END;
+    // IOS reads and rewrites the 0x100 bytes of globals from 0x80003100 on
+    // when it launches the title.
+    DCStoreRange(&OS_PHYSICAL_MEM1_SIZE, 0x100);
 
     rv = ESP_LaunchTitle(titleId, views);
     if (rv != 0) {
@@ -441,21 +445,23 @@ void __OSLaunchNextFirmware(void) {
     }
 
     ESP_CloseLib();
-    DCInvalidateRange((void*)0x80003100, 0x100);
+    DCInvalidateRange(&OS_PHYSICAL_MEM1_SIZE, 0x100);
 
-    if (mem2Size < *(u32*)0x8000311C) {
-        *(u32*)0x80003120 =
-            mem2Size - (*(u32*)0x8000311C - *(u32*)0x80003120);
-        *(u32*)0x80003128 =
-            mem2Size - (*(u32*)0x8000311C - *(u32*)0x80003128);
-        *(u32*)0x80003130 =
-            mem2Size - (*(u32*)0x8000311C - *(u32*)0x80003130);
-        *(u32*)0x80003134 =
-            mem2Size - (*(u32*)0x8000311C - *(u32*)0x80003134);
-        *(u32*)0x8000311C = mem2Size;
+    // If the launch raised the simulated MEM2 size, put the old size back and
+    // move the pointers that are relative to its end down with it.
+    if (mem2Size < OS_SIMULATED_MEM2_SIZE) {
+        OS_ACCESSIBLE_MEM2_END = (void*)(
+            mem2Size - (OS_SIMULATED_MEM2_SIZE - (u32)OS_ACCESSIBLE_MEM2_END));
+        OS_USABLE_MEM2_END = (void*)(
+            mem2Size - (OS_SIMULATED_MEM2_SIZE - (u32)OS_USABLE_MEM2_END));
+        OS_IPC_BUFFER_START = (void*)(
+            mem2Size - (OS_SIMULATED_MEM2_SIZE - (u32)OS_IPC_BUFFER_START));
+        OS_IPC_BUFFER_END = (void*)(
+            mem2Size - (OS_SIMULATED_MEM2_SIZE - (u32)OS_IPC_BUFFER_END));
+        OS_SIMULATED_MEM2_SIZE = mem2Size;
     }
 
-    if (mem2End < *(u32*)0x80003120) {
+    if (mem2End < (u32)OS_ACCESSIBLE_MEM2_END) {
         __OSInitMemoryProtection();
     }
 
@@ -475,7 +481,7 @@ void __OSLaunchNextFirmware(void) {
     }
 
     intTypeTmp = 0;
-    if (*(u8*)0x80003187 == 0x80) {
+    if (OS_LOCKED_FLAG == 0x80) {
         DVDLowOpenPartitionWithTmdAndTicketView(
             targetPart->offset, ticketView, tmdSize, tmd, 0, NULL, __OSDVDLowCallback);
     } else {
@@ -497,8 +503,8 @@ void __OSLaunchMenu(void) {
     ESTicketView* views;
     u32 numViews = 1;
 
-    OSSetArenaLo((void*)0x81280000);
-    OSSetArenaHi((void*)0x812F0000);
+    OSSetArenaLo(OS_EXEC_ARENA_LO);
+    OSSetArenaHi(OS_EXEC_ARENA_HI);
 
     if (ESP_InitLib() != 0) {
         return;
@@ -635,8 +641,8 @@ void __OSRelaunchTitle(void) {
     u32 numViews = 1;
     s32 rv;
 
-    OSSetArenaLo((void*)0x81280000);
-    OSSetArenaHi((void*)0x812F0000);
+    OSSetArenaLo(OS_EXEC_ARENA_LO);
+    OSSetArenaHi(OS_EXEC_ARENA_HI);
 
     if (ESP_InitLib() != 0) {
         __OSReturnToMenuForError();
@@ -892,8 +898,8 @@ void __OSReturnToMenul(u32 launchCode, const char* arg0, ...) {
     u32 i;
 
     __OSUnRegisterStateEvent();
-    OSSetArenaLo((void*)0x81280000);
-    OSSetArenaHi((void*)0x812F0000);
+    OSSetArenaLo(OS_EXEC_ARENA_LO);
+    OSSetArenaHi(OS_EXEC_ARENA_HI);
 
     argv = (char**)OSAllocFromMEM1ArenaLo(4, 0x1000);
     i = 0;
@@ -925,9 +931,9 @@ char OSLaunchDiskZeroId[] = "0000000000000000";
 
 static inline void ReadApploader(ApploaderHeader* header) {
     ReadDisc(header, 0x20, GetApploaderPosition());
-    ReadDisc((void*)0x81200000, OSRoundUp32B(header->size),
+    ReadDisc(OS_APPLOADER_ADDR, OSRoundUp32B(header->size),
              GetApploaderPosition() + 8);
-    ICInvalidateRange((void*)0x81200000, OSRoundUp32B(header->size));
+    ICInvalidateRange(OS_APPLOADER_ADDR, OSRoundUp32B(header->size));
 }
 
 static inline BOOL CheckApploaderDate(ApploaderHeader* header) {
@@ -960,13 +966,13 @@ static inline void RunApploader(ApploaderHeader* header, OSExecParams* params) {
 
     entryPoint = appClose();
 
-    OS_CURRENT_APP_NAME = *(u32*)0x80000000;
+    OS_CURRENT_APP_NAME = *(u32*)OS_BOOT_INFO.diskID.game;
     OS_CURRENT_APP_TYPE = OS_APP_TYPE_DVD;
 
     paramsCopy =
         (OSExecParams*)OSAllocFromMEM1ArenaLo(sizeof(OSExecParams), 1);
     memcpy(paramsCopy, params, sizeof(OSExecParams));
-    __OSDolExecParams = paramsCopy;
+    __OSExecParamsAddr = paramsCopy;
 
     PI_HW_REGS[PI_RESET] = 7;
     OSDisableInterrupts();
@@ -984,7 +990,7 @@ void __OSBootDolSimple(u32 dolOffset, u32 restartCode, void* regionStart,
 
     OSDisableInterrupts();
     if (__OSInReboot) {
-        __OSLaunchPartitionType = *(u32*)0x80003194;
+        __OSNextPartitionType = OS_BOOT_PARTITION_TYPE;
     }
 
     params = (OSExecParams*)OSAllocFromMEM1ArenaLo(sizeof(OSExecParams), 1);
@@ -996,7 +1002,7 @@ void __OSBootDolSimple(u32 dolOffset, u32 restartCode, void* regionStart,
 
     if (!argsUseDefault) {
         params->argsAddr = OSAllocFromMEM1ArenaLo(0x2000, 1);
-        if (__OSLaunchPartitionType == 2 && !__OSInReboot) {
+        if (__OSNextPartitionType == 2 && !__OSInReboot) {
             PackInstallerArgs(params->argsAddr, argc, argv);
         } else {
             PackArgs(params->argsAddr, argc, argv);
@@ -1043,16 +1049,16 @@ void __OSBootDolSimple(u32 dolOffset, u32 restartCode, void* regionStart,
         params->bootDol = dolOffset;
         RunApploader(header, params);
     } else {
-        *(void**)0x812FDFF0 = regionStart;
-        *(void**)0x812FDFEC = regionEnd;
-        *(u8*)0x800030E2 = 1;
+        OS_BOOT_REGION_START = regionStart;
+        OS_BOOT_REGION_END = regionEnd;
+        OS_REBOOT_BOOL = TRUE;
 
-        ReadDisc((void*)0x81330000, OSRoundUp32B(header->rebootSize),
+        ReadDisc(OS_REBOOT_ADDR, OSRoundUp32B(header->rebootSize),
                  GetApploaderPosition() + ((header->size + 0x20) >> 2));
-        ICInvalidateRange((void*)0x81330000, OSRoundUp32B(header->rebootSize));
+        ICInvalidateRange(OS_REBOOT_ADDR, OSRoundUp32B(header->rebootSize));
         OSDisableInterrupts();
         ICFlashInvalidate();
-        Run((void*)0x81330000);
+        Run(OS_REBOOT_ADDR);
     }
 
 exit:;

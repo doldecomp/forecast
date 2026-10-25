@@ -17,7 +17,7 @@ SECTIONS
     _db_stack_end = _stack_addr;
     __ArenaLo = (_db_stack_addr + 0x1f) & ~0x1f;
     __ArenaHi = $ARENAHI;
-    __OSDolExecParams = 0x800030F0;
+    __OSExecParamsAddr = 0x800030F0;
 }
 
 FORCEACTIVE

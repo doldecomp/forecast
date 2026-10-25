@@ -15,8 +15,16 @@ typedef struct OSExecParams {
     void* argsAddr;      // at 0x18
 } OSExecParams;
 
+// MEM1 while the OS boots another program: the apploader is loaded at
+// OS_APPLOADER_ADDR and the reboot code at OS_REBOOT_ADDR, with the arena
+// between them.
+#define OS_APPLOADER_ADDR ((void*)0x81200000)
+#define OS_EXEC_ARENA_LO ((void*)0x81280000)
+#define OS_EXEC_ARENA_HI ((void*)0x812F0000)
+#define OS_REBOOT_ADDR ((void*)0x81330000)
+
 extern BOOL __OSInReboot;
-extern u32 __OSLaunchPartitionType;
+extern u32 __OSNextPartitionType;
 
 void __OSGetExecParams(OSExecParams* out);
 void __OSLaunchMenu(void);
