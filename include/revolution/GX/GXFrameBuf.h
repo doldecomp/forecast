@@ -39,9 +39,10 @@ void GXSetTexCopySrc(u16 x, u16 y, u16 w, u16 h);
 void GXSetDispCopyDst(u16 w, u16 numXfbLines);
 void GXSetTexCopyDst(u16 w, u16 h, GXTexFmt fmt, GXBool mipmap);
 
+void GXSetDispCopyFrame2Field(GXCopyMode mode);
 void GXSetCopyClamp(GXCopyClamp clamp);
 
-void GXSetDispCopyGamma(u32);
+void GXSetDispCopyGamma(GXGamma gamma);
 
 u32 GXGetNumXfbLines(u16 efbHeight, f32 scaleY);
 f32 GXGetYScaleFactor(u16 efbHeight, u16 xfbHeight);
@@ -53,6 +54,8 @@ void GXSetCopyFilter(GXBool, const u8 sample_pattern[12][2], GXBool,
 
 void GXCopyDisp(void*, GXBool);
 void GXCopyTex(void*, GXBool);
+
+void GXClearBoundingBox(void);
 
 #ifdef __cplusplus
 }

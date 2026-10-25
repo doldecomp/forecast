@@ -29,15 +29,17 @@ extern "C" {
     } name;
 
 typedef struct _GXFifoObjImpl {
-    void* base;        // at 0x0
-    void* end;         // at 0x4
-    u32 size;          // at 0x8
-    void* hiWatermark; // at 0xC
-    void* loWatermark; // at 0x10
-    void* readPtr;     // at 0x14
-    void* writePtr;    // at 0x18
-    u32 count;         // at 0x1C
-    u8 wrap;           // at 0x20
+    void* base;      // at 0x0
+    void* end;       // at 0x4
+    u32 size;        // at 0x8
+    u32 hiWatermark; // at 0xC
+    u32 loWatermark; // at 0x10
+    void* readPtr;   // at 0x14
+    void* writePtr;  // at 0x18
+    s32 count;       // at 0x1C
+    u8 wrap;         // at 0x20
+    GXBool bindCPU;  // at 0x21
+    GXBool bindGP;   // at 0x22
 } GXFifoObjImpl;
 
 typedef struct _GXLightObjImpl {
@@ -58,19 +60,39 @@ typedef struct _GXLightObjImpl {
 } GXLightObjImpl;
 
 typedef struct _GXTexObjImpl {
-    u8 todo;
+    u32 mode0;       // at 0x0
+    u32 mode1;       // at 0x4
+    u32 image0;      // at 0x8
+    u32 image3;      // at 0xC
+    void* userData;  // at 0x10
+    GXTexFmt format; // at 0x14
+    u32 tlutName;    // at 0x18
+    u16 loadCount;   // at 0x1C
+    u8 loadFormat;   // at 0x1E
+    u8 flags;        // at 0x1F
 } GXTexObjImpl;
 
+// GXTexObjImpl::flags
+#define GX_TEXOBJ_MIPMAP (1 << 0)
+#define GX_TEXOBJ_DIRECT (1 << 1) // not color-indexed (no TLUT)
+
 typedef struct _GXTlutObjImpl {
-    u8 todo;
+    u32 tlut;       // at 0x0
+    u32 loadTlut0;  // at 0x4
+    u16 numEntries; // at 0x8
 } GXTlutObjImpl;
 
 typedef struct _GXTexRegionImpl {
-    u8 todo;
+    u32 image1;       // at 0x0
+    u32 image2;       // at 0x4
+    char UNK_0x8[0xC - 0x8];
+    GXBool is32bMipmap; // at 0xC
+    GXBool isCached;    // at 0xD
 } GXTexRegionImpl;
 
 typedef struct _GXTlutRegionImpl {
-    u8 todo;
+    u32 loadTlut1;         // at 0x0
+    GXTlutObjImpl tlutObj; // at 0x4
 } GXTlutRegionImpl;
 
 #ifdef __cplusplus

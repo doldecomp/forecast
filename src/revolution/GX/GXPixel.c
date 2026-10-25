@@ -25,35 +25,37 @@ void GXSetFog(GXFogType type, GXColor color, f32 start, f32 end, f32 near,
             c = (1.0f / (end - start)) * (start - near);
         }
     } else {
-        f32 f28, f25, f24;
-        u32 expB, magB, shiftB;
+        // Perspective fog: the hardware evaluates A / (B - z) - C, with B
+        // stored as a normalised mantissa and a power-of-two shift.
+        f32 A, B, C;
+        u32 exponentB, magnitudeB, shiftB;
 
         if (far == near || end == start) {
-            f28 = 0.0f;
-            f25 = 0.5f;
-            f24 = 0.0f;
+            A = 0.0f;
+            B = 0.5f;
+            C = 0.0f;
         } else {
-            f28 = (far * near) / ((far - near) * (end - start));
-            f25 = far / (far - near);
-            f24 = start / (end - start);
+            A = (far * near) / ((far - near) * (end - start));
+            B = far / (far - near);
+            C = start / (end - start);
         }
 
-        expB = 0;
-        while (f25 > 1.0l) {
-            f25 /= 2.0f;
-            expB++;
+        exponentB = 0;
+        while (B > 1.0l) {
+            B /= 2.0f;
+            exponentB++;
         }
-        while (f25 > 0.0f && f25 < 0.5l) {
-            f25 *= 2.0f;
-            expB--;
+        while (B > 0.0f && B < 0.5l) {
+            B *= 2.0f;
+            exponentB--;
         }
 
-        a = f28 / (1 << (expB + 1));
-        magB = 8388638.0f * f25;
-        shiftB = expB + 1;
-        c = f24;
+        a = A / (1 << (exponentB + 1));
+        magnitudeB = 8388638.0f * B;
+        shiftB = exponentB + 1;
+        c = C;
 
-        GX_BP_SET_FOGPARAM1_B_MAG(fogParamReg1, magB);
+        GX_BP_SET_FOGPARAM1_B_MAG(fogParamReg1, magnitudeB);
         GX_BP_SET_OPCODE(fogParamReg1, GX_BP_REG_FOGPARAM1);
         GX_BP_SET_FOGPARAM2_B_SHIFT(fogParamReg2, shiftB);
         GX_BP_SET_OPCODE(fogParamReg2, GX_BP_REG_FOGPARAM2);

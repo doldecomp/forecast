@@ -6,7 +6,7 @@ static GXFifoObj DisplayListFifo;
 static GXData __savedGXdata;
 static GXFifoObj OldCPUFifo;
 
-void GXBeginDisplayList(void* list, u32 size) {
+inline void GXBeginDisplayList(void* list, u32 size) {
     GXFifoObjImpl* impl = (GXFifoObjImpl*)&DisplayListFifo;
 
     if (gxdt->gxDirtyFlags != 0) {
@@ -31,7 +31,7 @@ void GXBeginDisplayList(void* list, u32 size) {
     GXResetWriteGatherPipe();
 }
 
-u32 GXEndDisplayList(void) {
+inline u32 GXEndDisplayList(void) {
     u8 wrap;
     BOOL enabled;
     u32 ctrl;

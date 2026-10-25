@@ -235,7 +235,7 @@ void GXLoadLightObjImm(const GXLightObj* light, GXLightID id) {
     gxdt->lastWriteWasXF = TRUE;
 }
 
-void GXLoadLightObjIndx(u16 index, GXLightID id) {
+inline void GXLoadLightObjIndx(u16 index, GXLightID id) {
     u32 num;
 
     num = 31 - __cntlzw(id);

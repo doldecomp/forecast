@@ -214,7 +214,7 @@ void __GXCalculateVLim(void) {
     u32 vcdHi;
     s32 compCnt;
 
-    if (gxdt->SHORT_0x4 == 0) {
+    if (gxdt->vNum == 0) {
         return;
     }
 

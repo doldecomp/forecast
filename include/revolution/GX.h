@@ -23,6 +23,7 @@ extern "C" {
 #include <revolution/GX/GXInternal.h>
 #include <revolution/GX/GXLight.h>
 #include <revolution/GX/GXMisc.h>
+#include <revolution/GX/GXPerf.h>
 #include <revolution/GX/GXPixel.h>
 #include <revolution/GX/GXTev.h>
 #include <revolution/GX/GXTexture.h>

@@ -143,10 +143,10 @@ void GXBegin(GXPrimitive prim, GXVtxFmt fmt, u16 verts) {
 
 void __GXSendFlushPrim(void) {
     u32 i;
-    u32 sz = gxdt->SHORT_0x4 * gxdt->vlim;
+    u32 sz = gxdt->vNum * gxdt->vlim;
 
     WGPIPE.uc = GX_TRIANGLESTRIP;
-    WGPIPE.us = gxdt->SHORT_0x4;
+    WGPIPE.us = gxdt->vNum;
 
     for (i = 0; i < sz; i += 4) {
         WGPIPE.i = 0;
@@ -170,9 +170,9 @@ void GXSetPointSize(u8 size, u32 offset) {
 }
 
 void GXEnableTexOffsets(GXTexCoordID id, GXBool lineOfs, GXBool pointOfs) {
-    GX_BP_SET_SU_SIZE_USELINEOFS(gxdt->txcRegs[id], lineOfs);
-    GX_BP_SET_SU_SIZE_USEPOINTOFS(gxdt->txcRegs[id], pointOfs);
-    GX_BP_LOAD_REG(gxdt->txcRegs[id]);
+    GX_BP_SET_SU_SIZE_USELINEOFS(gxdt->suTs0[id], lineOfs);
+    GX_BP_SET_SU_SIZE_USEPOINTOFS(gxdt->suTs0[id], pointOfs);
+    GX_BP_LOAD_REG(gxdt->suTs0[id]);
     gxdt->lastWriteWasXF = FALSE;
 }
 
@@ -183,7 +183,7 @@ void GXSetCullMode(GXCullMode mode) {
     gxdt->gxDirtyFlags |= GX_DIRTY_GEN_MODE;
 }
 
-void GXGetCullMode(GXCullMode* out) {
+inline void GXGetCullMode(GXCullMode* out) {
     // TODO(kiwi) Fakematch? Should use GX_BP_GET_GENMODE_CULLMODE if possible
     s32 bits = 0;
     bits |= (s32)(gxdt->genMode >> (13 + 1) & 2) >> 1;

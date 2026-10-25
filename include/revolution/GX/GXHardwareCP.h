@@ -22,6 +22,7 @@ extern "C" {
  * CP registers
  */
 typedef enum {
+    GX_CP_REG_PERFSELECT = 0x20,
     GX_CP_REG_MATRIXINDEXA = 0x30,
     GX_CP_REG_MATRIXINDEXB = 0x40,
     GX_CP_REG_VCD_LO = 0x50,
@@ -32,6 +33,57 @@ typedef enum {
     GX_CP_REG_ARRAYBASE = 0xA0,
     GX_CP_REG_ARRAYSTRIDE = 0xB0,
 } GX_CP_REG;
+
+/**
+ * CP memory-mapped registers (16-bit, indexed from __cpReg)
+ */
+typedef enum {
+    GX_CP_MMIO_STATUS = 0,
+    GX_CP_MMIO_CONTROL = 1,
+    GX_CP_MMIO_CLEAR = 2,
+    GX_CP_MMIO_PERF_SELECT = 3,
+    GX_CP_MMIO_FIFO_BASE_LO = 16,
+    GX_CP_MMIO_FIFO_BASE_HI = 17,
+    GX_CP_MMIO_FIFO_END_LO = 18,
+    GX_CP_MMIO_FIFO_END_HI = 19,
+    GX_CP_MMIO_FIFO_HI_WATERMARK_LO = 20,
+    GX_CP_MMIO_FIFO_HI_WATERMARK_HI = 21,
+    GX_CP_MMIO_FIFO_LO_WATERMARK_LO = 22,
+    GX_CP_MMIO_FIFO_LO_WATERMARK_HI = 23,
+    GX_CP_MMIO_FIFO_COUNT_LO = 24,
+    GX_CP_MMIO_FIFO_COUNT_HI = 25,
+    GX_CP_MMIO_FIFO_WRITE_PTR_LO = 26,
+    GX_CP_MMIO_FIFO_WRITE_PTR_HI = 27,
+    GX_CP_MMIO_FIFO_READ_PTR_LO = 28,
+    GX_CP_MMIO_FIFO_READ_PTR_HI = 29,
+} GX_CP_MMIO;
+
+// CP control register bits (LSB numbering)
+typedef enum {
+    GX_CP_CONTROL_FIFO_READ = 0,
+    GX_CP_CONTROL_BREAKPOINT = 1,
+    GX_CP_CONTROL_OVERFLOW_INT = 2,
+    GX_CP_CONTROL_UNDERFLOW_INT = 3,
+    GX_CP_CONTROL_GP_LINK = 4,
+    GX_CP_CONTROL_BREAKPOINT_INT = 5,
+} GX_CP_CONTROL_BIT;
+
+// CP status register bits (LSB numbering)
+typedef enum {
+    GX_CP_STATUS_OVERFLOW = 0,
+    GX_CP_STATUS_UNDERFLOW = 1,
+    GX_CP_STATUS_BREAKPOINT = 4,
+} GX_CP_STATUS_BIT;
+
+// CP clear register bits (LSB numbering)
+typedef enum {
+    GX_CP_CLEAR_OVERFLOW = 0,
+    GX_CP_CLEAR_UNDERFLOW = 1,
+} GX_CP_CLEAR_BIT;
+
+// Get/set one bit (LSB numbering) of a CP register value
+#define GX_CP_GET_BIT(reg, bit) (((reg) >> (bit)) & 1)
+#define GX_CP_SET_BIT(reg, bit, x) ((reg) = GX_BITSET((reg), 31 - (bit), 1, x))
 
 /******************************************************************************
  * CP register 0x30 - MatrixIndexA
