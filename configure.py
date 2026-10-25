@@ -550,11 +550,11 @@ config.libs = [
             Object(Matching, "revolution/DSP/dsp_task.c"),
 
             # DVD
-            Object(NonMatching, "revolution/DVD/dvd.c"),
-            Object(NonMatching, "revolution/DVD/dvd_broadway.c"),
-            Object(NonMatching, "revolution/DVD/dvderror.c"),
+            Object(Matching, "revolution/DVD/dvd.c"),
+            Object(Matching, "revolution/DVD/dvd_broadway.c"),
+            Object(Matching, "revolution/DVD/dvderror.c"),
             Object(Matching, "revolution/DVD/dvdFatal.c"),
-            Object(NonMatching, "revolution/DVD/dvdfs.c"),
+            Object(Matching, "revolution/DVD/dvdfs.c"),
             Object(Matching, "revolution/DVD/dvdidutils.c"),
             Object(Matching, "revolution/DVD/dvdqueue.c"),
 

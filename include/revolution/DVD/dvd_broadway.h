@@ -13,6 +13,9 @@ typedef struct DVDDiskID DVDDiskID;
 typedef struct DVDDriveInfo DVDDriveInfo;
 typedef struct ESPTicket ESPTicket;
 typedef struct ESPTmd ESPTmd;
+typedef struct ESTicket ESTicket;
+typedef struct ESTicketView ESTicketView;
+typedef struct ESTitleMeta ESTitleMeta;
 typedef struct OSAlarm OSAlarm;
 
 typedef enum {
@@ -33,11 +36,24 @@ typedef enum {
 
 typedef void (*DVDLowCallback)(u32 intType);
 
+BOOL DVDLowFinalize(void);
 BOOL DVDLowInit(void);
 BOOL DVDLowReadDiskID(DVDDiskID* out, DVDLowCallback callback);
 BOOL DVDLowOpenPartition(u32 offset, const ESPTicket* ticket, u32 certsSize,
                          const void* certs, ESPTmd* tmd,
                          DVDLowCallback callback);
+BOOL DVDLowOpenPartitionWithTmdAndTicketView(u32 offset,
+                                             const ESTicketView* ticketView,
+                                             u32 tmdSize, const ESTitleMeta* tmd,
+                                             u32 certsSize, const u8* certs,
+                                             DVDLowCallback callback);
+BOOL DVDLowGetNoDiscBufferSizes(u32 offset, u32* tmdSize, u32* certsSize,
+                                DVDLowCallback callback);
+BOOL DVDLowGetNoDiscOpenPartitionParams(u32 offset, ESTicket* ticket,
+                                        u32* tmdSize, ESTitleMeta* tmd,
+                                        u32* certsSize, u8* certs,
+                                        u32* dataWordOffset, u8* h3Hash,
+                                        DVDLowCallback callback);
 BOOL DVDLowClosePartition(DVDLowCallback callback);
 BOOL DVDLowUnencryptedRead(void* dst, u32 size, u32 offset,
                            DVDLowCallback callback);
@@ -51,7 +67,9 @@ BOOL DVDLowSetMaximumRotation(u32 speed, DVDLowCallback callback);
 BOOL DVDLowRead(void* dst, u32 size, u32 offset, DVDLowCallback callback);
 BOOL DVDLowSeek(u32 offset, DVDLowCallback callback);
 u32 DVDLowGetCoverRegister(void);
+u32 DVDLowGetStatusRegister(void);
 BOOL DVDLowPrepareCoverRegister(DVDLowCallback callback);
+BOOL DVDLowPrepareStatusRegister(DVDLowCallback callback);
 u32 DVDLowGetImmBufferReg(void);
 BOOL DVDLowUnmaskStatusInterrupts(void);
 BOOL DVDLowMaskCoverInterrupt(void);
