@@ -1611,20 +1611,20 @@ revolution/VI/vi.c:
 	.text       start:0x800F3C7C end:0x800F6620
 	.data       start:0x801C6F48 end:0x801C7480
 	.bss        start:0x802CC810 end:0x802CC980
-	.sdata      start:0x80330580 end:0x803305A0
+	.sdata      start:0x80330580 end:0x8033059D
 	.sbss       start:0x80331368 end:0x80331418
 
 revolution/VI/i2c.c:
 	.text       start:0x800F6620 end:0x800F703C
-	.sdata      start:0x803305A0 end:0x803305A8
-	.sbss       start:0x80331418 end:0x80331420
+	.sdata      start:0x803305A0 end:0x803305A4
+	.sbss       start:0x80331418 end:0x8033141C
 
 revolution/VI/vi3in1.c:
 	.text       start:0x800F703C end:0x800F86E0
-	.data       start:0x801C7480 end:0x801C7A20
-	.bss        start:0x802CC980 end:0x802CC9A0
-	.sdata      start:0x803305A8 end:0x803305C0
-	.sbss       start:0x80331420 end:0x80331438
+	.data       start:0x801C7480 end:0x801C7A0A
+	.bss        start:0x802CC980 end:0x802CC99A
+	.sdata      start:0x803305A8 end:0x803305B9
+	.sbss       start:0x80331420 end:0x80331434
 
 revolution/MTX/mtx.c:
 	.text       start:0x800F86E0 end:0x800F9254
@@ -1644,7 +1644,7 @@ revolution/MTX/vec.c:
 
 revolution/GX/GXInit.c:
 	.text       start:0x800F96D0 end:0x800FA89C
-	.data       start:0x801C7A20 end:0x801C7C60
+	.data       start:0x801C7A20 end:0x801C7C60 align:32
 	.bss        start:0x802CC9A0 end:0x802CD020
 	.sdata      start:0x803305C8 end:0x803305D0
 	.sbss       start:0x80331438 end:0x80331460

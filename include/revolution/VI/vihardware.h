@@ -83,6 +83,7 @@ typedef enum {
 #define VI_DCR_ENB (1 << 0)
 #define VI_DCR_RST (1 << 1)
 #define VI_DCR_NIN (1 << 2)
+#define VI_DCR_3D (1 << 3)
 #define VI_DCR_FMT (0b11 << 8)
 
 // DI{n} - Display Interrupt Register N

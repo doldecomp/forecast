@@ -751,10 +751,11 @@ config.libs = [
             Object(Matching, "revolution/VF/nand_drv.c"),
             Object(Matching, "revolution/VF/sd_drv.c"),
 
-            # VI
-            Object(NonMatching, "revolution/VI/i2c.c"),
-            Object(NonMatching, "revolution/VI/vi.c"),
-            Object(NonMatching, "revolution/VI/vi3in1.c"),
+            # VI (GC/3.0a5.2, as in the News Channel decomp of the same build;
+            # 3.0a5 schedules setFbbRegs and setVerticalRegs differently)
+            Object(Matching, "revolution/VI/i2c.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/VI/vi.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/VI/vi3in1.c", mw_version="GC/3.0a5.2"),
 
             # WENC
             Object(NonMatching, "revolution/WENC/wenc.c"),
