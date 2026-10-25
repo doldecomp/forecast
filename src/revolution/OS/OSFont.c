@@ -304,32 +304,29 @@ static u32 GetFontSize(const u8* font) {
     return 0;
 }
 
-u16 OSGetFontEncode(void) {
-    if (FontEncode != 0xFFFF) {
-        return FontEncode;
-    }
-
-    switch (*(u32*)OSPhysicalToCached(OS_PHYS_TV_FORMAT)) {
-    case VI_TVFORMAT_NTSC:
-        FontEncode = ((VI_HW_REGS[VI_VISEL] & 2) != 0) ? OS_FONT_ENCODE_SJIS
-                                                       : OS_FONT_ENCODE_ANSI;
-        break;
-    case VI_TVFORMAT_PAL:
-    case VI_TVFORMAT_MPAL:
-    case VI_TVFORMAT_DEBUG:
-    case VI_TVFORMAT_DEBUG_PAL:
-    case VI_TVFORMAT_EURGB60:
-    default:
-        FontEncode = OS_FONT_ENCODE_ANSI;
-    }
-
-    ParseString = ParseStringS;
-
-    return FontEncode;
-}
-
 u16 OSSetFontEncode(u16 encode) {
-    u16 old = OSGetFontEncode();
+    u16 old;
+    if (FontEncode != 0xFFFF) {
+        old = FontEncode;
+    } else {
+        switch (*(u32*)OSPhysicalToCached(OS_PHYS_TV_FORMAT)) {
+        case VI_TVFORMAT_NTSC:
+            FontEncode =
+                ((VI_HW_REGS[VI_VISEL] & 2) != 0) ? OS_FONT_ENCODE_SJIS
+                                                 : OS_FONT_ENCODE_ANSI;
+            break;
+        case VI_TVFORMAT_PAL:
+        case VI_TVFORMAT_MPAL:
+        case VI_TVFORMAT_DEBUG:
+        case VI_TVFORMAT_DEBUG_PAL:
+        case VI_TVFORMAT_EURGB60:
+        default:
+            FontEncode = OS_FONT_ENCODE_ANSI;
+        }
+
+        ParseString = ParseStringS;
+        old = FontEncode;
+    }
 
     if (encode <= OS_FONT_ENCODE_UTF32) {
         FontEncode = encode;
@@ -418,8 +415,31 @@ static u32 ReadFont(void* dst, u16 encode, OSFontHeader* font) {
 
 u32 OSLoadFont(OSFontHeader* font, void* dst) {
     u32 size;
+    u16 encode;
 
-    switch (OSGetFontEncode()) {
+    if (FontEncode != 0xFFFF) {
+        encode = FontEncode;
+    } else {
+        switch (*(u32*)OSPhysicalToCached(OS_PHYS_TV_FORMAT)) {
+        case VI_TVFORMAT_NTSC:
+            FontEncode =
+                ((VI_HW_REGS[VI_VISEL] & 2) != 0) ? OS_FONT_ENCODE_SJIS
+                                                 : OS_FONT_ENCODE_ANSI;
+            break;
+        case VI_TVFORMAT_PAL:
+        case VI_TVFORMAT_MPAL:
+        case VI_TVFORMAT_DEBUG:
+        case VI_TVFORMAT_DEBUG_PAL:
+        case VI_TVFORMAT_EURGB60:
+        default:
+            FontEncode = OS_FONT_ENCODE_ANSI;
+        }
+
+        ParseString = ParseStringS;
+        encode = FontEncode;
+    }
+
+    switch (encode) {
     case OS_FONT_ENCODE_ANSI:
         FontDataAnsi = font;
         size = ReadFont(dst, OS_FONT_ENCODE_ANSI, FontDataAnsi);
@@ -559,9 +579,31 @@ const char* OSGetFontTexel(const char* str, void* dst, s32 xOfs, s32 arg3,
     u8* font_u8;
     u8* tex;
     s32 local_44;
+    u16 encode;
 
-    str = (const char*)ParseString(OSGetFontEncode(), (const u8*)str, &font,
-                                   &code);
+    if (FontEncode != 0xFFFF) {
+        encode = FontEncode;
+    } else {
+        switch (*(u32*)OSPhysicalToCached(OS_PHYS_TV_FORMAT)) {
+        case VI_TVFORMAT_NTSC:
+            FontEncode =
+                ((VI_HW_REGS[VI_VISEL] & 2) != 0) ? OS_FONT_ENCODE_SJIS
+                                                 : OS_FONT_ENCODE_ANSI;
+            break;
+        case VI_TVFORMAT_PAL:
+        case VI_TVFORMAT_MPAL:
+        case VI_TVFORMAT_DEBUG:
+        case VI_TVFORMAT_DEBUG_PAL:
+        case VI_TVFORMAT_EURGB60:
+        default:
+            FontEncode = OS_FONT_ENCODE_ANSI;
+        }
+
+        ParseString = ParseStringS;
+        encode = FontEncode;
+    }
+
+    str = (const char*)ParseString(encode, (const u8*)str, &font, &code);
     local_4C = &font->c0;
 
     /**
@@ -613,144 +655,3 @@ const char* OSGetFontTexel(const char* str, void* dst, s32 xOfs, s32 arg3,
     return str;
 }
 
-static void ExpandFontSheet(const OSFontHeader* font, u8* src, u8* dst) {
-    int i;
-    const u8* tmp = &font->c0;
-
-    if (font->sheetFormat == GX_TF_I4) {
-        for (i = (s32)font->sheetFullSize / 2 - 1; i >= 0; i--) {
-            dst[i * 2 + 0] =
-                tmp[src[i] >> 6 & 3] & 0xF0 | tmp[src[i] >> 4 & 3] & 0x0F;
-            dst[i * 2 + 1] =
-                tmp[src[i] >> 2 & 3] & 0xF0 | tmp[src[i] >> 0 & 3] & 0x0F;
-        }
-    } else if (font->sheetFormat == GX_TF_IA4) {
-        for (i = (s32)font->sheetFullSize / 4 - 1; i >= 0; i--) {
-            dst[i * 4 + 0] = tmp[src[i] >> 6 & 3];
-            dst[i * 4 + 1] = tmp[src[i] >> 4 & 3];
-            dst[i * 4 + 2] = tmp[src[i] >> 2 & 3];
-            dst[i * 4 + 3] = tmp[src[i] >> 0 & 3];
-        }
-    }
-
-    DCStoreRange(dst, font->sheetFullSize);
-}
-
-BOOL OSInitFont(OSFontHeader* font) {
-    u8* sheets;
-
-    switch (OSGetFontEncode()) {
-    case OS_FONT_ENCODE_ANSI:
-        FontDataAnsi = font;
-        if (ReadFont((u8*)font + 0x1D120, OS_FONT_ENCODE_ANSI, FontDataAnsi) ==
-            0) {
-            return FALSE;
-        }
-
-        sheets = (u8*)FontDataAnsi + FontDataAnsi->sheetImageOfs;
-        FontDataAnsi->sheetImageOfs = ROUND_UP(FontDataAnsi->sheetImageOfs, 32);
-        ExpandFontSheet(FontDataAnsi, sheets,
-                        (u8*)FontDataAnsi + FontDataAnsi->sheetImageOfs);
-        break;
-    case OS_FONT_ENCODE_SJIS:
-        FontDataSjis = font;
-        if (ReadFont((u8*)font + 0xD3F00, OS_FONT_ENCODE_SJIS, FontDataSjis) ==
-            0) {
-            return FALSE;
-        }
-
-        sheets = (u8*)FontDataSjis + FontDataSjis->sheetImageOfs;
-        FontDataSjis->sheetImageOfs = ROUND_UP(FontDataSjis->sheetImageOfs, 32);
-        ExpandFontSheet(FontDataSjis, sheets,
-                        (u8*)FontDataSjis + FontDataSjis->sheetImageOfs);
-        break;
-    case OS_FONT_ENCODE_2:
-        break;
-    case OS_FONT_ENCODE_UTF8:
-    case OS_FONT_ENCODE_UTF16:
-    case OS_FONT_ENCODE_UTF32:
-        FontDataAnsi = font;
-        if (ReadFont((u8*)font + 0xF4020, OS_FONT_ENCODE_ANSI, FontDataAnsi) ==
-            0) {
-            return FALSE;
-        }
-
-        sheets = (u8*)FontDataAnsi + FontDataAnsi->sheetImageOfs;
-        FontDataAnsi->sheetImageOfs = ROUND_UP(FontDataAnsi->sheetImageOfs, 32);
-        ExpandFontSheet(FontDataAnsi, sheets,
-                        (u8*)FontDataAnsi + FontDataAnsi->sheetImageOfs);
-
-        FontDataSjis = (OSFontHeader*)((u8*)FontDataAnsi + 0x20120);
-        if (ReadFont((u8*)font + 0xF4020, OS_FONT_ENCODE_SJIS, FontDataSjis) ==
-            0) {
-            return FALSE;
-        }
-
-        sheets = (u8*)FontDataSjis + FontDataSjis->sheetImageOfs;
-        FontDataSjis->sheetImageOfs = ROUND_UP(FontDataSjis->sheetImageOfs, 32);
-        ExpandFontSheet(FontDataSjis, sheets,
-                        (u8*)FontDataSjis + FontDataSjis->sheetImageOfs);
-        break;
-    }
-
-    return TRUE;
-}
-
-const char* OSGetFontTexture(const char* str, void** texOut, u32* xOut,
-                             u32* yOut, u32* widthOut) {
-    OSFontHeader* font;
-    s32 numRestTex;
-    u8* font_u8;
-    u32 code;
-    u32 sheet;
-    u32 row;
-    u32 col;
-    u32 tmp;
-
-    str = (const char*)ParseString(OSGetFontEncode(), (const u8*)str, &font,
-                                   &code);
-
-    // Font sheet on which the texture resides
-    sheet = (s32)code / (font->sheetNumCol * font->sheetNumRow);
-    // Font code texture
-    *texOut = (font->sheetSize * sheet) + ((u8*)font + font->sheetImageOfs);
-
-    // Number of succeeding textures on the sheet
-    // TODO(kiwi) Permuter fake(?)match
-    tmp = font->sheetNumRow;
-    numRestTex = code - (sheet * (font->sheetNumCol * tmp));
-
-    // Sheet row on which the texure resides
-    row = numRestTex / font->sheetNumCol;
-    // Sheet column on which the texture resides
-    col = numRestTex - row * font->sheetNumCol;
-
-    // Texture position
-    *xOut = col * font->cellWidth;
-    *yOut = row * font->cellHeight;
-
-    if (widthOut != NULL) {
-        // TODO(kiwi) Permuter fake(?)match
-        font_u8 = (u8*)font;
-        *widthOut = (font_u8 + font->widthTableOfs)[code];
-    }
-
-    return str;
-}
-
-const char* OSGetFontWidth(const char* str, u32* widthOut) {
-    OSFontHeader* font;
-    u8* font_u8;
-    u32 code;
-
-    str = (const char*)ParseString(OSGetFontEncode(), (const u8*)str, &font,
-                                   &code);
-
-    if (widthOut != NULL) {
-        // TODO(kiwi) Permuter fake(?)match
-        font_u8 = (u8*)font;
-        *widthOut = (font_u8 + font->widthTableOfs)[code];
-    }
-
-    return str;
-}

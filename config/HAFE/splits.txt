@@ -1463,11 +1463,11 @@ revolution/OS/OSError.c:
 
 revolution/OS/OSExec.c:
 	.text       start:0x800E6E8C end:0x800E905C
-	.data       start:0x801B9B18 end:0x801B9E68
+	.data       start:0x801B9B18 end:0x801B9E64
 	.bss        start:0x802CB4C0 end:0x802CB4E0
-	.sdata      start:0x80330528 end:0x80330538
-	.sbss       start:0x80331260 end:0x80331278
-	.sdata2     start:0x80332D98 end:0x80332DA0
+	.sdata      start:0x80330528 end:0x80330533
+	.sbss       start:0x80331260 end:0x80331274
+	.sdata2     start:0x80332D98 end:0x80332D9C
 
 revolution/OS/OSFatal.c:
 	.text       start:0x800E905C end:0x800E9C80
@@ -1477,8 +1477,8 @@ revolution/OS/OSFatal.c:
 
 revolution/OS/OSFont.c:
 	.text       start:0x800E9C80 end:0x800EA948
-	.data       start:0x801B9E68 end:0x801BA978
-	.sdata      start:0x80330540 end:0x80330548
+	.data       start:0x801B9E68 end:0x801BA972
+	.sdata      start:0x80330540 end:0x80330542
 	.sbss       start:0x80331278 end:0x80331288
 	.sdata2     start:0x80332DE0 end:0x80332DE8
 
@@ -1487,8 +1487,11 @@ revolution/OS/OSInterrupt.c:
 	.data       start:0x801BA978 end:0x801BA9A8
 	.sbss       start:0x80331288 end:0x8033129C
 
+revolution/OS/OSLink.c:
+	.text       start:0x800EB0CC end:0x800EB0E4
+
 revolution/OS/OSMessage.c:
-	.text       start:0x800EB0CC end:0x800EB2E8
+	.text       start:0x800EB0E4 end:0x800EB2E8
 
 revolution/OS/OSMemory.c:
 	.text       start:0x800EB2E8 end:0x800EBAFC
@@ -1499,8 +1502,8 @@ revolution/OS/OSMutex.c:
 
 revolution/OS/OSReset.c:
 	.text       start:0x800EBE00 end:0x800EC6E4
-	.data       start:0x801BA9B8 end:0x801BAC40
-	.sdata      start:0x80330548 end:0x80330550
+	.data       start:0x801BA9B8 end:0x801BAC3A
+	.sdata      start:0x80330548 end:0x80330549
 	.sbss       start:0x803312A0 end:0x803312B8
 
 revolution/OS/OSRtc.c:
@@ -1574,6 +1577,7 @@ revolution/OS/__ppc_eabi_init.c:
 
 revolution/EXI/EXIBios.c:
 	.text       start:0x800F0D58 end:0x800F25EC
+	.data       start:0x801C6DE0 end:0x801C6E28
 	.bss        start:0x802CC530 end:0x802CC5F0
 	.sdata      start:0x80330570 end:0x80330574
 	.sbss       start:0x80331330 end:0x80331334
@@ -1588,7 +1592,7 @@ revolution/EXI/EXICommon.c:
 
 revolution/SI/SIBios.c:
 	.text       start:0x800F2AAC end:0x800F3AB4
-	.data       start:0x801C6E70 end:0x801C6E98
+	.data       start:0x801C6E28 end:0x801C6E98
 	.bss        start:0x802CC5F0 end:0x802CC810
 	.sdata      start:0x80330578 end:0x8033057C
 	.sbss       start:0x80331348 end:0x80331358

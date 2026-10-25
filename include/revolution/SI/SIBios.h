@@ -24,7 +24,10 @@ typedef enum {
     SI_MAX_TYPE
 } SIType;
 
-typedef void (*SICallback)(s32 chan, u32 status);
+typedef void (*SICallback)(s32 chan, u32 status, OSContext* context);
+typedef void (*SITypeCallback)(s32 chan, u32 type);
+
+extern u32 __PADFixBits;
 
 void SIInit(void);
 u32 SISetXY(u32 lines, u32 times);
