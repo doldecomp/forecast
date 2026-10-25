@@ -419,7 +419,7 @@ config.libs = [
             # AXFX
             Object(Matching, "revolution/AXFX/AXFXHooks.c"),
             Object(Matching, "revolution/AXFX/AXFXReverbHi.c"),
-            Object(NonMatching, "revolution/AXFX/AXFXReverbHiExp.c"),
+            Object(Matching, "revolution/AXFX/AXFXReverbHiExp.c"),
 
             # BASE
             Object(Matching, "revolution/BASE/PPCArch.c"),
@@ -539,7 +539,7 @@ config.libs = [
             Object(Matching, "revolution/CNT/cnt.c"),
 
             # CX
-            Object(NonMatching, "revolution/CX/CXUncomp.c"),
+            Object(Matching, "revolution/CX/CXUncomp.c"),
 
             # DB
             Object(Matching, "revolution/DB/db.c"),
