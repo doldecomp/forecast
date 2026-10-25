@@ -6,6 +6,9 @@ extern "C" {
 #endif
 
 void __OSInitPlayTime(void);
+BOOL OSPlayTimeIsLimited(void);
+s32 __OSGetPlayTime(struct ESTicketView* ticketView, u32* type, u32* remainingTime);
+BOOL __OSWriteExpiredFlag(void);
 
 #ifdef __cplusplus
 }

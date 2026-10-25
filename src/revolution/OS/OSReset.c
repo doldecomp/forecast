@@ -13,7 +13,6 @@ static void* SaveEnd;
 static void* SaveStart;
 
 static void KillThreads(void);
-void __OSHotResetForError(void);
 
 #pragma dont_inline on
 void __OSReboot(u32 resetCode, u32 bootDol) {

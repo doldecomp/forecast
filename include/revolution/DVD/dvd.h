@@ -103,6 +103,7 @@ void DVDResume(void);
 BOOL DVDCancelAsync(DVDCommandBlock* block, DVDCommandCallback callback);
 s32 DVDCancel(DVDCommandBlock* block);
 BOOL DVDCancelAllAsync(DVDCommandCallback callback);
+BOOL DVDSetAutoInvalidation(BOOL enable);
 const DVDDiskID* DVDGetCurrentDiskID(void);
 u32 __DVDGetCoverStatus(void);
 void __DVDPrepareResetAsync(DVDCommandCallback callback);
@@ -111,6 +112,7 @@ BOOL __DVDTestAlarm(const OSAlarm* alarm);
 BOOL __DVDLowBreak(void);
 BOOL __DVDStopMotorAsync(DVDCommandBlock* block, DVDCommandCallback callback);
 void __DVDRestartMotor(void);
+void __DVDResetWithNoSpinup(void);
 
 #ifdef __cplusplus
 }
