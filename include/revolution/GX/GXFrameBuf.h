@@ -28,6 +28,11 @@ extern GXRenderModeObj GXPal528IntDf;
 extern GXRenderModeObj GXEurgb60Hz480IntDf;
 extern GXRenderModeObj GXMpal480IntDf;
 
+// Defined in vi.c
+extern GXRenderModeObj GXPal528Prog;
+extern GXRenderModeObj GXPal528ProgSoft;
+extern GXRenderModeObj GXPal524ProgAa;
+
 void GXSetDispCopySrc(u16 x, u16 y, u16 w, u16 h);
 void GXSetTexCopySrc(u16 x, u16 y, u16 w, u16 h);
 

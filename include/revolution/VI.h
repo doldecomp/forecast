@@ -4,6 +4,7 @@
 extern "C" {
 #endif
 
+#include <revolution/VI/i2c.h>
 #include <revolution/VI/vi.h>
 #include <revolution/VI/vi3in1.h>
 #include <revolution/VI/vihardware.h>
