@@ -212,8 +212,8 @@ WeatherAround::WeatherAround(void* arc)
             if (box->mPane != NULL) {
                 SetBoxPos(box, centerX, scaleX, centerY);
                 LayoutButton* pane = box->mPane;
-                f32 h = pane->mTop - pane->mBottom;
-                f32 w = pane->mRight - pane->mLeft;
+                f32 h = pane->mRect.top - pane->mRect.bottom;
+                f32 w = pane->mRect.right - pane->mRect.left;
                 box->mWidth = w;
                 box->mHeight = __fabsf(h);
                 box->mScaleX = sTitleScales[i];
@@ -229,7 +229,7 @@ WeatherAround::WeatherAround(void* arc)
     }
 
     Vec2F center = mBelt->GetCenter();
-    f32 beltH = __fabsf(mBelt->mTop - mBelt->mBottom);
+    f32 beltH = __fabsf(mBelt->mRect.top - mBelt->mRect.bottom);
     center.y = (centerY - center.y) - 0.5f * beltH;
     mSlideMax = center.y - (gWidescreen ? 19 : 34);
 

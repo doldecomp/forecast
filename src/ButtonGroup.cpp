@@ -17,7 +17,7 @@ inline void ButtonGroup::ResetButtons() {
     }
 }
 
-ButtonGroup::ButtonGroup(void* arc, const char* layoutName, void* soundInfo, bool influencedAlpha)
+ButtonGroup::ButtonGroup(void* arc, const char* layoutName, ButtonColors* colors, bool influencedAlpha)
     : mFadeFrames(0), mFadeFrame(0), mAlpha(255) {
     mResAccessor = new nw4r::lyt::ArcResourceAccessor;
     mResAccessor->Attach(arc, "arc");
@@ -48,7 +48,7 @@ ButtonGroup::ButtonGroup(void* arc, const char* layoutName, void* soundInfo, boo
             break;
         }
 
-        mButtons[mNumButtons++] = new LayoutButton(&*it, mDrawInfo, soundInfo, mTagProcessor);
+        mButtons[mNumButtons++] = new LayoutButton(&*it, mDrawInfo, colors, mTagProcessor);
     }
 
     ResetButtons();
@@ -98,7 +98,7 @@ inline void ButtonGroup::UpdateAll() {
 
 inline void ButtonGroup::ApplySlide(f32 offset) {
     for (int i = 0; i < mNumButtons; i++) {
-        mButtons[i]->mSlideOffset = offset * (mButtons[i]->mPane->mTransY > 0.0f ? 1 : -1);
+        mButtons[i]->mSlideOffset = offset * (mButtons[i]->mPane->GetTranslate().y > 0.0f ? 1 : -1);
     }
 }
 
@@ -123,7 +123,7 @@ void ButtonGroup::Calc() {
 
     f32 height;
     if (mNumButtons > 0) {
-        height = nw4r::math::FAbs(mButtons[0]->mTop - mButtons[0]->mBottom);
+        height = nw4r::math::FAbs(mButtons[0]->mRect.top - mButtons[0]->mRect.bottom);
     } else {
         height = 0.0f;
     }
@@ -227,9 +227,9 @@ void ButtonGroup::FadeIn(s32 frames) {
     }
 }
 
-void ButtonGroup::SetButtonParams(s32 a, s32 b, s32 c) {
+void ButtonGroup::SetButtonParams(s32 brightness, s32 highlightFrame, s32 highlightFrames) {
     for (int i = 0; i < mNumButtons; i++) {
-        mButtons[i]->SetParams(a, b, c);
+        mButtons[i]->SetParams(brightness, highlightFrame, highlightFrames);
     }
 }
 

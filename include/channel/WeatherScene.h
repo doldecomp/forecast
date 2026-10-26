@@ -96,26 +96,29 @@ public:
     s32 mWriteResult;          // at 0x168
 };
 
-// Per-state colors for LayoutButton (size 0x3C)
-struct ButtonColors {
-    ~ButtonColors() {}
-
-    nw4r::ut::Color mColor0; // at 0x0
-    nw4r::ut::Color mColor1; // at 0x4
-    nw4r::ut::Color mColor2; // at 0x8
-    nw4r::ut::Color mColor3; // at 0xC
-    nw4r::ut::Color mColor4; // at 0x10
-    nw4r::ut::Color mColor5; // at 0x14
-    nw4r::ut::Color mColor6; // at 0x18
-    nw4r::ut::Color mColor7; // at 0x1C
-    nw4r::ut::Color mColor8; // at 0x20
-    nw4r::ut::Color mColor9; // at 0x24
-    nw4r::ut::Color mColor10; // at 0x28
-    nw4r::ut::Color mColor11; // at 0x2C
-    nw4r::ut::Color mColor12; // at 0x30
-    nw4r::ut::Color mColor13; // at 0x34
-    nw4r::ut::Color mColor14; // at 0x38
+// The colors of a button in one state: TEV colors 0 and 1 of its "<name>B" and
+// "<name>I" panes, and the color of its text
+struct ButtonStateColors {
+    nw4r::ut::Color mBase0; // at 0x0
+    nw4r::ut::Color mBase1; // at 0x4
+    nw4r::ut::Color mIcon0; // at 0x8
+    nw4r::ut::Color mIcon1; // at 0xC
+    nw4r::ut::Color mText;  // at 0x10
 };
+
+// The colors of one LayoutButton type (size 0x3C). 4-byte aligned: tables of it
+// copy their first color as one word (LayoutButton's sDefaultColors __sinit).
+struct ButtonColors {
+#ifdef NW4R_HEADER_DECLARATIONS_ONLY
+    ~ButtonColors();
+#else
+    ~ButtonColors() {}
+#endif
+
+    ButtonStateColors mNormal;   // at 0x0
+    ButtonStateColors mActive;   // at 0x14, hovered or pressed
+    ButtonStateColors mSelected; // at 0x28
+} ATTRIBUTE_ALIGN(4);
 
 extern WeatherScene* gWeatherScene;
 

@@ -240,7 +240,7 @@ WiiConnect24.cpp:
 	.text       start:0x80032610 end:0x80035BA8
 	.data       start:0x8019BD08 end:0x8019C189
 	.bss        start:0x801D99E0 end:0x801F6B18
-	.sdata      start:0x80330170 end:0x80330190
+	.sdata      start:0x80330170 end:0x80330188
 	.sbss       start:0x80330B78 end:0x80330B98
 
 DragScroll.cpp:
@@ -263,7 +263,7 @@ LayoutButton.cpp:
 	.text       start:0x800369F4 end:0x80039994
 	.ctors      start:0x80179284 end:0x80179288
 	.bss        start:0x801F6B58 end:0x801F6C58
-	.sdata      start:0x80330190 end:0x803301B8
+	.sdata      start:0x80330188 end:0x803301B1
 	.sdata2     start:0x80331FC8 end:0x80332000
 
 ButtonGroup.cpp:

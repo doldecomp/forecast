@@ -80,7 +80,10 @@ WeatherSetting::WeatherSetting(void* arc)
 
     f32 halfWidth = 0.5f * GetScreenWidth();
     f32 halfHeight = 0.5f * GetScreenHeight();
-    nw4r::math::VEC3 pos(mCitySet->mTextPos);
+    nw4r::math::VEC3 pos;
+    pos.x = mCitySet->mTextPos.x;
+    pos.y = mCitySet->mTextPos.y;
+    pos.z = mCitySet->mTextPos.z;
     nw4r::math::VEC2 size;
     size.x = mCitySet->mTextSize.x;
     size.y = mCitySet->mTextSize.y;
@@ -109,13 +112,13 @@ void WeatherSetting::Reset() {
     mBaseLayout->Reset();
 
     mCityBrightness = Lerp(64, 192, mCityBtn->mHoverFrame, 12);
-    mCitySet->unk74 = mCityBrightness;
+    mCitySet->mBrightness = mCityBrightness;
     mKionBrightness = Lerp(64, 192, mKionBtn->mHoverFrame, 12);
-    mKionSet->unk74 = mKionBrightness;
+    mKionSet->mBrightness = mKionBrightness;
 
     if (gLanguage != 0) {
         mWindBrightness = Lerp(64, 192, mWindBtn->mHoverFrame, 12);
-        mWindSet->unk74 = mWindBrightness;
+        mWindSet->mBrightness = mWindBrightness;
     }
 }
 
@@ -168,13 +171,13 @@ void WeatherSetting::StateMain(s32 arg) {
         UpdateButtons(mSetLayout, 40);
 
         mCityBrightness = Lerp(64, 192, mCityBtn->mHoverFrame, 12);
-        mCitySet->unk74 = mCityBrightness;
+        mCitySet->mBrightness = mCityBrightness;
         mKionBrightness = Lerp(64, 192, mKionBtn->mHoverFrame, 12);
-        mKionSet->unk74 = mKionBrightness;
+        mKionSet->mBrightness = mKionBrightness;
 
         if (gLanguage != 0) {
             mWindBrightness = Lerp(64, 192, mWindBtn->mHoverFrame, 12);
-            mWindSet->unk74 = mWindBrightness;
+            mWindSet->mBrightness = mWindBrightness;
         }
 
         if (CheckButtonPressed("back", WPAD_BUTTON_A) >= 0) {

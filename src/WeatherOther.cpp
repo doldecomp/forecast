@@ -86,8 +86,8 @@ void WeatherOther::SetupJP(void* arc) {
         box->mX = centerX + box->mX * scaleX;
         box->mY = centerY - box->mY;
         LayoutButton* pane = box->mPane;
-        f32 h = __fabsf(pane->mTop - pane->mBottom);
-        f32 w = pane->mRight - pane->mLeft;
+        f32 h = __fabsf(pane->mRect.top - pane->mRect.bottom);
+        f32 w = pane->mRect.right - pane->mRect.left;
         box->mWidth = scaleX * w;
         box->mHeight = h;
         box->mScaleX = sBoxScalesJP[i];
@@ -147,8 +147,8 @@ void WeatherOther::Setup(void* arc) {
         box->mX = centerX + box->mX * scaleX;
         box->mY = centerY - box->mY;
         LayoutButton* pane = box->mPane;
-        f32 h = __fabsf(pane->mTop - pane->mBottom);
-        f32 w = pane->mRight - pane->mLeft;
+        f32 h = __fabsf(pane->mRect.top - pane->mRect.bottom);
+        f32 w = pane->mRect.right - pane->mRect.left;
         box->mWidth = scaleX * w;
         box->mHeight = h;
         box->mScaleX = sBoxScales[i];

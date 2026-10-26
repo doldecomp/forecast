@@ -248,8 +248,6 @@ char sVfDriveName[] = "@24";
 char sVfRootPath[] = "@24:/*";
 char sVfReadMode[] = "r";
 char sBinNameFormat[] = "%d.bin";
-char sForecastFileSuffix[] = "%sB";
-char sShortFileSuffix[] = "%sR";
 
 NWC24Err MapDownloadError(NWC24Err error);
 NWC24Err DownloadFiles(WC24Task* task, u32 doForecast, u32 doShort);
