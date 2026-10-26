@@ -69,8 +69,9 @@ static NWC24Err Base64Encode(char* pData, s32 dataSize, u32* pDataRead,
     return result;
 }
 
-NWC24Err NWC24Base64Encode(const u8* pData, s32 dataSize, char* pText,
-                           s32 textSize, u32* pTextWritten) {
+// Not in the DOL (dead-stripped): inline, so that no copy is emitted
+inline NWC24Err NWC24Base64Encode(const u8* pData, s32 dataSize, char* pText,
+                                  s32 textSize, u32* pTextWritten) {
 
     // TODO(kiwi) Implementation needs weird types so we hide it using the API
     return Base64Encode((char*)pData, dataSize, NULL, pText, textSize,
@@ -222,9 +223,10 @@ static NWC24Err QEncode(u8* pText, u32 textSize, u32* pTextWritten, u8* pData,
     return result;
 }
 
-NWC24Err NWC24EncodeQuotedPrintable(char* pText, u32 textSize,
-                                    u32* pTextWritten, const u8* pData,
-                                    u32 dataSize, u32* pDataRead) {
+// Not in the DOL (dead-stripped): inline, so that no copy is emitted
+inline NWC24Err NWC24EncodeQuotedPrintable(char* pText, u32 textSize,
+                                           u32* pTextWritten, const u8* pData,
+                                           u32 dataSize, u32* pDataRead) {
 
     // TODO(kiwi) Implementation needs weird types so we hide it using the API
     return QEncode((u8*)pText, textSize, pTextWritten, (u8*)pData, dataSize,

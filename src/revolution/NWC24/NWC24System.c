@@ -14,7 +14,11 @@ static s32 nwc24ShtRetryRest = 0;
 
 static OSShutdownFunctionInfo ShutdownFuncInfo;
 
-NWC24Err NWC24EnableLedNotification(BOOL enable) {
+static u8 shtBuffer[32] ALIGN(32);
+static u8 shtResult[32] ALIGN(32);
+
+// Not called on its own in this program
+inline NWC24Err NWC24EnableLedNotification(BOOL enable) {
     SCIdleModeInfo idleMode;
     u32 status;
     u32 led = 0;
@@ -53,33 +57,40 @@ NWC24Err NWC24iPrepareShutdown(void) {
     nwc24ShtRetryRest = SHUTDOWN_RETRY_MAX;
     NWC24EnableLedNotification(TRUE);
 
+    if (OSGetAppType() == OS_APP_TYPE_IPL) {
+        NWC24iSetScriptMode(1);
+    }
+
     return result;
 }
 
-NWC24Err NWC24iRequestShutdown(u32 event) {
-    static u8 shtBuffer[32] ALIGN(32);
-    static u8 shtResult[32] ALIGN(32);
-    NWC24Err result;
-
+// Not called on its own in this program
+inline NWC24Err NWC24iRequestShutdown(u32 event, NWC24Err* pResult) {
     *(u32*)shtBuffer = event;
-    result = NWC24_IOCTL_DEVICE_ASYNC(nwc24ShtFd, NWC24_IOCTL_SHUTDOWN, //
-                                      shtBuffer, sizeof(shtBuffer),     //
-                                      shtResult, sizeof(shtResult),     //
-                                      &result);
+    return NWC24_IOCTL_DEVICE_ASYNC(nwc24ShtFd, NWC24_IOCTL_SHUTDOWN, //
+                                    shtBuffer, sizeof(shtBuffer),     //
+                                    shtResult, sizeof(shtResult),     //
+                                    pResult);
+}
 
-    if (result < 0) {
-        return result;
+NWC24Err NWC24iRequestShutdownSync(u32 event) {
+    NWC24Err result;
+    NWC24Err err;
+
+    err = NWC24iRequestShutdown(event, &result);
+    if (err < 0) {
+        return err;
     }
 
     while (NWC24iIsAsyncRequestPending()) {
-        OSSleepTicks(OS_TIME_SPEED);
+        OSSleepTicks(OS_MSEC_TO_TICKS((s64)10));
     }
 
-    if (*(NWC24Err*)shtResult < 0) {
-        return NWC24_ERR_FAILED;
+    if (result >= 0) {
+        return NWC24_OK;
     }
 
-    return NWC24_OK;
+    return NWC24_ERR_FAILED;
 }
 
 BOOL NWC24Shutdown(BOOL final, u32 event) {
@@ -105,7 +116,7 @@ BOOL NWC24Shutdown(BOOL final, u32 event) {
         } else {
             return TRUE;
         }
-    } else if ((result = NWC24iRequestShutdown(event)) >= 0) {
+    } else if (NWC24iRequestShutdown(event, &result) >= 0) {
         shuttingdown = TRUE;
     }
 

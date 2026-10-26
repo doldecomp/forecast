@@ -2,7 +2,7 @@
 #include <revolution/NWC24/NWC24Internal.h>
 
 // The number of seconds between 01/01/1900 and 01/01/1970
-#define EPOCH_BASE 2208988800
+#define EPOCH_BASE 2208988800LL
 
 // Length of each month
 static const u8 DAYS_OF_MONTH[NWC24i_MONTH_MAX] = {31, 28, 31, 30, 31, 30,
@@ -19,7 +19,8 @@ static s32 ConvertTimeToMinutes(u8 hour, u8 min);
 static s32 ConvertDaysToMinutes(s32 days);
 static void ConvertMinutesToDays(s32* pDays, u8* pHour, u8* pMin, s32 minutes);
 
-NWC24Err NWC24iDateToMinutes(s32* pMinutes, const NWC24Date* pDate) {
+// Not in the DOL (dead-stripped): inline, so that no copy is emitted
+inline NWC24Err NWC24iDateToMinutes(s32* pMinutes, const NWC24Date* pDate) {
     s32 days;
     s32 minutes;
 
@@ -37,7 +38,8 @@ NWC24Err NWC24iDateToMinutes(s32* pMinutes, const NWC24Date* pDate) {
     return NWC24_OK;
 }
 
-s32 NWC24iGetDayOfWeek(u16 year, u8 month, u8 day) {
+// Only inlined (into NWC24iDateToOSCalendarTime) in the DOL
+inline s32 NWC24iGetDayOfWeek(u16 year, u8 month, u8 day) {
     s32 days = ConvertDateToDays(year, month, day);
     return (days + NWC24i_DAY_MIN) % NWC24i_WEEK_DAY_MAX;
 }
@@ -83,7 +85,8 @@ NWC24Err NWC24iDateToOSCalendarTime(OSCalendarTime* pOSTime,
     return NWC24_OK;
 }
 
-NWC24Err NWC24iIsValidDate(u16 year, u8 month, u8 day) {
+// Not in the DOL (dead-stripped): inline, so that no copy is emitted
+inline NWC24Err NWC24iIsValidDate(u16 year, u8 month, u8 day) {
     s32 days = ConvertDateToDays(year, month, day);
     NWC24Err result = NWC24_OK;
 

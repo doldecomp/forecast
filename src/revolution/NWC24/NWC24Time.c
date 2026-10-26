@@ -37,9 +37,10 @@ static CommonResult nwc24TimeCommonResult ALIGN(32);
 static CommonBuffer nwc24TimeCommonBuffer ALIGN(32);
 static OSMutex nwc24TimeCommandMutex ALIGN(32);
 
-// Unused from NWC24iStrTime, but pooled in
-static u8 buf[128];
-DECOMP_FORCEACTIVE(NWC24Time_c, buf);
+// Buffer of NWC24iStrTime, which is not in the DOL; its buffer is. MWCC drops
+// an unreferenced static, so it is a global here; the zero initializer places
+// it first in .bss, where the target has it.
+u8 buf[128] = {0};
 
 // Forward declarations
 static NWC24Err GetRTC(u32* pRTC);

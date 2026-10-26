@@ -11,6 +11,8 @@ extern "C" {
 #define NWC24i_KSTRLEN(x) ((int)(sizeof(x)))
 
 void NWC24iConvIdToStr(u64 addr, char* pBuffer);
+NWC24Err NWC24iCheckStringLength(const char* pStr, int minLen, int maxLen);
+s32 NWC24iStrLCpy(char* pDst, const char* pSrc, s32 len);
 
 #ifdef __cplusplus
 }

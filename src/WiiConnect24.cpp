@@ -70,7 +70,7 @@ void UpdateDownloader(void) {
 void ShutdownDownloader(s32 event) {
     int i = 0;
     while (i < 10 && (gWC24ShutdownFlag1 || gWC24ShutdownFlag2)) {
-        NWC24iRequestShutdown(event);
+        NWC24iRequestShutdownSync(event);
         OSSleepTicks(OS_TIME_SPEED);
         i++;
     }
@@ -777,7 +777,7 @@ firstDone:
                 continue;
 
             if (init) {
-                error = NWC24InitDlTask(&dlTasks[i], 1);
+                error = NWC24InitDlTask(&dlTasks[i], NWC24_DLTYPE_OCTETSTREAM_V1);
                 if (error != NWC24_OK)
                     return SetTaskError(task, "NWC24InitDlTask() failed.", error);
 
@@ -864,7 +864,7 @@ firstDone:
         }
 
         if (idOut != NULL) {
-            error = NWC24GetDlId(&pTask3[i], idOut);
+            error = NWC24GetDlId(&pTask3[i], (NWC24DlId*)idOut);
             if (error != NWC24_OK)
                 return SetTaskError(task, "NWC24GetDlId() failed.", error);
         }

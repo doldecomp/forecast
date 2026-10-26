@@ -1,7 +1,7 @@
 #include <revolution/NWC24.h>
 #include <revolution/NWC24/NWC24Internal.h>
 
-char* Mail_strcpy(char* pDst, const char* pSrc) {
+inline char* Mail_strcpy(char* pDst, const char* pSrc) {
     char* pOrigin = pDst;
 
     while (*pSrc != '\0') {
@@ -12,7 +12,7 @@ char* Mail_strcpy(char* pDst, const char* pSrc) {
     return pOrigin;
 }
 
-int Mail_strlen(const char* pStr) {
+inline int Mail_strlen(const char* pStr) {
     int len = 0;
 
     while (pStr[len] != '\0') {
@@ -34,7 +34,7 @@ int STD_strnlen(const char* pStr, size_t maxlen) {
     return len;
 }
 
-void* Mail_memcpy(void* pDst, const void* pSrc, size_t n) {
+inline void* Mail_memcpy(void* pDst, const void* pSrc, size_t n) {
     size_t i;
 
     for (i = 0; i < n; i++) {
@@ -54,12 +54,12 @@ void* Mail_memset(void* pDst, int ch, size_t n) {
     return pDst;
 }
 
-char* Mail_strcat(char* pDst, const char* pSrc) {
+inline char* Mail_strcat(char* pDst, const char* pSrc) {
     Mail_strcpy(pDst + Mail_strlen(pDst), pSrc);
     return pDst;
 }
 
-char* Mail_strncat(char* pDst, const char* pSrc, size_t maxlen) {
+inline char* Mail_strncat(char* pDst, const char* pSrc, size_t maxlen) {
     int len = Mail_strlen(pDst);
     int i;
 

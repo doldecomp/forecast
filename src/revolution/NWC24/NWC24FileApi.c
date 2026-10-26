@@ -200,7 +200,8 @@ NWC24Err NWC24iFCloseNand(NWC24File* pFile) {
     return err;
 }
 
-NWC24Err NWC24iFCloseVF(NWC24File* pFile) {
+// Not in the DOL (inlined into NWC24FClose, its only caller): inline, so that no copy is emitted
+inline NWC24Err NWC24iFCloseVF(NWC24File* pFile) {
     s32 result;
 
     result = VFCloseFile(pFile->vff);
