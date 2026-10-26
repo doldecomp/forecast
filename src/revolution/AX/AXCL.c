@@ -71,7 +71,7 @@ void* __AXGetCommandListAddress(void) {
     return list;
 }
 
-void __AXWriteToCommandList(u16 cmd) {
+inline void __AXWriteToCommandList(u16 cmd) {
     *__AXClWrite = cmd;
     __AXClWrite++;
 }
@@ -245,7 +245,7 @@ void AXSetMode(u32 mode) {
     __AXClMode = mode;
 }
 
-u32 AXGetMode(void) {
+inline u32 AXGetMode(void) {
     return __AXClMode;
 }
 

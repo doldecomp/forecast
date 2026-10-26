@@ -405,7 +405,7 @@ config.libs = [
             Object(NonMatching, "revolution/ARC/arc.c"),
 
             # AX
-            Object(NonMatching, "revolution/AX/AX.c"),
+            Object(Matching, "revolution/AX/AX.c"),
             Object(Matching, "revolution/AX/AXAlloc.c"),
             Object(Matching, "revolution/AX/AXAux.c"),
             Object(Matching, "revolution/AX/AXCL.c"),
@@ -419,7 +419,7 @@ config.libs = [
             # AXFX
             Object(Matching, "revolution/AXFX/AXFXHooks.c"),
             Object(Matching, "revolution/AXFX/AXFXReverbHi.c"),
-            Object(NonMatching, "revolution/AXFX/AXFXReverbHiExp.c"),
+            Object(Matching, "revolution/AXFX/AXFXReverbHiExp.c"),
 
             # BASE
             Object(Matching, "revolution/BASE/PPCArch.c"),
@@ -539,7 +539,7 @@ config.libs = [
             Object(Matching, "revolution/CNT/cnt.c"),
 
             # CX
-            Object(NonMatching, "revolution/CX/CXUncomp.c"),
+            Object(Matching, "revolution/CX/CXUncomp.c"),
 
             # DB
             Object(Matching, "revolution/DB/db.c"),
@@ -559,7 +559,7 @@ config.libs = [
             Object(Matching, "revolution/DVD/dvdqueue.c"),
 
             # ESP
-            Object(NonMatching, "revolution/ESP/esp.c"),
+            Object(Matching, "revolution/ESP/esp.c"),
 
             # EUART
             Object(Matching, "revolution/EUART/euart.c"),
