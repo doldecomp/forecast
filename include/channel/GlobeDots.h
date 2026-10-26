@@ -5,6 +5,14 @@
 
 #define GLOBE_DOT_COUNT 9096
 
+// The dot tables (GlobeDotsTable.cpp)
+extern "C" {
+extern const u8 gGlobeDotPositions[GLOBE_DOT_COUNT * 4]; // u16 longitude, u16 latitude per dot
+extern const u8 gGlobeDotSizes[GLOBE_DOT_COUNT];
+extern const u8 gGlobeDotColorIndices[GLOBE_DOT_COUNT];
+extern const u8 gGlobeDotColors[GLOBE_DOT_COUNT * 3];   // RGB8, indexed by gGlobeDotColorIndices
+}
+
 // Textured dots on the globe, one triangle per location. They fade out while the globe is moving.
 class GlobeDots {
 public:

@@ -7,17 +7,7 @@
 #include <nw4r/ut.h>
 #include <revolution/GX.h>
 
-struct DotPos {
-    u16 lon; // at 0x0
-    u16 lat; // at 0x2
-};
-
 extern "C" TPLPalette* gCommonTpl;
-
-extern "C" const DotPos gGlobeDotPositions[GLOBE_DOT_COUNT];
-extern "C" const u8 gGlobeDotSizes[GLOBE_DOT_COUNT];
-extern "C" const u8 gGlobeDotColorIndices[GLOBE_DOT_COUNT];
-extern "C" const u8 gGlobeDotColors[];
 
 // HACK: non-const (so MWCC reloads the words inside the ctor loop like the target) but forced into .rodata.
 __declspec(section ".rodata") static Vec sBase0 = {0.0f, 0.0f, -100.0f};

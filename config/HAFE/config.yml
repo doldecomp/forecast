@@ -17,6 +17,21 @@ symbols: config/HAFE/symbols.txt
 splits: config/HAFE/splits.txt
 ldscript_template: config/HAFE/ldscript.tpl
 
+# Binary data the channel embeds, written out as headers that the sources include.
+extract:
+- symbol: gGlobeDotPositions
+  header: assets/globe_dot_positions.inc
+  header_type: raw
+- symbol: gGlobeDotSizes
+  header: assets/globe_dot_sizes.inc
+  header_type: raw
+- symbol: gGlobeDotColorIndices
+  header: assets/globe_dot_color_indices.inc
+  header_type: raw
+- symbol: gGlobeDotColors
+  header: assets/globe_dot_colors.inc
+  header_type: raw
+
 mw_comment_version: 14
 
 
