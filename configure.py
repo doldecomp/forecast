@@ -589,10 +589,14 @@ config.libs = [
             Object(NonMatching, "revolution/GX/GXTexture.c"),
             Object(Matching, "revolution/GX/GXTransform.c"),
 
-            # HBM
-            Object(NonMatching, "revolution/HBM/HBMBase.cpp"),
-            Object(NonMatching, "revolution/HBM/HBMGui.cpp"),
-            Object(NonMatching, "revolution/HBM/HBMController.cpp"),
+            # HBM (C++ SDK unit that includes nw4r headers, so it needs the
+            # nw4r_compat std:: shims like the NW4R and Channel libraries)
+            Object(Matching, "revolution/HBM/HBMBase.cpp", extra_cflags=["-i include/nw4r_compat"]),
+            Object(Matching, "revolution/HBM/HBMAnmController.cpp", extra_cflags=["-i include/nw4r_compat"]),
+            Object(Matching, "revolution/HBM/HBMFrameController.cpp", extra_cflags=["-i include/nw4r_compat"]),
+            Object(Matching, "revolution/HBM/HBMGUIManager.cpp", extra_cflags=["-i include/nw4r_compat"]),
+            Object(Matching, "revolution/HBM/HBMController.cpp", extra_cflags=["-i include/nw4r_compat"]),
+            Object(Matching, "revolution/HBM/HBMRemoteSpk.cpp", extra_cflags=["-i include/nw4r_compat"]),
 
             # IPC
             Object(NonMatching, "revolution/IPC/ipcclt.c"),
