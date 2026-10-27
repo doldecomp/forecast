@@ -78,9 +78,9 @@ void vcmvFree(void** ptr);
 void vcmvLinkRSO(void* image);
 
 extern "C" {
-void* RSOFindExportSymbol(WWWModule* module, const char* name);
-void RSOSetBss(WWWModule* module, void* bss);
-u32 RSOGetSectionSize(void* header, int which);
+void* RSOFindExportSymbolAddr(WWWModule* module, const char* name);
+void RSOLinkList(WWWModule* module, void* bss);
+u32 RSOGetFixedSize(void* header, int which);
 }
 
 // Auto-generated data definitions for vcmv_www.cpp
@@ -835,7 +835,7 @@ s32 wwwLoadLibrary(void) {
     lz.src = (u8*)packed;
     lz.outPos = 0;
     wwwLZRead(header, &lz, sizeof(header));
-    size = RSOGetSectionSize(header, 2);
+    size = RSOGetFixedSize(header, 2);
     if (!vcmvAlloc((void**)&wwwModule, (size + 31) & ~31, wwwMem1Allocator, wwwMem1Allocator)) {
         ret = -0xE11;
         goto fail;
@@ -863,13 +863,13 @@ s32 wwwLoadLibrary(void) {
     module->exportStrings += delta;
     module->importTable += delta;
     module->importStrings += delta;
-    RSOSetBss(module, wwwModuleBss);
+    RSOLinkList(module, wwwModuleBss);
     if (module->prolog != NULL) {
         module->prolog();
     }
     imp = wwwImportTable;
     for (i = 0; i < 0x70; i++, imp++) {
-        *imp->slot = RSOFindExportSymbol(module, imp->name);
+        *imp->slot = RSOFindExportSymbolAddr(module, imp->name);
     }
     vcmvFree(&rest);
     contentReleaseHandleNAND(&handle);

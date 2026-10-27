@@ -28,7 +28,7 @@ extern "C" {
 #endif
 s32 SOInit(void* init);
 s32 SOStartup(void);
-s32 SOGetLastError(void);
+s32 NETGetStartupErrorCode(s32 soErr);
 #ifdef __cplusplus
 }
 #endif

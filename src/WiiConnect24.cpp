@@ -902,7 +902,7 @@ NWC24Err ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2)
 
         startupResult = SOStartup();
         if (startupResult < 0) {
-            SetTaskMessage(task, "SOStartup() failed.", SOGetLastError(), startupResult);
+            SetTaskMessage(task, "SOStartup() failed.", NETGetStartupErrorCode(startupResult), startupResult);
             gWC24ShutdownFlag2 = 0;
             return NWC24_ERR_LIB_NOT_OPENED;
         }

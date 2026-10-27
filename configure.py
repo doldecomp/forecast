@@ -625,13 +625,18 @@ config.libs = [
             Object(Matching, "revolution/NAND/NANDLogging.c"),
             Object(Matching, "revolution/NAND/NANDOpenClose.c"),
 
+            # NCD (GC/3.0a5.2, like SO and the News Channel decomp of the same build)
+            Object(Matching, "revolution/NCD/ncdsystem.c", mw_version="GC/3.0a5.2"),
+
             # NdevExi2AD
             Object(Matching, "revolution/NdevExi2AD/DebuggerDriver.c"),
             Object(Matching, "revolution/NdevExi2AD/exi2.c"),
 
-            # NET
-            Object(NonMatching, "revolution/NET/nettime.c"),
-            Object(NonMatching, "revolution/NET/NETVersion.c"),
+            # NET (GC/3.0a5.2, as in the News Channel decomp of the same build)
+            Object(Matching, "revolution/NET/nettime.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/NET/netcrc.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/NET/neterrorcode.c"),
+            Object(Matching, "revolution/NET/NETVersion.c"),
 
             # NWC24
             Object(Matching, "revolution/NWC24/NWC24Config.c"),
@@ -687,6 +692,9 @@ config.libs = [
             # PAD
             Object(Matching, "revolution/PAD/Pad.c"),
 
+            # RSO
+            Object(Matching, "revolution/RSO/RSOLink.c"),
+
             # SC
             Object(Matching, "revolution/SC/scapi.c"),
             Object(Matching, "revolution/SC/scapi_prdinfo.c"),
@@ -695,6 +703,11 @@ config.libs = [
             # SI
             Object(Matching, "revolution/SI/SIBios.c"),
             Object(NonMatching, "revolution/SI/SISamplingRate.c"),
+
+            # SO (GC/3.0a5.2: 3.0a5 schedules SOStartupEx's prologue differently)
+            Object(Matching, "revolution/SO/SOCommon.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/SO/SOInformation.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/SO/SOOption.c", mw_version="GC/3.0a5.2"),
 
             # TPL
             Object(Matching, "revolution/TPL/TPL.c"),

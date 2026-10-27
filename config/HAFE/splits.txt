@@ -323,6 +323,10 @@ sound_manager.cpp:
 	.sbss       start:0x80330C34 end:0x80330C88
 	.sdata2     start:0x80332130 end:0x80332150
 
+revolution/RSO/RSOLink.c:
+	.text       start:0x80044AAC end:0x80045ABC
+	.data       start:0x801B3C80 end:0x801B3D98
+
 revolution/CNT/cnt.c:
 	.text       start:0x80045ABC end:0x80045FD4
 	.rodata     start:0x8018F7B0 end:0x8018FA28
@@ -516,10 +520,42 @@ revolution/VF/nand_drv.c:
 revolution/VF/sd_drv.c:
 	.text       start:0x80066604 end:0x80066608
 
+revolution/SO/SOCommon.c:
+	.text       start:0x80066608 end:0x80067508
+	.data       start:0x801B3F58 end:0x801B4134
+	.bss        start:0x802889A0 end:0x802889B8
+	.sdata      start:0x80330260 end:0x80330268
+	.sbss       start:0x80330CC0 end:0x80330CCC
+
+revolution/SO/SOInformation.c:
+	.text       start:0x80067508 end:0x80067580
+
+revolution/SO/SOOption.c:
+	.text       start:0x80067580 end:0x8006775C
+
+revolution/NCD/ncdsystem.c:
+	.text       start:0x8006775C end:0x80067C60
+	.data       start:0x801B4138 end:0x801B41F2
+	.bss        start:0x802889C0 end:0x80288A20
+	.sdata      start:0x80330268 end:0x8033026C
+	.sbss       start:0x80330CD0 end:0x80330CD8
+
 revolution/NET/nettime.c:
-	.text       start:0x80067C60 end:0x80067E78
-	.rodata     start:0x80193D60 end:0x80193DA0
+	.text       start:0x80067C60 end:0x80067D44
 	.sbss       start:0x80330CD8 end:0x80330CE0
+
+revolution/NET/netcrc.c:
+	.text       start:0x80067D44 end:0x80067E78
+	.rodata     start:0x80193D60 end:0x80193DA0
+
+revolution/NET/neterrorcode.c:
+	.text       start:0x80067E78 end:0x800682E8
+	.data       start:0x801B41F8 end:0x801B4215
+
+revolution/NET/NETVersion.c:
+	.text       start:0x800682E8 end:0x800682F0
+	.data       start:0x801B4218 end:0x801B424F
+	.sdata      start:0x80330270 end:0x80330274
 
 revolution/NWC24/NWC24StdApi.c:
 	.text       start:0x800682F0 end:0x80068E54

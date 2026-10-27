@@ -8,14 +8,14 @@ extern "C" {
 // OS stubs
 void OSReport(const char*, ...);
 void OSPanic(const char*, int, const char*, ...);
-s32 RSOLinkInit(void*);
+s32 RSOListInit(void*);
 
 struct RSOSymbol {
     u32 hash;
     u32 offset;
     u32 sectionIdx;
 };
-RSOSymbol* RSOFindSymbol(void*, const char*);
+RSOSymbol* RSOFindExportSymbol(void*, const char*);
 
 struct RSOSection {
     u32 addr;
@@ -318,12 +318,12 @@ int vcmvAbs(int x) { return abs(x); }
 void vcmvLinkRSO(void* param1) {
     RSOModule* new_var;
 
-    if (RSOLinkInit(new_var = (RSOModule*)param1) == 0) {
+    if (RSOListInit(new_var = (RSOModule*)param1) == 0) {
         OSReport(&sRsoErrors[0x98]);
     }
 
     for (const RSOImportEntry* ptr = sRsoImports; ptr->func != 0; ptr++) {
-        RSOSymbol* temp_r3 = RSOFindSymbol(new_var, ptr->name);
+        RSOSymbol* temp_r3 = RSOFindExportSymbol(new_var, ptr->name);
 
         if (temp_r3 != 0) {
             temp_r3->offset = ((u32)ptr->func) - new_var->sections[temp_r3->sectionIdx].addr;
