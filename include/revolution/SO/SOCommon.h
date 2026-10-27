@@ -114,6 +114,19 @@ int SOCleanup(void);
 
 // Internal (SOPrivate.h)
 
+// /dev/net/ip/top ioctl commands (names unofficial)
+enum {
+    SO_IOCTL_GETHOSTID = 0x10,
+    SO_IOCTL_GETINTERFACEOPT = 0x1C,
+    SO_IOCTL_STARTUP = 0x1F
+};
+
+// Names SO passes to the allocator for its blocks (names unofficial)
+enum {
+    SO_MEM_RESOLVER = 0xB,
+    SO_MEM_INTERFACE_OPT = 0xC
+};
+
 typedef enum {
     SO_INTERNAL_RM_STATE_OPENED = 0,
     SO_INTERNAL_RM_STATE_WORKING = -1,

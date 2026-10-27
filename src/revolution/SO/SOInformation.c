@@ -8,7 +8,7 @@ s32 SOGetHostID(void) {
 
     result = SOiPrepare(NULL, &rmId);
     if (result == SO_SUCCESS) {
-        hostId = IOS_Ioctl(rmId, 0x10, NULL, 0, NULL, 0);
+        hostId = IOS_Ioctl(rmId, SO_IOCTL_GETHOSTID, NULL, 0, NULL, 0);
         SOiConclude(NULL, result);
     }
 

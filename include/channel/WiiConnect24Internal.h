@@ -22,19 +22,8 @@ extern volatile s32 gWC24TaskCount;
 extern void* gWC24HeapBlock;
 extern MEMiHeapHead* gWC24Heap;
 
-// The SO block is not split yet; keep the dependency declarations together.
-#ifdef __cplusplus
-extern "C" {
-#endif
-s32 SOInit(void* init);
-s32 SOStartup(void);
-s32 NETGetStartupErrorCode(s32 soErr);
-#ifdef __cplusplus
-}
-#endif
-
 void* DownloaderThread(void* pArg);
 void* WC24Alloc(u32 unused, s32 size);
-void WC24Free(void* unused, void* pBlock, s32 size);
+void WC24Free(u32 unused, void* pBlock, s32 size);
 
 #endif

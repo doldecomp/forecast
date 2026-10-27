@@ -1,12 +1,14 @@
 #include <revolution/NCD.h>
 #include <revolution/NET/neterrorcode.h>
 #include <revolution/OS.h>
+#include <revolution/SO.h>
 
-// Connection type when no single kind of connection setting is enabled.
+// Connection types: the kind of connection setting plus the setting's index,
+// or NONE when no single kind is enabled
+#define NET_CONNECTION_TYPE_WIRED 20
+#define NET_CONNECTION_TYPE_WIRELESS 30
+#define NET_CONNECTION_TYPE_USBAP 40
 #define NET_CONNECTION_TYPE_NONE 99
-
-// SO error code for a fatal error (SO_EFATAL)
-#define SO_EFATAL ((s32)0x80000000)
 
 static s32 GetStartupErrorCode(s32 soErr, s32 connType);
 
@@ -28,19 +30,22 @@ s32 NETiGetConnectionTypeFromConfigList(u32 wired, u32 wireless, u32 usbap) {
 
     if (wired != 0) {
         if (wireless == 0 && usbap == 0) {
-            connType = GetLowestBitIndex(wired) + 20;
+            connType = GetLowestBitIndex(wired) + NET_CONNECTION_TYPE_WIRED;
         }
     } else if (wireless != 0) {
         if (usbap == 0) {
-            connType = GetLowestBitIndex(wireless) + 30;
+            connType = GetLowestBitIndex(wireless) + NET_CONNECTION_TYPE_WIRELESS;
         }
     } else if (usbap != 0) {
-        connType = GetLowestBitIndex(usbap) + 40;
+        connType = GetLowestBitIndex(usbap) + NET_CONNECTION_TYPE_USBAP;
     }
 
     return connType;
 }
 
+// The error number the system shows for a failed SOStartup, negated (e.g. -51330:
+// -51300 for the error, minus connection type 30), or 0 if soErr is not an error.
+// GetStartupErrorCode is not inlined into it.
 #pragma push
 #pragma dont_inline on
 s32 NETGetStartupErrorCode(s32 soErr) {
@@ -68,30 +73,30 @@ static s32 GetStartupErrorCode(s32 soErr, s32 connType) {
     }
 
     switch (soErr) {
-    case -45:
+    case SO_ENOENT:
         return -50200;
-    case -28:
+    case SO_EINVAL:
         return -50300;
-    case -62:
+    case SO_ENXIO:
         return -50400;
-    case -111:
+    case SO_ERR_ADDR_COLLISION:
         return -52700;
-    case -121:
-        if (connType >= 20 && connType < 30) {
+    case SO_ERR_LINK_UP_TIMEOUT:
+        if (connType >= NET_CONNECTION_TYPE_WIRED && connType < NET_CONNECTION_TYPE_WIRELESS) {
             return -51400;
         }
         return -51000;
-    case -112:
-    case -76:
-    case -48:
-    case -39:
-        if (connType >= 20 && connType < 30) {
+    case SO_ERR_LINK_DOWN:
+    case SO_ETIMEDOUT:
+    case SO_ENOLINK:
+    case SO_ENETRESET:
+        if (connType >= NET_CONNECTION_TYPE_WIRED && connType < NET_CONNECTION_TYPE_WIRELESS) {
             return -51400;
         }
         return -51300;
-    case -102:
-    case -101:
-    case -100:
+    case SO_ERR_DHCP_NAK:
+    case SO_ERR_DHCP_EXPIRED:
+    case SO_ERR_DHCP_TIMEOUT:
         return -52000;
     case SO_EFATAL:
         return -50100;

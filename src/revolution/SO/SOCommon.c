@@ -17,6 +17,9 @@ typedef enum {
     SO_INTERNAL_STATE_ACTIVE = 2
 } SOInternalState;
 
+// Size of the DNS resolver's work area
+#define SO_RESOLVER_SIZE 0x460
+
 const char* __SO_VERSION =
     "<< RVL_SDK - SO \trelease build: Jun 28 2007 18:29:42 (0x4199_60831) >>";
 
@@ -69,7 +72,7 @@ int SOInit(const SOLibraryConfig* config) {
         soWork.rmState = SO_INTERNAL_RM_STATE_CLOSED;
         soWork.rmFd = -1;
 
-        soWork.pResolver = SOiAlloc(0xB, 0x460);
+        soWork.pResolver = SOiAlloc(SO_MEM_RESOLVER, SO_RESOLVER_SIZE);
         if (soWork.pResolver == NULL) {
             result = SO_ENOMEM;
         }
@@ -85,7 +88,7 @@ int SOInit(const SOLibraryConfig* config) {
 }
 
 int SOStartup(void) {
-    return SOStartupEx(600000);
+    return SOStartupEx(10 * 60 * 1000);
 }
 
 static inline int SOiConvertNWC24Error(s32 errNwc24, s32 exError) {
@@ -442,7 +445,7 @@ int SOiPrepareTempRm(const char* funcName, s32* pRmId, BOOL* pIsTempRm) {
                 case NCD_LINKSTATUS_WIRED:
                 case NCD_LINKSTATUS_WIRELESS_DOWN:
                 case NCD_LINKSTATUS_WIRELESS_UP:
-                    result = IOS_Ioctl(soWork.rmFd, 0x1F, NULL, 0, NULL, 0);
+                    result = IOS_Ioctl(soWork.rmFd, SO_IOCTL_STARTUP, NULL, 0, NULL, 0);
                     if (result == SO_SUCCESS) {
                         *pIsTempRm = TRUE;
                     } else {

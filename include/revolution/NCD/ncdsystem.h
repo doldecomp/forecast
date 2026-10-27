@@ -26,7 +26,7 @@ enum {
 };
 
 NCDErr NCDGetLinkStatus(void);
-NCDErr NCDiGetEnabledConfigList(u32* list0, u32* list1, u32* list2);
+NCDErr NCDiGetEnabledConfigList(u32* wired, u32* wireless, u32* usbap);
 
 #ifdef __cplusplus
 }

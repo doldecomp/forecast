@@ -11,7 +11,9 @@
 #include <revolution/NWC24/NWC24Schedule.h>
 #include <revolution/NWC24/internal/NWC24iManage.h>
 #include <revolution/NWC24/internal/NWC24iSystem.h>
+#include <revolution/NET.h>
 #include <revolution/SC/scapi.h>
+#include <revolution/SO.h>
 #include <cstdio>
 #include <types.h>
 
@@ -874,24 +876,19 @@ firstDone:
     return NWC24_OK;
 }
 
-struct WC24SOConfig {
-    void* alloc;
-    void* free;
-};
-
 NWC24Err ExecuteDownloadTask(WC24Task* task, s32 index, u32 unused, u16 unused2) {
     s32 initResult;
     s32 startupResult;
     NWC24Err error;
     s32 taskId;
-    WC24SOConfig config;
+    SOLibraryConfig config;
 
     taskId = (&task->mTaskId)[index];
 
     if (!gWC24NetInitialized) {
         gWC24ShutdownFlag2 = 1;
-        config.alloc = (void*)WC24Alloc;
-        config.free = (void*)WC24Free;
+        config.alloc = WC24Alloc;
+        config.free = WC24Free;
 
         initResult = SOInit(&config);
         if (initResult < 0) {
@@ -1072,7 +1069,7 @@ void* WC24Alloc(u32 unused, s32 size) {
     return block;
 }
 
-void WC24Free(void* unused, void* block, s32 size) {
+void WC24Free(u32 unused, void* block, s32 size) {
     if (block == NULL)
         return;
 

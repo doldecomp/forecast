@@ -7,6 +7,7 @@ extern "C" {
 #include <revolution/NET/NETVersion.h>
 #include <revolution/NET/nettime.h>
 #include <revolution/NET/netcrc.h>
+#include <revolution/NET/neterrorcode.h>
 
 #ifdef __cplusplus
 }

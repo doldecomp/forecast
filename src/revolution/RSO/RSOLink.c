@@ -49,6 +49,7 @@ static void RSORelocate(RSORel* rel, int index, u32 offset);
 static void RSORelocateSmallDataSection(RSOObjectHeader* rsoImp, int impIndex,
                                         const RSOObjectHeader* rsoExp);
 
+// Empty hooks for a debugger to break on, so they stay real calls
 #pragma push
 #pragma dont_inline on
 void RSONotifyModuleLoaded(RSOObjectHeader* moduleHeader) {}

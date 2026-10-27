@@ -6,11 +6,23 @@
 #define NCD_PROFILE_COUNT 3
 #define NCD_IPC_HEAP_SIZE 0x1B60
 
+// /dev/net/ncd/manage ioctl commands (names unofficial)
+#define NCD_IOCTL_READ_CONFIG 3
+#define NCD_IOCTL_WRITE_CONFIG 4
+#define NCD_IOCTL_GET_LINK_STATUS 7
+
+// NCDProfile flags
+#define NCD_PROFILE_FLAG_WIRED 0x01
+#define NCD_PROFILE_FLAG_IN_USE 0x80
+
+// NCDProfile configMethod of a wireless profile set up through the USB access point
+#define NCD_CONFIG_METHOD_USBAP 1
+
 // One connection setting
 typedef struct NCDProfile {
-    u8 flags;             // at 0x0 (0x80: in use, 0x01: wired)
+    u8 flags;             // at 0x0
     u8 _001[0x7C2 - 0x1]; // at 0x1
-    u8 configMethod;      // at 0x7C2 (wireless; 1: USB access point)
+    u8 configMethod;      // at 0x7C2
     u8 _7C3[0x91C - 0x7C3];
 } NCDProfile;
 
@@ -60,7 +72,7 @@ NCDErr NCDGetLinkStatus(void) {
         ncdVec[0].base = ncdResult;
         ncdVec[0].length = sizeof(ncdResult);
 
-        if (IOS_Ioctlv(fd, 7, 0, 1, ncdVec) < 0) {
+        if (IOS_Ioctlv(fd, NCD_IOCTL_GET_LINK_STATUS, 0, 1, ncdVec) < 0) {
             result = NCD_RESULT_IPC_ERROR;
         } else {
             result = ncdResult[0];
@@ -79,31 +91,32 @@ NCDErr NCDGetLinkStatus(void) {
     return result;
 }
 
-NCDErr NCDiGetEnabledConfigList(u32* list0, u32* list1, u32* list2) {
+// Bit masks of the enabled profiles of each connection kind
+NCDErr NCDiGetEnabledConfigList(u32* wired, u32* wireless, u32* usbap) {
     NCDErr result;
-    u32 mask0 = 0;
-    u32 mask1 = 0;
-    u32 mask2 = 0;
+    u32 wiredMask = 0;
+    u32 wirelessMask = 0;
+    u32 usbapMask = 0;
     u8 flags;
     s32 i;
 
     LockRight();
 
-    result = ExecConfigCommand("NCDiGetEnabledConfigList", NULL, 3);
+    result = ExecConfigCommand("NCDiGetEnabledConfigList", NULL, NCD_IOCTL_READ_CONFIG);
     if (result == NCD_RESULT_SUCCESS) {
         for (i = 0; i < NCD_PROFILE_COUNT; i++) {
             NCDProfile* profile = &ncdConfig->profiles[i];
 
             flags = profile->flags;
-            if (flags & 0x80) {
-                if (flags & 1) {
-                    mask0 |= 1 << i;
+            if (flags & NCD_PROFILE_FLAG_IN_USE) {
+                if (flags & NCD_PROFILE_FLAG_WIRED) {
+                    wiredMask |= 1 << i;
                 } else {
-                    if (profile->configMethod != 1) {
-                        mask1 |= 1 << i;
+                    if (profile->configMethod != NCD_CONFIG_METHOD_USBAP) {
+                        wirelessMask |= 1 << i;
                     }
-                    if (profile->configMethod == 1) {
-                        mask2 |= 1 << i;
+                    if (profile->configMethod == NCD_CONFIG_METHOD_USBAP) {
+                        usbapMask |= 1 << i;
                     }
                 }
             }
@@ -112,14 +125,14 @@ NCDErr NCDiGetEnabledConfigList(u32* list0, u32* list1, u32* list2) {
 
     OSUnlockMutex(&ncdMutex);
 
-    if (list0 != NULL) {
-        *list0 = mask0;
+    if (wired != NULL) {
+        *wired = wiredMask;
     }
-    if (list1 != NULL) {
-        *list1 = mask1;
+    if (wireless != NULL) {
+        *wireless = wirelessMask;
     }
-    if (list2 != NULL) {
-        *list2 = mask2;
+    if (usbap != NULL) {
+        *usbap = usbapMask;
     }
 
     return result;
@@ -150,8 +163,10 @@ static NCDErr ExecConfigCommand(const char* funcName, NCDConfig* config,
         ncdVec[1].base = ncdResult;
         ncdVec[1].length = sizeof(ncdResult);
 
+        // 5 and 6 (not used by the channel) read and write the same way as 3 and 4.
+        // config is compared with (void*)NULL: a plain NULL changes the generated code.
         switch (command) {
-        case 3:
+        case NCD_IOCTL_READ_CONFIG:
         case 5:
             if (IOS_Ioctlv(fd, command, 0, 2, ncdVec) < 0) {
                 result = NCD_RESULT_IPC_ERROR;
@@ -162,7 +177,7 @@ static NCDErr ExecConfigCommand(const char* funcName, NCDConfig* config,
                 }
             }
             break;
-        case 4:
+        case NCD_IOCTL_WRITE_CONFIG:
         case 6:
             if (config != (void*)NULL) {
                 memcpy(ncdConfig, config, sizeof(NCDConfig));

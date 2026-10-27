@@ -24,8 +24,10 @@ int SOGetInterfaceOpt(SOInterface* interface, int level, int optname,
             optname == SO_CONFIG_FILTER_OUTPUT) {
             result = SO_EINVAL;
         } else {
+            // One IPC buffer holds the vectors, the request, the output length
+            // and the output value, each 32-byte aligned
             bufSize = OSRoundUp32B(SO_OPTLEN(optlen) + 0x60);
-            buf = (u8*)SOiAlloc(0xC, (s32)bufSize);
+            buf = (u8*)SOiAlloc(SO_MEM_INTERFACE_OPT, (s32)bufSize);
             if (buf == NULL) {
                 result = SO_ENOMEM;
             } else {
@@ -39,13 +41,13 @@ int SOGetInterfaceOpt(SOInterface* interface, int level, int optname,
                 *outLen = SO_OPTLEN(optlen);
 
                 vec[0].base = in;
-                vec[0].length = 8;
+                vec[0].length = 2 * sizeof(int);
                 vec[1].base = outVal;
                 vec[1].length = SO_OPTLEN(optlen);
                 vec[2].base = outLen;
                 vec[2].length = sizeof(int);
 
-                result = IOS_Ioctlv(rmId, 0x1C, 1, 2, vec);
+                result = IOS_Ioctlv(rmId, SO_IOCTL_GETINTERFACEOPT, 1, 2, vec);
                 if (result >= 0 && optlen != NULL) {
                     if (*optlen >= *outLen) {
                         if (optval != NULL) {
@@ -58,7 +60,7 @@ int SOGetInterfaceOpt(SOInterface* interface, int level, int optname,
                     }
                 }
 
-                SOiFree(0xC, buf, (s32)bufSize);
+                SOiFree(SO_MEM_INTERFACE_OPT, buf, (s32)bufSize);
             }
         }
 
