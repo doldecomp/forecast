@@ -76,7 +76,7 @@ void GXSetProjectionv(const f32 proj[GX_PROJECTION_SZ]) {
     gxdt->gxDirtyFlags |= GX_DIRTY_PROJECTION;
 }
 
-void GXGetProjectionv(f32 proj[GX_PROJECTION_SZ]) {
+inline void GXGetProjectionv(f32 proj[GX_PROJECTION_SZ]) {
     proj[0] = gxdt->projType != GX_PERSPECTIVE ? 1.0f : 0.0f;
     LoadProjPS(proj + 1);
 }

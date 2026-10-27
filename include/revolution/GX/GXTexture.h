@@ -19,7 +19,11 @@ typedef GXTexRegion* (*GXTexRegionCallback)(const GXTexObj* pObj,
 
 typedef GXTlutRegion* (*GXTlutRegionCallback)(u32 id);
 
+void __SetSURegs(u32 texMap, u32 texCoord);
 void __GXSetSUTexRegs(void);
+void __GXSetTmemConfig(u32 config);
+void __GetImageTileCount(GXTexFmt fmt, u16 width, u16 height, u32* rowTiles,
+                         u32* colTiles, u32* cmpTiles);
 
 void GXInitTexObj(GXTexObj* obj, void* image, u16 w, u16 h, GXTexFmt fmt,
                   GXTexWrapMode wrap_s, GXTexWrapMode wrap_t, GXBool mipmap);
@@ -42,7 +46,7 @@ void GXGetTexObjAll(GXTexObj* obj, void* image_ptr, u16* width, u16* height,
                     GXTexFmt* format, GXTexWrapMode* wrap_s,
                     GXTexWrapMode* wrap_t, GXBool* mipmap);
 
-void GXGetTexObjLODAll(GXTexObj* obj, GXTexFilter* min_filt,
+void GXGetTexObjLODAll(const GXTexObj* obj, GXTexFilter* min_filt,
                        GXTexFilter* mag_filt, f32* minLod, f32* maxLod,
                        f32* lodBias, GXBool* biasClampEnable,
                        GXBool* edgeLodEnable, GXAnisotropy* anisotropy);
@@ -55,6 +59,8 @@ u16 GXGetTexObjHeight(const GXTexObj* obj);
 GXTexFmt GXGetTexObjFmt(const GXTexObj* obj);
 GXBool GXGetTexObjMipMap(const GXTexObj* obj);
 
+void GXLoadTexObjPreLoaded(const GXTexObj* obj, const GXTexRegion* region,
+                           GXTexMapID id);
 void GXLoadTexObj(const GXTexObj*, GXTexMapID);
 
 void GXInitTexObjTlut(GXTexObj*, u32);
@@ -62,7 +68,7 @@ u32 GXGetTexObjTlut(GXTexObj*);
 
 void GXInitTlutObj(GXTlutObj*, void*, GXTlutFmt, u16);
 
-void GXLoadTlut(GXTlutObj*, u32);
+void GXLoadTlut(const GXTlutObj*, u32);
 
 void GXInvalidateTexAll(void);
 

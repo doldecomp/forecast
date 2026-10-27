@@ -1681,13 +1681,13 @@ revolution/GX/GXInit.c:
 	.text       start:0x800F96D0 end:0x800FA89C
 	.data       start:0x801C7A20 end:0x801C7C60 align:32
 	.bss        start:0x802CC9A0 end:0x802CD020
-	.sdata      start:0x803305C8 end:0x803305D0
+	.sdata      start:0x803305C8 end:0x803305CC
 	.sbss       start:0x80331438 end:0x80331460
 	.sdata2     start:0x80332E48 end:0x80332E70
 
 revolution/GX/GXFifo.c:
 	.text       start:0x800FA89C end:0x800FB258
-	.data       start:0x801C7C60 end:0x801C7C90
+	.data       start:0x801C7C60 end:0x801C7C8E
 	.bss        start:0x802CD020 end:0x802CD068
 	.sbss       start:0x80331460 end:0x80331480
 
@@ -1725,7 +1725,7 @@ revolution/GX/GXBump.c:
 
 revolution/GX/GXTev.c:
 	.text       start:0x800FF5C4 end:0x800FFC44
-	.data       start:0x801C8148 end:0x801C81C0
+	.data       start:0x801C8148 end:0x801C81BC
 
 revolution/GX/GXPixel.c:
 	.text       start:0x800FFC44 end:0x801003A8
@@ -1746,7 +1746,7 @@ revolution/GX/GXTransform.c:
 
 revolution/GX/GXPerf.c:
 	.text       start:0x80101D7C end:0x801025B8
-	.data       start:0x801C81E0 end:0x801C82D0
+	.data       start:0x801C81E0 end:0x801C82CC
 
 revolution/DVD/dvdfs.c:
 	.text       start:0x801025B8 end:0x8010334C

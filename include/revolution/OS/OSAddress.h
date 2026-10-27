@@ -17,6 +17,10 @@ static inline void* OSCachedToPhysical(const void* ofs) {
     return (u8*)ofs - 0x80000000;
 }
 
+static inline void* OSUncachedToPhysical(const void* ofs) {
+    return (u8*)ofs - 0xC0000000;
+}
+
 #ifdef __cplusplus
 }
 #endif

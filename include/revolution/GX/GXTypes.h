@@ -23,6 +23,15 @@ extern "C" {
     ((field) >> (31 - (pos) - (size) + 1) & ((1 << (size)) - 1))
 
 /**
+ * Set/get a field given by its size and its shift from the least significant
+ * bit (the SDK's SET_REG_FIELD/GET_REG_FIELD form).
+ */
+#define GX_SET_REG_FIELD(reg, size, shift, val)                                \
+    ((reg) = GX_BITSET((reg), 32 - (shift) - (size), (size), (val)))
+#define GX_GET_REG_FIELD(reg, size, shift)                                     \
+    (((reg) >> (shift)) & ((1 << (size)) - 1))
+
+/**
  * Pack value into bitfield.
  * Value is not shifted, only masked.
  * (Bit indices are LSB)
@@ -78,6 +87,12 @@ typedef enum _GXAlphaOp {
 
     GX_MAX_ALPHAOP
 } GXAlphaOp;
+
+typedef enum _GXAlphaReadMode {
+    GX_READ_00,
+    GX_READ_FF,
+    GX_READ_NONE,
+} GXAlphaReadMode;
 
 typedef enum _GXAnisotropy {
     GX_ANISO_1,
@@ -241,6 +256,12 @@ typedef enum _GXCopyClamp {
     GX_CLAMP_ALL,
 } GXCopyClamp;
 
+typedef enum _GXCopyMode {
+    GX_COPY_PROGRESSIVE = 0,
+    GX_COPY_INTLC_EVEN = 2,
+    GX_COPY_INTLC_ODD = 3,
+} GXCopyMode;
+
 typedef enum _GXCullMode {
     GX_CULL_NONE,
     GX_CULL_FRONT,
@@ -249,6 +270,13 @@ typedef enum _GXCullMode {
 } GXCullMode;
 
 typedef enum _GXDiffuseFn { GX_DF_NONE, GX_DF_SIGN, GX_DF_CLAMP } GXDiffuseFn;
+
+typedef enum _GXMiscToken {
+    GX_MT_NULL,
+    GX_MT_XF_FLUSH,
+    GX_MT_DL_SAVE_CONTEXT,
+    GX_MT_ABORT_WAIT_COPYOUT,
+} GXMiscToken;
 
 typedef enum _GXDirtyFlag {
     GX_DIRTY_SU_TEX = (1 << 0),

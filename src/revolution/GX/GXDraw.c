@@ -1,4 +1,8 @@
 #include <cmath>
+// The SDK was built against MSL's math headers, which tell MWCC how errno is
+// accessed. Without that, the compiler assumes cos/sin can change any local
+// whose address was taken (ttype/tex0 below) and reloads or spills it.
+#include <__internal/__errno.h>
 #include <revolution/GX.h>
 
 // +1 for null terminator
@@ -85,8 +89,6 @@ void GXDrawCylinder(u8 sides) {
 void GXDrawTorus(f32 rc, u8 numc, u8 numt)
 {
     GXAttrType ttype;
-    GXAttrType tc;
-    GXAttrType* ptc;
     s32 i, j, k;
     f32 s, t;
     f32 x, y, z;
@@ -99,11 +101,9 @@ void GXDrawTorus(f32 rc, u8 numc, u8 numt)
     if (ttype != GX_NONE) {
         GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
         GXSetVtxAttrFmt(GX_VTXFMT3, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
-        ptc = &tc;
     }
     for (i = 0; i < numc; i++) {
         GXBegin(GX_TRIANGLESTRIP, GX_VTXFMT3, (numt + 1) * 2);
-        tc = ttype;
         for (j = 0; j <= numt; j++) {
             for (k = 1; k >= 0; k--) {
                 s = (i + k) % numc;
@@ -118,7 +118,7 @@ void GXDrawTorus(f32 rc, u8 numc, u8 numt)
                 y = -sinf(t * twopi / numt) * cosf(s * twopi / numc);
                 z = sinf(s * twopi / numc);
                 GXNormal3f32(x, y, z);
-                if (*ptc != GX_NONE) {
+                if (ttype != GX_NONE) {
                     GXTexCoord2f32((i + k) / (f32) numc, j / (f32) numt);
                 }
             }
@@ -129,7 +129,7 @@ void GXDrawTorus(f32 rc, u8 numc, u8 numt)
 }
 
 void GXDrawSphere(u32 stacks, u32 sectors) {
-    GXAttrType tex0, tex0_copy;
+    GXAttrType tex0;
     f32 radius;
     f32 stackStep, sectorStep;
     f32 stackAngle, stackAngleNext;
@@ -165,8 +165,6 @@ void GXDrawSphere(u32 stacks, u32 sectors) {
 
         GXBegin(GX_TRIANGLESTRIP, GX_VTXFMT3, (sectors + 1) * 2);
         {
-            tex0_copy = tex0;
-
             for (j = 0; j <= (int)sectors; j++) {
                 sectorAngle = j * sectorStep;
                 cosv = cosf(sectorAngle);
@@ -179,7 +177,7 @@ void GXDrawSphere(u32 stacks, u32 sectors) {
                                next_z / radius);
 
                 // Vertex 2 texcoord (S,T)
-                if (tex0_copy != GX_NONE) {
+                if (tex0 != GX_NONE) {
                     GXTexCoord2f32((f32)j / sectors, (f32)(i + 1) / stacks);
                 }
 
@@ -190,7 +188,7 @@ void GXDrawSphere(u32 stacks, u32 sectors) {
                                now_z / radius);
 
                 // Vertex 1 texcoord (S,T)
-                if (tex0_copy != GX_NONE) {
+                if (tex0 != GX_NONE) {
                     GXTexCoord2f32((f32)j / sectors, (f32)i / stacks);
                 }
             }

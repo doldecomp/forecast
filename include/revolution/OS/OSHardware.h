@@ -174,10 +174,10 @@ typedef enum {
     PI_INTSR,    //!< 0xCC003000
     PI_INTMR,    //!< 0xCC003004
     PI_REG_0x8,  //!< 0xCC003008
-    PI_REG_0xC,  //!< 0xCC00300C
-    PI_REG_0x10, //!< 0xCC003010
-    PI_REG_0x14, //!< 0xCC003014
-    PI_REG_0x18, //!< 0xCC003018
+    PI_FIFO_BASE,      //!< 0xCC00300C
+    PI_FIFO_END,       //!< 0xCC003010
+    PI_FIFO_WRITE_PTR, //!< 0xCC003014
+    PI_FIFO_RESET, //!< 0xCC003018
     PI_REG_0x1C, //!< 0xCC00301C
     PI_REG_0x20, //!< 0xCC003020
     PI_RESET,    //!< 0xCC003024

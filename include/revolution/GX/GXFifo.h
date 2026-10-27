@@ -11,10 +11,17 @@ extern "C" {
 
 GX_PUBLIC_STRUCT_DECL(GXFifoObj, 128);
 
+typedef void (*GXBreakPtCallback)(void);
+
+void GXInitFifoBase(GXFifoObj* fifo, void* base, u32 size);
+void GXInitFifoPtrs(GXFifoObj* fifo, void* readPtr, void* writePtr);
+void GXInitFifoLimits(GXFifoObj* fifo, u32 hiWatermark, u32 loWatermark);
+
 void GXGetGPStatus(GXBool* overhi, GXBool* underlow, GXBool* readIdle,
                    GXBool* cmdIdle, GXBool* brkpt);
 
 void GXSetCPUFifo(GXFifoObj*);
+void GXSetGPFifo(GXFifoObj*);
 BOOL GXGetCPUFifo(GXFifoObj*);
 BOOL GXGetGPFifo(GXFifoObj*);
 
@@ -27,6 +34,13 @@ void GXEnableBreakPt(void* writePtr);
 void GXDisableBreakPt(void);
 
 OSThread* GXGetCurrentGXThread(void);
+
+GXBreakPtCallback GXSetBreakPtCallback(GXBreakPtCallback callback);
+
+GXBool CPGPLinkCheck(void);
+void __GXFifoInit(void);
+GXBool __GXIsGPFifoReady(void);
+void __GXCleanGPFifo(void);
 
 #ifdef __cplusplus
 }
