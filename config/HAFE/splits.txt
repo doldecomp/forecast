@@ -1829,7 +1829,7 @@ revolution/AX/AXVPB.c:
 	.text       start:0x8010D778 end:0x8010ED88
 	.data       start:0x801C9C10 end:0x801C9CA0
 	.bss        start:0x802D65E0 end:0x802E7CE0
-	.sbss       start:0x803316E0 end:0x80331700
+	.sbss       start:0x803316E0 end:0x803316FC
 	.sdata2     start:0x80332F90 end:0x80332FB0
 
 revolution/AX/AXComp.c:
@@ -1858,11 +1858,11 @@ revolution/AXFX/AXFXHooks.c:
 
 revolution/MEM/mem_heapCommon.c:
 	.text       start:0x8010FE2C end:0x80110298
-	.bss        start:0x802E7CE0 end:0x802E7D20
-	.sbss       start:0x80331710 end:0x80331718
+	.bss        start:0x802E7CE0 end:0x802E7D08
+	.sbss       start:0x80331710 end:0x80331714
 
 revolution/MEM/mem_expHeap.c:
-	.text       start:0x80110298 end:0x80110A04
+	.text       start:0x80110298 end:0x80110A80
 
 revolution/MEM/mem_frameHeap.c:
 	.text       start:0x80110A80 end:0x80110D6C
@@ -1899,16 +1899,24 @@ revolution/NAND/nand.c:
 
 revolution/NAND/NANDOpenClose.c:
 	.text       start:0x80113A24 end:0x80114498
-	.data       start:0x801CCFC0 end:0x801CD060
-	.sdata      start:0x80330688 end:0x8033069C
-	.sbss       start:0x80331738 end:0x80331740
+	.data       start:0x801CCFC0 end:0x801CCFEF
+	.sdata      start:0x80330688 end:0x80330696
+	.sbss       start:0x80331738 end:0x8033173C
 
 revolution/NAND/NANDCore.c:
-	.text       start:0x80114498 end:0x80115848
-	.data       start:0x801CD060 end:0x801CD198
-	.bss        start:0x802E7D20 end:0x802E8080
-	.sdata      start:0x8033069C end:0x803306C0
-	.sbss       start:0x80331740 end:0x80331750
+	.text       start:0x80114498 end:0x80115278
+	.rodata     start:0x80197308 end:0x80197450
+	.data       start:0x801CD000 end:0x801CD14F align:32
+	.bss        start:0x802E7D20 end:0x802E7D80 align:32
+	.sdata      start:0x80330698 end:0x803306B6
+	.sbss       start:0x80331740 end:0x80331744
+
+revolution/NAND/NANDLogging.c:
+	.text       start:0x80115278 end:0x80115848
+	.data       start:0x801CD150 end:0x801CD193
+	.bss        start:0x802E7D80 end:0x802E8080
+	.sdata      start:0x803306B8 end:0x803306BC
+	.sbss       start:0x80331748 end:0x80331750
 
 revolution/SC/scsystem.c:
 	.text       start:0x80115848 end:0x8011731C
@@ -1957,7 +1965,8 @@ revolution/IPC/ipcProfile.c:
 
 revolution/FS/fs.c:
 	.text       start:0x8011A9C8 end:0x8011BF9C
-	.sdata      start:0x803307F0 end:0x803307F8
+	.data       start:0x801CD3C8 end:0x801CD3E9
+	.sdata      start:0x803307F0 end:0x80330800
 	.sbss       start:0x80331798 end:0x803317B0
 
 revolution/PAD/Pad.c:

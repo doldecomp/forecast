@@ -1,8 +1,21 @@
 #include <revolution/IPC.h>
 #include <revolution/OS.h>
 
+#include <cstring>
+
 #define IPC_QUEUE_CAPACITY 16
-#define IPC_HEAP_SIZE 0x800
+
+// Rounds a size up to the IPC buffer alignment.
+#define IPC_ROUND_UP(x) (((u32)(x) + 31) & ~31)
+
+// Number of requests the client heap can hold.
+#define IPC_HEAP_REQUESTS 32
+
+// Elapsed count from b to a, allowing for wraparound.
+// No parentheses around the whole expression, so a comparison binds to the
+// non-wrapping branch only (as in the original).
+#define IPC_COUNT_DIFF(a, b)                                                   \
+    ((a) < (b)) ? ((u32)0xFFFFFFFF - (b) + (a) + 1) : ((a) - (b))
 
 typedef struct IPCRequestQueue {
     u32 sent;                                // at 0x0
@@ -13,12 +26,18 @@ typedef struct IPCRequestQueue {
 } IPCRequestQueue;
 
 static s32 __mailboxAck = 1;
-static s32 hid = -1;
-
 static BOOL __relnchFl = FALSE;
+
+// IOS_IoctlvReboot waits on a static copy of its request (__rpcBuf), because
+// the heap that holds the request itself is rebuilt after IOS reboots.
 static IPCRequestEx* __relnchRpc = NULL;
+static IPCRequestEx* __relnchRpcSave = NULL;
+
+static u8 __rpcBuf[IPC_ROUND_UP(sizeof(IPCRequestEx))] ALIGN(32);
 
 static IPCRequestQueue __responses;
+
+static s32 hid = -1;
 
 size_t strnlen(const char* s, size_t maxlen);
 
@@ -41,16 +60,9 @@ static s32 ipcFree(void* block) {
 
 static DECOMP_INLINE s32 __ipcQueueRequest(IPCRequestEx* req) {
     s32 ret = IPC_RESULT_OK;
-    s32 waiting;
 
-    waiting =
-        (__responses.queued < __responses.sent)
-            // Difference of count
-            ? __responses.queued - __responses.sent
-            // Is queue full?
-            : (__responses.queued - __responses.sent) >= IPC_QUEUE_CAPACITY;
-
-    if (waiting != 0) {
+    if (IPC_COUNT_DIFF(__responses.queued, __responses.sent) >=
+        IPC_QUEUE_CAPACITY) {
         ret = IPC_RESULT_BUSY_INTERNAL;
     } else {
         __responses.queue[__responses.back] = req;
@@ -62,40 +74,27 @@ static DECOMP_INLINE s32 __ipcQueueRequest(IPCRequestEx* req) {
     return ret;
 }
 
-static DECOMP_INLINE s32 __ipcSendRequest(void) {
-    s32 ret = IPC_RESULT_OK;
+static DECOMP_INLINE void __ipcSendRequest(void) {
     IPCRequestEx* req;
-    s32 waiting;
 
-    waiting = (__responses.queued < __responses.sent)
-                  // Difference of sent/queued
-                  ? __responses.queued - __responses.sent
-                  // Are no requests waiting
-                  : (__responses.queued - __responses.sent) == 0;
-
-    if (waiting != 0) {
-        ret = IPC_RESULT_BUSY_INTERNAL;
-    } else {
-        req = __responses.queue[__responses.front];
-        if (req == NULL) {
-            goto exit;
-        }
-
-        if (req->reboot) {
-            __relnchFl = TRUE;
-            __relnchRpc = req;
-            __mailboxAck--;
-        }
-
-        IPCWriteReg(IPC_IPC_PPCMSG, (u32)OSCachedToPhysical(req));
-        __responses.front = (__responses.front + 1) % IPC_QUEUE_CAPACITY;
-        __responses.sent++;
-        __mailboxAck--;
-        IPCWriteReg(IPC_IPC_PPCCTRL, (IPCReadReg(IPC_IPC_PPCCTRL) & 0x30) | 1);
+    if (IPC_COUNT_DIFF(__responses.queued, __responses.sent) <= 0) {
+        return;
     }
 
-exit:
-    return ret;
+    req = __responses.queue[__responses.front];
+    if (req == NULL) {
+        return;
+    }
+
+    if (req->reboot) {
+        __mailboxAck--;
+    }
+
+    IPCWriteReg(IPC_IPC_PPCMSG, (u32)OSCachedToPhysical(req));
+    __responses.front = (__responses.front + 1) % IPC_QUEUE_CAPACITY;
+    __responses.sent++;
+    __mailboxAck--;
+    IPCWriteReg(IPC_IPC_PPCCTRL, (IPCReadReg(IPC_IPC_PPCCTRL) & 0x30) | 1);
 }
 
 static void IpcReplyHandler(s16 intr, OSContext* ctx) {
@@ -160,7 +159,7 @@ static void IpcReplyHandler(s16 intr, OSContext* ctx) {
                                   req->base.ioctlv.vectors[i].length);
             }
 
-            if (__relnchFl && __relnchRpc == req) {
+            if (__relnchFl && __relnchRpcSave == req) {
                 __relnchFl = FALSE;
                 if (__mailboxAck < 1) {
                     __mailboxAck++;
@@ -222,26 +221,52 @@ static void IPCInterruptHandler(s16 intr, OSContext* ctx) {
 s32 IPCCltInit(void) {
     static BOOL initialized = FALSE;
 
-    s32 err = 0;
+    u32 size;
+    s32 err = IPC_RESULT_OK;
     void* lo;
 
-    if (!initialized) {
-        initialized = TRUE;
-        IPCInit();
-
-        lo = IPCGetBufferLo();
-        if ((char*)lo + IPC_HEAP_SIZE > (char*)IPCGetBufferHi()) {
-            err = IPC_RESULT_ALLOC_FAILED;
-        } else {
-            hid = iosCreateHeap(lo, IPC_HEAP_SIZE);
-            IPCSetBufferLo((char*)lo + IPC_HEAP_SIZE);
-            __OSSetInterruptHandler(OS_INTR_PI_ACR, IPCInterruptHandler);
-            __OSUnmaskInterrupts(OS_INTR_MASK(OS_INTR_PI_ACR));
-            IPCWriteReg(IPC_IPC_PPCCTRL, 0x38);
-            IPCiProfInit();
-        }
+    if (initialized) {
+        goto exit;
     }
 
+    initialized = TRUE;
+    IPCInit();
+
+    size = IPC_ROUND_UP(IPC_HEAP_REQUESTS *
+                        (IPC_ROUND_UP(sizeof(IPCRequestEx)) + 64));
+    lo = IPCGetBufferLo();
+    if ((void*)((u8*)lo + size) > IPCGetBufferHi()) {
+        err = IPC_RESULT_ALLOC_FAILED;
+        goto exit;
+    }
+
+    hid = iosCreateHeap(lo, size);
+    IPCSetBufferLo((u8*)lo + size);
+    __OSSetInterruptHandler(OS_INTR_PI_ACR, IPCInterruptHandler);
+    __OSUnmaskInterrupts(OS_INTR_MASK(OS_INTR_PI_ACR));
+    IPCWriteReg(IPC_IPC_PPCCTRL, 0x38);
+    IPCiProfInit();
+
+exit:
+    return err;
+}
+
+s32 IPCCltReInit(void) {
+    u32 size;
+    s32 err = IPC_RESULT_OK;
+    void* lo;
+
+    size = IPC_ROUND_UP(IPC_HEAP_REQUESTS * IPC_ROUND_UP(sizeof(IPCRequestEx)));
+    lo = IPCGetBufferLo();
+    if ((void*)((u8*)lo + size) > IPCGetBufferHi()) {
+        err = IPC_RESULT_ALLOC_FAILED;
+        goto exit;
+    }
+
+    hid = iosCreateHeap(lo, size);
+    IPCSetBufferLo((u8*)lo + size);
+
+exit:
     return err;
 }
 
@@ -622,14 +647,65 @@ s32 IOS_Ioctlv(s32 fd, s32 type, s32 inCount, s32 outCount,
 s32 IOS_IoctlvReboot(s32 fd, s32 type, s32 inCount, s32 outCount,
                      IPCIOVector* vectors) {
     IPCRequestEx* req;
-    s32 ret = __ios_Ipc1(fd, IPC_REQ_IOCTLV, NULL, NULL, &req);
-    if (ret == IPC_RESULT_OK) {
-        req->reboot = TRUE;
-        ret = __ios_Ioctlv(req, type, inCount, outCount, vectors);
-        if (ret == IPC_RESULT_OK) {
-            ret = __ios_Ipc2(req, NULL);
-        }
+    s32 ret = IPC_RESULT_OK;
+    BOOL enabled;
+    IPCRequestEx* sent;
+
+    enabled = OSDisableInterrupts();
+    if (__relnchFl) {
+        OSRestoreInterrupts(enabled);
+        // A reboot is already in progress
+        ret = -10;
+        goto finish;
     }
 
+    __relnchFl = TRUE;
+    OSRestoreInterrupts(enabled);
+
+    ret = __ios_Ipc1(fd, IPC_REQ_IOCTLV, NULL, NULL, &req);
+    if (ret != IPC_RESULT_OK) {
+        goto exit;
+    }
+
+    __relnchRpcSave = req;
+    req->reboot = TRUE;
+
+    ret = __ios_Ioctlv(req, type, inCount, outCount, vectors);
+    if (ret != IPC_RESULT_OK) {
+        goto exit;
+    }
+
+    // The request itself goes to IOS; this thread waits on the static copy
+    memcpy(__rpcBuf, req, sizeof(IPCRequestEx));
+    __relnchRpc = (IPCRequestEx*)__rpcBuf;
+    sent = req;
+
+    OSInitThreadQueue(&__relnchRpc->queue);
+    DCFlushRange(&sent->base, sizeof(IPCRequest));
+
+    enabled = OSDisableInterrupts();
+    ret = __ipcQueueRequest(sent);
+    if (ret != IPC_RESULT_OK) {
+        OSRestoreInterrupts(enabled);
+        goto exit;
+    }
+
+    if (__mailboxAck > 0) {
+        __ipcSendRequest();
+    }
+
+    OSSleepThread(&__relnchRpc->queue);
+    OSRestoreInterrupts(enabled);
+    ret = __relnchRpc->base.ret;
+
+exit:
+    __relnchFl = FALSE;
+    __relnchRpcSave = NULL;
+
+    if (req != NULL && ret != IPC_RESULT_OK) {
+        ipcFree(req);
+    }
+
+finish:
     return ret;
 }

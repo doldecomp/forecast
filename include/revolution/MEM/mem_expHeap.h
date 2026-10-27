@@ -57,6 +57,7 @@ MEMiHeapHead* MEMDestroyExpHeap(MEMiHeapHead* heap);
 void* MEMAllocFromExpHeapEx(MEMiHeapHead* heap, u32 size, s32 align);
 u32 MEMResizeForMBlockExpHeap(MEMiHeapHead* heap, void* memBlock, u32 size);
 void MEMFreeToExpHeap(MEMiHeapHead* heap, void* memBlock);
+u32 MEMGetTotalFreeSizeForExpHeap(MEMiHeapHead* heap);
 u32 MEMGetAllocatableSizeForExpHeapEx(MEMiHeapHead* heap, s32 align);
 u32 MEMAdjustExpHeap(MEMiHeapHead* heap);
 

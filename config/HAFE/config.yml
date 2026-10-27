@@ -44,6 +44,9 @@ block_relocations:
 - source: 0x801C75F0
 # vcmv_www data: the constant 0x801B5080 happens to equal HBMBase's scFuncTouchPaneName
 - source: .data:0x801B5CB8
+# GlobeDotsTable.cpp: table bytes that happen to equal addresses inside AXVPB.c's __s_AXVPB
+- source: 0x801871B8
+- source: 0x80188070
 
 # System.cpp: lis/addi pairs split by register spills, which analysis cannot pair
 add_relocations:

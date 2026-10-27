@@ -52,7 +52,7 @@ void NANDDelete(void);
 void NANDGetCurrentDir(void);
 void NANDGetLength(void);
 void NANDGetStatus(void);
-void NANDPrivateGetType(void);
+void NANDGetType(void);
 void NANDOpen(void);
 void NANDRead(void);
 void NANDReadDir(void);
@@ -191,7 +191,7 @@ const RSOImportEntry sRsoImports[] = {
     {"NANDGetCurrentDir", (void*)NANDGetCurrentDir},
     {"NANDGetLength", (void*)NANDGetLength},
     {"NANDGetStatus", (void*)NANDGetStatus},
-    {"NANDGetType", (void*)NANDPrivateGetType},
+    {"NANDGetType", (void*)NANDGetType},
     {"NANDOpen", (void*)NANDOpen},
     {"NANDRead", (void*)NANDRead},
     {"NANDReadDir", (void*)NANDReadDir},

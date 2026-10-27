@@ -36,6 +36,7 @@ typedef enum {
 typedef enum {
     FS_IOCTL_CREATE_DIR = 3,
     FS_IOCTL_READ_DIR = 4,
+    FS_IOCTL_SET_ATTR = 5,
     FS_IOCTL_GET_ATTR = 6,
     FS_IOCTL_DELETE_PATH = 7,
     FS_IOCTL_RENAME_PATH = 8,
@@ -52,7 +53,7 @@ typedef enum {
  * NOTE: Some functions instead use the work buffer (ioctlWork).
  */
 
-// For ISFS_Create*/ISFS_GetAttr
+// For ISFS_Create*/ISFS_SetAttr/ISFS_GetAttr
 typedef struct FSFileIoctl {
     u32 ownerId;            // at 0x0
     u16 groupId;            // at 0x4
@@ -134,6 +135,7 @@ typedef struct FSCommandBlock {
 } FSCommandBlock;
 
 static s32 __fsFd = -1;
+static BOOL __fsInitialized = FALSE;
 static char* __devfs = NULL;
 static u32 _asynCnt = 0;
 static s32 hId;
@@ -143,26 +145,26 @@ static s32 _FSReadDirCb(s32 result, FSCommandBlock* block);
 static s32 _FSGetAttrCb(s32 result, FSCommandBlock* block);
 static s32 _FSGetUsageCb(s32 result, FSCommandBlock* block);
 static s32 _FSGetFileStatsCb(s32 result, FSCommandBlock* block);
+static s32 _FSGetFileStatsCb(s32 result, FSCommandBlock* block);
 
 // Not part of MSL, but implemented in IPC.
 size_t strnlen(const char* str, size_t maxlen);
 
 s32 ISFS_OpenLib(void) {
-    static BOOL firstFl = TRUE;
     static void* lo;
     static void* hi;
 
     s32 ret = IPC_RESULT_OK;
     u8* base;
 
-    if (firstFl) {
+    if (!__fsInitialized) {
         lo = IPCGetBufferLo();
         hi = IPCGetBufferHi();
     }
 
     __devfs = (char*)ROUND_UP_PTR(lo, 32);
 
-    if (firstFl && __devfs + FS_MAX_PATH > (char*)hi) {
+    if (!__fsInitialized && __devfs + FS_MAX_PATH > (char*)hi) {
         OSReport("APP ERROR: Not enough IPC arena\n");
         ret = IPC_RESULT_ALLOC_FAILED;
         goto end;
@@ -178,15 +180,15 @@ s32 ISFS_OpenLib(void) {
 
     base = (u8*)__devfs;
 
-    if (firstFl && base + FS_MAX_PATH + FS_HEAP_SIZE > (u8*)hi) {
+    if (!__fsInitialized && base + FS_MAX_PATH + FS_HEAP_SIZE > (u8*)hi) {
         OSReport("APP ERROR: Not enough IPC arena\n");
         ret = IPC_RESULT_ALLOC_FAILED;
         goto end;
     }
 
-    if (firstFl) {
+    if (!__fsInitialized) {
         IPCSetBufferLo(base + FS_MAX_PATH + FS_HEAP_SIZE);
-        firstFl = FALSE;
+        __fsInitialized = TRUE;
     }
 
     hId = iosCreateHeap(base, FS_MAX_PATH + FS_HEAP_SIZE);
@@ -220,6 +222,11 @@ static s32 _isfsFuncCb(s32 result, void* arg) {
 
         case CB_STATE_GET_USAGE: {
             _FSGetUsageCb(result, block);
+            break;
+        }
+
+        case CB_STATE_GET_FILE_STATS: {
+            _FSGetFileStatsCb(result, block);
             break;
         }
 
@@ -460,6 +467,79 @@ s32 ISFS_ReadDirAsync(const char* path, char* filesOut, u32* fileCountOut,
                            vectors, _isfsFuncCb, block);
 }
 
+s32 ISFS_SetAttr(const char* path, u32 ownerId, u16 groupId, u32 attr,
+                 u32 ownerPerm, u32 groupPerm, u32 otherPerm) {
+    FSCommandBlock* block;
+    s32 ret;
+    size_t len;
+
+    block = NULL;
+
+    if (path == NULL || __fsFd < 0 ||
+        (len = strnlen(path, FS_MAX_PATH)) == FS_MAX_PATH) {
+        ret = IPC_RESULT_INVALID;
+        goto end;
+    }
+
+    block = (FSCommandBlock*)iosAllocAligned(hId, sizeof(FSCommandBlock), 32);
+    if (block == NULL) {
+        ret = IPC_RESULT_ALLOC_FAILED;
+        goto end;
+    }
+
+    memcpy(block->fileIoctl.path, path, len + 1);
+
+    block->fileIoctl.ownerId = ownerId;
+    block->fileIoctl.groupId = groupId;
+    block->fileIoctl.attr = attr;
+    block->fileIoctl.ownerPerm = ownerPerm;
+    block->fileIoctl.groupPerm = groupPerm;
+    block->fileIoctl.otherPerm = otherPerm;
+
+    ret = IOS_Ioctl(__fsFd, FS_IOCTL_SET_ATTR, &block->fileIoctl,
+                    sizeof(FSFileIoctl), NULL, 0);
+
+end:
+    if (block != NULL) {
+        FS_DELETE(block);
+    }
+
+    return ret;
+}
+
+s32 ISFS_SetAttrAsync(const char* path, u32 ownerId, u16 groupId, u32 attr,
+                      u32 ownerPerm, u32 groupPerm, u32 otherPerm,
+                      FSAsyncCallback callback, void* callbackArg) {
+    FSCommandBlock* block;
+    size_t len;
+
+    if (path == NULL || __fsFd < 0 ||
+        (len = strnlen(path, FS_MAX_PATH)) == FS_MAX_PATH) {
+        return IPC_RESULT_INVALID;
+    }
+
+    block = (FSCommandBlock*)iosAllocAligned(hId, sizeof(FSCommandBlock), 32);
+    if (block == NULL) {
+        return IPC_RESULT_BUSY;
+    }
+
+    block->callback = callback;
+    block->callbackArg = callbackArg;
+    block->callbackState = CB_STATE_NONE;
+
+    memcpy(block->fileIoctl.path, path, len + 1);
+
+    block->fileIoctl.ownerId = ownerId;
+    block->fileIoctl.groupId = groupId;
+    block->fileIoctl.attr = attr;
+    block->fileIoctl.ownerPerm = ownerPerm;
+    block->fileIoctl.groupPerm = groupPerm;
+    block->fileIoctl.otherPerm = otherPerm;
+
+    return IOS_IoctlAsync(__fsFd, FS_IOCTL_SET_ATTR, &block->fileIoctl,
+                          sizeof(FSFileIoctl), NULL, 0, _isfsFuncCb, block);
+}
+
 s32 ISFS_GetAttr(const char* path, u32* ownerIdOut, u16* groupIdOut,
                  u32* attrOut, u32* ownerPermOut, u32* groupPermOut,
                  u32* otherPermOut) {
@@ -658,8 +738,9 @@ end:
     return ret;
 }
 
-s32 ISFS_RenameAsync(const char* from, const char* to, FSAsyncCallback callback,
-                     void* callbackArg) {
+// Not linked into the channel (dead-stripped); inline so it is not emitted.
+inline s32 ISFS_RenameAsync(const char* from, const char* to,
+                            FSAsyncCallback callback, void* callbackArg) {
     size_t lenFrom;
     size_t lenTo;
     FSCommandBlock* block;
@@ -688,7 +769,9 @@ s32 ISFS_RenameAsync(const char* from, const char* to, FSAsyncCallback callback,
                           sizeof(FSRenameIoctl), 0, NULL, _isfsFuncCb, block);
 }
 
-s32 ISFS_GetUsage(const char* path, s32* blockCountOut, s32* fileCountOut) {
+// Not linked into the channel (dead-stripped); inline so it is not emitted.
+inline s32 ISFS_GetUsage(const char* path, s32* blockCountOut,
+                         s32* fileCountOut) {
     s32 ret;
     u32* blockCountWork;
     u32* fileCountWork;
@@ -887,16 +970,48 @@ s32 ISFS_OpenAsync(const char* path, IPCOpenMode mode, FSAsyncCallback callback,
 }
 
 s32 ISFS_GetFileStats(s32 fd, FSFileStats* statsOut) {
+    s32 ret;
+    FSCommandBlock* block;
+
+    block = NULL;
+
     if (statsOut == NULL || (u32)statsOut % 32 != 0) {
-        return IPC_RESULT_INVALID;
+        ret = IPC_RESULT_INVALID;
+        goto end;
     }
 
-    return IOS_Ioctl(fd, FS_IOCTL_GET_FILE_STATS, NULL, 0, statsOut,
-                     sizeof(FSFileStats));
+    block = (FSCommandBlock*)iosAllocAligned(hId, sizeof(FSCommandBlock), 32);
+    if (block == NULL) {
+        ret = IPC_RESULT_ALLOC_FAILED;
+        goto end;
+    }
+
+    ret = IOS_Ioctl(fd, FS_IOCTL_GET_FILE_STATS, NULL, 0, block->ioctlWork,
+                    sizeof(FSFileStats));
+    if (ret == IPC_RESULT_OK) {
+        memcpy(statsOut, block->ioctlWork, sizeof(FSFileStats));
+    }
+
+end:
+    if (block != NULL) {
+        FS_DELETE(block);
+    }
+
+    return ret;
 }
 
-s32 ISFS_GetFileStatsAsync(s32 fd, FSFileStats* statsOut,
-                           FSAsyncCallback callback, void* callbackArg) {
+static s32 _FSGetFileStatsCb(s32 result, FSCommandBlock* block) {
+    if (result == IPC_RESULT_OK) {
+        memcpy(block->getFileStatsCtx.statsOut, block->ioctlWork,
+               sizeof(FSFileStats));
+    }
+
+    return IPC_RESULT_OK;
+}
+
+// Not linked into the channel (dead-stripped); inline so it is not emitted.
+inline s32 ISFS_GetFileStatsAsync(s32 fd, FSFileStats* statsOut,
+                                  FSAsyncCallback callback, void* callbackArg) {
     FSCommandBlock* block;
 
     if (statsOut == NULL || (u32)statsOut % 32 != 0) {
@@ -910,9 +1025,10 @@ s32 ISFS_GetFileStatsAsync(s32 fd, FSFileStats* statsOut,
 
     block->callback = callback;
     block->callbackArg = callbackArg;
-    block->callbackState = CB_STATE_NONE;
+    block->callbackState = CB_STATE_GET_FILE_STATS;
+    block->getFileStatsCtx.statsOut = statsOut;
 
-    return IOS_IoctlAsync(fd, FS_IOCTL_GET_FILE_STATS, NULL, 0, statsOut,
+    return IOS_IoctlAsync(fd, FS_IOCTL_GET_FILE_STATS, NULL, 0, block->ioctlWork,
                           sizeof(FSFileStats), _isfsFuncCb, block);
 }
 

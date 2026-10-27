@@ -18,6 +18,10 @@ s32 NANDClose(NANDFileInfo* info);
 s32 NANDCloseAsync(NANDFileInfo* info, NANDAsyncCallback callback,
                    NANDCommandBlock* block);
 
+s32 NANDSafeOpen(const char* path, NANDFileInfo* info, u8 access, void* buffer,
+                 u32 bufferSize);
+s32 NANDSafeClose(NANDFileInfo* info);
+
 s32 NANDPrivateSafeOpenAsync(const char* path, NANDFileInfo* info, u8 access,
                              void* buffer, u32 bufferSize,
                              NANDAsyncCallback callback,

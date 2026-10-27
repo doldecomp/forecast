@@ -413,7 +413,7 @@ config.libs = [
             Object(Matching, "revolution/AX/AXOut.c"),
             Object(Matching, "revolution/AX/AXProf.c"),
             Object(Matching, "revolution/AX/AXSPB.c"),
-            Object(NonMatching, "revolution/AX/AXVPB.c"),
+            Object(Matching, "revolution/AX/AXVPB.c"),
             Object(Matching, "revolution/AX/DSPCode.c"),
 
             # AXFX
@@ -570,7 +570,7 @@ config.libs = [
             Object(Matching, "revolution/EXI/EXIUart.c"),
 
             # FS
-            Object(NonMatching, "revolution/FS/fs.c"),
+            Object(Matching, "revolution/FS/fs.c"),
 
             # GX
             Object(Matching, "revolution/GX/GXAttr.c"),
@@ -599,18 +599,18 @@ config.libs = [
             Object(Matching, "revolution/HBM/HBMRemoteSpk.cpp", extra_cflags=["-i include/nw4r_compat"]),
 
             # IPC
-            Object(NonMatching, "revolution/IPC/ipcclt.c"),
+            Object(Matching, "revolution/IPC/ipcclt.c"),
             Object(Matching, "revolution/IPC/ipcMain.c"),
             Object(Matching, "revolution/IPC/ipcProfile.c"),
             Object(Matching, "revolution/IPC/memory.c"),
 
             # MEM
             Object(Matching, "revolution/MEM/mem_allocator.c"),
-            Object(NonMatching, "revolution/MEM/mem_expHeap.c"),
+            Object(Matching, "revolution/MEM/mem_expHeap.c"),
             Object(Matching, "revolution/MEM/mem_frameHeap.c"),
-            Object(NonMatching, "revolution/MEM/mem_heapCommon.c"),
+            Object(Matching, "revolution/MEM/mem_heapCommon.c"),
             Object(Matching, "revolution/MEM/mem_list.c"),
-            Object(NonMatching, "revolution/MEM/mem_unitHeap.c"),
+            Object(Matching, "revolution/MEM/mem_unitHeap.c"),
 
             # MTX
             Object(NonMatching, "revolution/MTX/mtx.c"),
@@ -619,9 +619,10 @@ config.libs = [
             Object(Matching, "revolution/MTX/vec.c"),
 
             # NAND
-            Object(NonMatching, "revolution/NAND/nand.c"),
-            Object(NonMatching, "revolution/NAND/NANDCore.c"),
-            Object(NonMatching, "revolution/NAND/NANDOpenClose.c"),
+            Object(Matching, "revolution/NAND/nand.c"),
+            Object(Matching, "revolution/NAND/NANDCore.c"),
+            Object(Matching, "revolution/NAND/NANDLogging.c"),
+            Object(Matching, "revolution/NAND/NANDOpenClose.c"),
 
             # NdevExi2AD
             Object(Matching, "revolution/NdevExi2AD/DebuggerDriver.c"),
@@ -762,8 +763,9 @@ config.libs = [
             Object(Matching, "revolution/VI/vi.c", mw_version="GC/3.0a5.2"),
             Object(Matching, "revolution/VI/vi3in1.c", mw_version="GC/3.0a5.2"),
 
-            # WENC
-            Object(NonMatching, "revolution/WENC/wenc.c"),
+            # WENC (GC/3.0a5.2, as in the News Channel decomp; 3.0a5 copies the
+            # local f64 table with lfd/stfd instead of lwz/stw)
+            Object(Matching, "revolution/WENC/wenc.c", mw_version="GC/3.0a5.2"),
 
             # WPAD
             Object(Matching, "revolution/WPAD/WPAD.c", mw_version="GC/3.0a5.2"),

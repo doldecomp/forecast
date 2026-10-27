@@ -169,7 +169,7 @@ u32 MEMGetAllocatableSizeForFrmHeapEx(MEMiHeapHead* heap, s32 align) {
     return size;
 }
 
-BOOL MEMRecordStateForFrmHeap(MEMiHeapHead* heap, u32 id) {
+inline BOOL MEMRecordStateForFrmHeap(MEMiHeapHead* heap, u32 id) {
     MEMiFrmHeapState* state;
     MEMiFrmHeapHead* frm;
     BOOL success;
@@ -199,7 +199,7 @@ BOOL MEMRecordStateForFrmHeap(MEMiHeapHead* heap, u32 id) {
     return success;
 }
 
-BOOL MEMFreeByStateToFrmHeap(MEMiHeapHead* heap, u32 id) {
+inline BOOL MEMFreeByStateToFrmHeap(MEMiHeapHead* heap, u32 id) {
     MEMiFrmHeapState* state;
     MEMiFrmHeapHead* frm;
     BOOL success;
@@ -231,7 +231,7 @@ BOOL MEMFreeByStateToFrmHeap(MEMiHeapHead* heap, u32 id) {
     return success;
 }
 
-u32 MEMAdjustFrmHeap(MEMiHeapHead* heap) {
+inline u32 MEMAdjustFrmHeap(MEMiHeapHead* heap) {
     MEMiFrmHeapHead* frm;
     u32 newSize;
 
@@ -250,7 +250,7 @@ u32 MEMAdjustFrmHeap(MEMiHeapHead* heap) {
     return newSize;
 }
 
-u32 MEMResizeForMBlockFrmHeap(MEMiHeapHead* heap, void* memBlock, u32 size) {
+inline u32 MEMResizeForMBlockFrmHeap(MEMiHeapHead* heap, void* memBlock, u32 size) {
     MEMiFrmHeapHead* frm;
     u8* newHead;
     u32 offset;
