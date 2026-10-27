@@ -66,6 +66,12 @@ inline TDerived DynamicCast(TBase* pPtr) {
 /**
  * Declare type RTTI and accessor function.
  */
+#ifdef NW4R_HEADER_DECLARATIONS_ONLY
+#define NW4R_UT_RTTI_DECL(T)                                                   \
+    virtual const nw4r::ut::detail::RuntimeTypeInfo* GetRuntimeTypeInfo()      \
+        const;                                                                 \
+    static nw4r::ut::detail::RuntimeTypeInfo typeInfo;
+#else
 #define NW4R_UT_RTTI_DECL(T)                                                   \
     virtual const nw4r::ut::detail::RuntimeTypeInfo* GetRuntimeTypeInfo()      \
         const {                                                                \
@@ -73,6 +79,7 @@ inline TDerived DynamicCast(TBase* pPtr) {
     }                                                                          \
                                                                                \
     static nw4r::ut::detail::RuntimeTypeInfo typeInfo;
+#endif
 
 /**
  * Define type RTTI (base type).

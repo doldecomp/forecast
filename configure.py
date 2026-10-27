@@ -1122,7 +1122,7 @@ config.libs = [
                 Object(Matching, "MtxUtil.cpp"),
                 Object(Matching, "System.cpp"),
                 Object(Matching, "Tween.cpp"),
-                Object(NonMatching, "LayoutButton.cpp"),
+                Object(Matching, "LayoutButton.cpp", extra_cflags=["-ipa file"]),
                 Object(Matching, "ButtonGroup.cpp"),
                 Object(Matching, "PointerHistory.cpp"),
                 Object(Matching, "Fade.cpp"),

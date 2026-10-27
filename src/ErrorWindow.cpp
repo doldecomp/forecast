@@ -247,11 +247,11 @@ void ErrorWindow::Calc() {
 }
 
 static inline f32 GetCenterX(const LayoutButton* button) {
-    return (button->mRight + button->mLeft) / 2.0f;
+    return (button->mRect.right + button->mRect.left) / 2.0f;
 }
 
 static inline f32 GetCenterY(const LayoutButton* button) {
-    return (button->mTop + button->mBottom) / 2.0f;
+    return (button->mRect.top + button->mRect.bottom) / 2.0f;
 }
 
 void ErrorWindow::Draw() {

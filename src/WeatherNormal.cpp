@@ -129,8 +129,8 @@ static inline s32 GetSideMargin() {
     return gWidescreen ? 36 : 28;
 }
 
-static inline f32 GetPaneX(ButtonPane* pane, f32 scale) {
-    return (pane->mFlag & 4) ? scale * pane->mTransX : pane->mTransX;
+static inline f32 GetPaneX(nw4r::lyt::Pane* pane, f32 scale) {
+    return pane->IsLocationAdjust() ? scale * pane->GetTranslate().x : pane->GetTranslate().x;
 }
 
 static inline BOOL IsNearZero(f32 value) {
@@ -238,8 +238,8 @@ WeatherNormal::WeatherNormal(void* arc)
     f32 scaleX = gWidescreen ? 1.3684211f : 1.0f;
     if (city != NULL) {
         f32 h;
-        f32 w = city->mRight - city->mLeft;
-        h = __fabsf(city->mTop - city->mBottom);
+        f32 w = city->mRect.right - city->mRect.left;
+        h = __fabsf(city->mRect.top - city->mRect.bottom);
         Vec2F center = city->GetCenter();
         f32 scaledW = w * scaleX;
         center.x *= scaleX;
@@ -262,13 +262,13 @@ WeatherNormal::WeatherNormal(void* arc)
         Vec2F center = time->GetCenter();
         mDateX = center.x;
         mDateY = centerY - center.y;
-        mDateHeight = __fabsf(time->mTop - time->mBottom);
+        mDateHeight = __fabsf(time->mRect.top - time->mRect.bottom);
         if (gLanguage == 0) {
             mDateX = centerX + mDateX * scaleX;
-            mDateWidth = time->mRight - time->mLeft;
+            mDateWidth = time->mRect.right - time->mRect.left;
         } else {
             mDateX = GetScreenWidth() - GetSideMargin();
-            mDateWidth = scaleX * (time->mRight - time->mLeft);
+            mDateWidth = scaleX * (time->mRect.right - time->mRect.left);
         }
     }
 
@@ -276,17 +276,17 @@ WeatherNormal::WeatherNormal(void* arc)
     if (beltTime != NULL) {
         beltTime->ShowLanguagePane("belt_timeB");
         if (gLanguage == 0) {
-            f32 x = scaleX * ((beltTime->mRight + beltTime->mLeft) / 2.0f);
+            f32 x = scaleX * ((beltTime->mRect.right + beltTime->mRect.left) / 2.0f);
             strcpy(sNameBuf, "belt_timeB");
-            ButtonPane* pane = (ButtonPane*)beltTime->FindPane(sNameBuf);
+            nw4r::lyt::Pane* pane = beltTime->FindPane(sNameBuf);
             if (pane != NULL) {
                 x += GetPaneX(pane, scaleX);
                 strcat(sNameBuf, GetLanguageCode());
-                pane = (ButtonPane*)beltTime->FindPane(sNameBuf);
+                pane = beltTime->FindPane(sNameBuf);
                 if (pane != NULL) {
                     x += GetPaneX(pane, scaleX);
                     strcat(sNameBuf, "1");
-                    pane = (ButtonPane*)beltTime->FindPane(sNameBuf);
+                    pane = beltTime->FindPane(sNameBuf);
                     if (pane != NULL) {
                         x += GetPaneX(pane, scaleX);
                     }
@@ -448,8 +448,8 @@ WeatherNormal::~WeatherNormal() {
             box->mX = centerX + box->mX * scaleX;                                                            \
             box->mY = centerY - box->mY;                                                                     \
             LayoutButton* pane = box->mPane;                                                                 \
-            f32 h = __fabsf(pane->mTop - pane->mBottom);                                                     \
-            f32 w = pane->mRight - pane->mLeft;                                                              \
+            f32 h = __fabsf(pane->mRect.top - pane->mRect.bottom);                                                     \
+            f32 w = pane->mRect.right - pane->mRect.left;                                                              \
             box->mWidth = scaleX * w;                                                                        \
             box->mHeight = h;                                                                                \
             box->mScaleX = scales[i];                                                                        \
