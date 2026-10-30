@@ -202,12 +202,11 @@ const char sSettingsPath[] = "/shared2/menu/vc/settings.sav";
 
 
 // .sdata2
-#pragma push
-#pragma section all_types ".sdata2" ".sdata2"
-const char sSym_WWWStop[8] = "WWWStop";
+const char sSym_WWWStop[] = "WWWStop";
+#pragma explicit_zero_data on
 const char sEmptyStringSdata2[8] = {0};
-const char sFontWeightRegular[8] = "Regular";
-#pragma pop
+#pragma explicit_zero_data off
+const char sFontWeightRegular[] = "Regular";
 
 // .sbss
 void* pWWWSurfaceInit;
@@ -583,10 +582,6 @@ WWWNandFile wwwSettingsFile = {
     (void*)&wwwSettingsBuf,
     0x20
 };
-#pragma push
-#pragma section all_types ".data" ".data"
-u32 sWwwDataPad = 0;
-#pragma pop
 
 
 void wwwAddFonts(void) {

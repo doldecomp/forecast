@@ -232,6 +232,7 @@ void vcmvUpdateController(register int index) {
     u8 prevDevType;
     s32 probe;
     s32 devType;
+    f32* bound;
 
     cursor = &sManualCursors[index];
     kpad = sKpad[index];
@@ -344,15 +345,18 @@ void vcmvUpdateController(register int index) {
         }
     }
 
-    if (cursor->posX < -sHalfScreenWidth) {
-        cursor->posX = -sHalfScreenWidth;
-    } else if (cursor->posX > sHalfScreenWidth) {
+    // Keep the cursor on the screen. The compares read the bound through a pointer
+    // and the last store reads the global again: the original code reloads it there,
+    // and this is the only form found that compiles to that.
+    if (cursor->posX < -*(bound = &sHalfScreenWidth)) {
+        cursor->posX = -*bound;
+    } else if (cursor->posX > *bound) {
         cursor->posX = sHalfScreenWidth;
     }
 
-    if (cursor->posY < -sHalfScreenHeight) {
-        cursor->posY = -sHalfScreenHeight;
-    } else if (cursor->posY > sHalfScreenHeight) {
+    if (cursor->posY < -*(bound = &sHalfScreenHeight)) {
+        cursor->posY = -*bound;
+    } else if (cursor->posY > *bound) {
         cursor->posY = sHalfScreenHeight;
     }
 

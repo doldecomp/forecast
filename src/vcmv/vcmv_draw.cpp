@@ -13,10 +13,18 @@
 #include <cstring>
 
 static char sUrlBuffer[256];
-static VCMVRect sWindowRect[4]; // only [0] is used; 0x40 bytes in the original
+static VCMVRect sWindowRect;
+// Nothing references these two arrays, but the original link kept them.
+#pragma push
+#pragma force_active on
+static u8 sUnusedBss1[0x30];
+#pragma pop
 static GXTexObj sPageTexObj[4];
 static void* sPageTexBuffer[4];
-static u8 sPageTexBufferPad[0x240]; // unused?
+#pragma push
+#pragma force_active on
+static u8 sUnusedBss2[0x240];
+#pragma pop
 static volatile VCMVTransitionState sTransitionState;
 static ARCHandle sManualArcHandle;
 
@@ -74,20 +82,10 @@ static u8 sCachedFadeIndex;
 static u8 sCachedPrevIndex;
 static u8 sCachedActiveIndex;
 static u8 sCachedDisplayIndex;
-static u32 sPadE24;
-
-const u32 sDefaultRect[4] = {0, 0, 0, 0x1C8};
-const u8 sDrawStrings[0x58] = {
-    0x21, 0x21, 0x57, 0x57, 0x57, 0x20, 0x4f, 0x55, 0x54, 0x20, 0x4f, 0x46, 0x20, 0x4d, 0x45, 0x4d,
-    0x4f, 0x52, 0x59, 0x21, 0x21, 0x0a, 0x00, 0x47, 0x4f, 0x47, 0x49, 0x20, 0x50, 0x72, 0x65, 0x76,
-    0x69, 0x6f, 0x75, 0x73, 0x20, 0x50, 0x61, 0x67, 0x65, 0x00, 0x47, 0x4f, 0x47, 0x49, 0x20, 0x4e,
-    0x65, 0x78, 0x74, 0x20, 0x50, 0x61, 0x67, 0x65, 0x00, 0x61, 0x72, 0x63, 0x00, 0x74, 0x65, 0x78,
-    0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x00, 0x4e, 0x4f, 0x20, 0x4d, 0x45, 0x4d, 0x4f, 0x52, 0x59,
-    0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
-
-
+#pragma push
+#pragma force_active on
+static u32 sUnusedSbss; // nothing references it, but the original link kept it
+#pragma pop
 
 static u8 sDitherTable[] = {
     0x4F, 0x07, 0x24, 0x78, 0x43, 0x1B, 0x38, 0x11, 0x5D, 0x70, 0x2B, 0x7F, 0x66, 0x49, 0x21, 0x55, 0x09, 0x3B, 0x14,
@@ -141,7 +139,7 @@ static inline void vcmvCreateWindow(const char* url) {
     s32 windowId;
 
     if (WWWCreateBrowserWindow(sBrowserHandle, &windowId, 0) != 0) {
-        OSReport((const char*)&sDrawStrings[0x47]);
+        OSReport("NO MEMORY\n");
     } else {
         if (url != NULL) {
             WWWOpenUrl(windowId, url);
@@ -517,6 +515,11 @@ void vcmvFlushCallback(VCMVRect* rect, s32 mode) {
     }
 }
 
+// The pixel row below row (the surface is stride bytes wide)
+static inline const u32* vcmvNextRow(const void* row, u32 stride) {
+    return (const u32*)((const u8*)row + stride);
+}
+
 void vcmvConvertSurfaceToTexture(void) {
     void* tex;
     u32 srcStep;
@@ -540,9 +543,9 @@ void vcmvConvertSurfaceToTexture(void) {
         const u32* row2;
         const u32* row3;
         int x;
-        row1 = (const u32*)(src + stride);
-        row2 = (const u32*)((const u8*)row1 + stride);
-        row3 = (const u32*)((const u8*)row2 + stride);
+        row1 = vcmvNextRow(src, stride);
+        row2 = vcmvNextRow(row1, stride);
+        row3 = vcmvNextRow(row2, stride);
         tile_dst = (u16*)dst;
         row0 = (const u32*)src;
         x = 0;
@@ -639,8 +642,7 @@ s32 vcmvOperaCallback(void* userData, int windowId, int event, WWWProtocolReques
                 }
             }
 
-            VCMVRect fullRect = *(VCMVRect*)sDefaultRect;
-            fullRect.width = sClampedScreenWidth;
+            VCMVRect fullRect = {0, 0, sClampedScreenWidth, 456};
             vcmvFlushCallback(&fullRect, 1);
             break;
         }
@@ -650,15 +652,15 @@ s32 vcmvOperaCallback(void* userData, int windowId, int event, WWWProtocolReques
             vcmvInitWindow(windowId);
             return 0;
         case 0x23:
-            OSReport((const char*)&sDrawStrings[0x00]);
+            OSReport("!!WWW OUT OF MEMORY!!\n");
             sExitRequested = true;
             VCMVPlaySound(3);
             return 0;
         case 0x2E:
             if (sPageChangePending == 0) {
-                if (stricmp(request->url, (const char*)&sDrawStrings[0x17]) == 0) {
+                if (stricmp(request->url, "GOGI Previous Page") == 0) {
                     WWWPrevPage(windowId);
-                } else if (stricmp(request->url, (const char*)&sDrawStrings[0x2A]) == 0) {
+                } else if (stricmp(request->url, "GOGI Next Page") == 0) {
                     WWWNextPage(windowId);
                 }
 
@@ -673,8 +675,8 @@ s32 vcmvOperaCallback(void* userData, int windowId, int event, WWWProtocolReques
                 path++;
             }
 
-            if (strcmp(request->method, (const char*)&sDrawStrings[0x39]) == 0) {
-                mimeResult = WWWProtocolSetMimeType((s32)request->handle, (const char*)&sDrawStrings[0x3D]);
+            if (strcmp(request->method, "arc") == 0) {
+                mimeResult = WWWProtocolSetMimeType((s32)request->handle, "text/html");
                 if (mimeResult != 0) {
                     return mimeResult;
                 }
@@ -763,10 +765,10 @@ void vcmvSetupGX(void) {
     GXSetProjection(proj, GX_ORTHOGRAPHIC);
     PSMTXIdentity(mtx);
     GXLoadPosMtxImm(mtx, 3);
-    *(u32*)&sWindowRect = 0;
-    *(u32*)((u8*)&sWindowRect + 4) = 0;
-    *(u32*)((u8*)&sWindowRect + 8) = sAlignedWidth;
-    *(u32*)((u8*)&sWindowRect + 12) = sAlignedHeight;
+    sWindowRect.x = 0;
+    sWindowRect.y = 0;
+    sWindowRect.width = sAlignedWidth;
+    sWindowRect.height = sAlignedHeight;
 }
 
 void vcmvSetMargin(u16 width) {
@@ -870,9 +872,6 @@ void vcmvDestroyScreen(void) {
     }
 }
 
-extern const GXColor sWhiteColor = {0xFF, 0xFF, 0xFF, 0xFF};
-extern const GXColor sTevColor = {0xFF, 0xFF, 0xFF, 0xFF};
-extern const GXColor sClearColor = {0xFF, 0xFF, 0xFF, 0x00};
 
 void vcmvOpenBrowserWindow(s32 renderMode) {
     sBrowserRenderMode = renderMode;
@@ -887,7 +886,10 @@ void vcmvOpenBrowserWindow(s32 renderMode) {
     GXSetNumTevStages(1);
     GXSetNumTexGens(1);
     GXSetNumChans(0);
-    GXSetCopyClear(sWhiteColor, 0x00FFFFFF);
+    {
+        GXColor clearColor = {0xFF, 0xFF, 0xFF, 0xFF};
+        GXSetCopyClear(clearColor, 0x00FFFFFF);
+    }
 
     vcmvAdvanceTextureIndex();
     sPageChangePending = 1;
@@ -1066,7 +1068,7 @@ void vcmvDrawScreen(f32 slide) {
     GXSetVtxDesc(GX_VA_POS, GX_DIRECT);
     GXSetVtxDesc(GX_VA_TEX0, GX_DIRECT);
 
-    GXColor tevColor = sTevColor;
+    GXColor tevColor = {0xFF, 0xFF, 0xFF, 0xFF};
 
     if (sIsTransitioning) {
         if (sManualFrameCount - sScrollDragFrame > 0xA) {
@@ -1337,8 +1339,7 @@ void vcmvDrawScreen(f32 slide) {
             s32 alpha = 255 - (u8)(vcmvFadeTimer * 255 / vcmvFadeDuration);
 
             if (sPageTexBuffer[sFadeTexIndex] != NULL) {
-                GXColor fadeColor = sClearColor;
-                fadeColor.a = alpha;
+                GXColor fadeColor = {0xFF, 0xFF, 0xFF, alpha};
                 vcmvSetupQuadRender(&sPageTexObj[sFadeTexIndex], fadeColor);
                 {
                     GXBegin(GX_QUADS, GX_VTXFMT0, 4);
@@ -1379,5 +1380,3 @@ void vcmvReloadStartPage(void) {
 
     sPageChangePending = 0;
 }
-
-extern const f32 pad_sdata2 = 0.0f;

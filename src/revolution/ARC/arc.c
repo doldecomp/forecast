@@ -1,7 +1,7 @@
 #include <revolution/ARC.h>
 #include <revolution/OS.h>
 
-#include <ctype.h>
+#include <cctype>
 
 #undef NULL
 #define NULL ((void*)0)
@@ -174,7 +174,7 @@ s32 ARCConvertPathToEntrynum(ARCHandle* handle, const char* pathPtr) {
         // directory if FALSE
         isDir = *ptr == '\0' ? FALSE : TRUE;
         length = ptr - pathPtr;
-        ptr = pathPtr; // Why?? There's no writes to pathPtr in the loop
+        ptr = pathPtr; // The original copies pathPtr even though the loop never changes it
 
         for (i = dirLookAt + 1; i < FSTEntries[dirLookAt].nextEntryOrLength;
              i = IS_DIR(FSTEntries, i) ? FSTEntries[i].nextEntryOrLength
@@ -285,7 +285,8 @@ static BOOL ARCConvertEntrynumToPath(ARCHandle* handle, s32 entrynum,
     return TRUE;
 }
 
-BOOL ARCGetCurrentDir(ARCHandle* handle, char* path, u32 maxlen) {
+// Inlined into ARCOpen and dead-stripped from the DOL, so no out-of-line copy
+inline BOOL ARCGetCurrentDir(ARCHandle* handle, char* path, u32 maxlen) {
     return ARCConvertEntrynumToPath(handle, handle->currDir, path, maxlen);
 }
 
