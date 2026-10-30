@@ -47,6 +47,10 @@ block_relocations:
 # GlobeDotsTable.cpp: table bytes that happen to equal addresses inside AXVPB.c's __s_AXVPB
 - source: 0x801871B8
 - source: 0x80188070
+# vcmv_www.cpp sEmbeddedWwwRso: absolute export-table values (0x801B3CA0, 0x801B5080) that happen to equal
+# addresses inside RSOLink.c's first string and an HBM .data object
+- source: 0x801B5B98
+- source: 0x801B5CB8
 
 # System.cpp: lis/addi pairs split by register spills, which analysis cannot pair
 add_relocations:

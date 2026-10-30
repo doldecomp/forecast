@@ -402,7 +402,7 @@ config.libs = [
             Object(Matching, "revolution/AI/ai.c"),
 
             # ARC
-            Object(NonMatching, "revolution/ARC/arc.c"),
+            Object(Matching, "revolution/ARC/arc.c"),
 
             # AX
             Object(Matching, "revolution/AX/AX.c"),
@@ -629,8 +629,9 @@ config.libs = [
             Object(Matching, "revolution/NdevExi2AD/DebuggerDriver.c"),
             Object(Matching, "revolution/NdevExi2AD/exi2.c"),
 
-            # NET
-            Object(NonMatching, "revolution/NET/nettime.c"),
+            # NET (GC/3.0a5.2, as in the News Channel decomp of the same build)
+            Object(Matching, "revolution/NET/nettime.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/NET/netcrc.c", mw_version="GC/3.0a5.2"),
             Object(NonMatching, "revolution/NET/NETVersion.c"),
 
             # NWC24
@@ -1137,14 +1138,16 @@ config.libs = [
     },
     {
         "lib": "vcmv",
-        "mw_version": "GC/3.0a5.2",
+        # GC/3.0a5.2 keeps vcmvOpenBrowserWindow's constant 1 in a volatile register; every other
+        # vcmv function compiles the same with both versions.
+        "mw_version": "GC/3.0a5",
         "cflags": cflags_vcmv,
         "progress_category": "vcmv",
         "objects": [
             Object(Matching, "vcmv/vcmv_cursor.cpp", extra_cflags=["-str reuse,readonly", "-use_lmw_stmw on", "-fp_contract on"]),
-            Object(NonMatching, "vcmv/vcmv_draw.cpp", extra_cflags=["-str reuse,readonly", "-use_lmw_stmw on", "-fp_contract on"]),
+            Object(Matching, "vcmv/vcmv_draw.cpp", extra_cflags=["-str reuse,readonly", "-use_lmw_stmw on", "-fp_contract on"]),
             Object(Matching, "vcmv/vcmv_javascript.cpp", extra_cflags=["-str reuse,readonly"]),
-            Object(NonMatching, "vcmv/vcmv_main.cpp", extra_cflags=["-str reuse,readonly", "-use_lmw_stmw on", "-fp_contract on"]),
+            Object(Matching, "vcmv/vcmv_main.cpp", extra_cflags=["-str reuse,readonly", "-use_lmw_stmw on", "-fp_contract on"]),
             Object(Matching, "vcmv/vcmv_www.cpp", extra_cflags=["-str reuse,pool,readonly", "-fp_contract on"]),
             Object(Matching, "vcmv/vcmv_rso.cpp"),
         ],

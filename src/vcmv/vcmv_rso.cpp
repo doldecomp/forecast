@@ -163,8 +163,6 @@ struct RSOImportEntry {
 
 int vcmvAbs(int x);
 
-extern const char sEmptyStr[8];
-
 const RSOImportEntry sRsoImports[] = {
     {"ARCClose", (void*)ARCClose},
     {"ARCConvertPathToEntrynum", (void*)ARCConvertPathToEntrynum},
@@ -295,23 +293,18 @@ const RSOImportEntry sRsoImports[] = {
     {"vprintf", (void*)vprintf},
     {"vsnprintf", (void*)vsnprintf},
     {"vsprintf", (void*)vsprintf},
-    {sEmptyStr, 0},
+    {"", 0},
 };
 
-#pragma explicit_zero_data on
-const char sEmptyStr[8] = "";
-#pragma explicit_zero_data off
-
-#pragma push
-#pragma force_active on
+// The string pool of this module's prolog/epilog/unresolved stubs, which the linker stripped.
+// The pool itself survived because vcmvLinkRSO prints its last string.
 static const char sRsoErrors[] =
     "!!!!!Prolog!!!!!\n\0"
     "RSO Module : call constructor (%08x)\n\0"
     "!!!!!Epilog!!!!!\n\0"
     "RSO Module : call destructor (%08x)\n\0"
     "\n[Error]: Unlinked function was called.\n\0"
-    "RSOLinkInit ERROR!\n\0\0\0\0";
-#pragma pop
+    "RSOLinkInit ERROR!\n";
 
 int vcmvAbs(int x) { return abs(x); }
 
