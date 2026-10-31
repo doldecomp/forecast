@@ -40,8 +40,6 @@ struct DragScroll {
 
 void PlaySE(s32 id);
 
-void UpdateSound();
-void CalcSound();
 extern "C" void HBMStartBlackOut(void);
 
 static const u32 sGlyphTextureIds[89] = {

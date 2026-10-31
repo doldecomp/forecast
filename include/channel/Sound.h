@@ -17,6 +17,9 @@ public:
     void* mHeap; // at 0x4
 };
 
+void UpdateSound();
+void CalcSound();
+
 void StartSound(nw4r::snd::SoundHandle* handle, u32 id);
 void StopSound(nw4r::snd::SoundHandle* handle, s32 fadeFrames);
 void SetSoundVolume(nw4r::snd::SoundHandle* handle, f32 volume);
