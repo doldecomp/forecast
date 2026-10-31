@@ -620,7 +620,7 @@ config.libs = [
             Object(Matching, "revolution/MEM/mem_unitHeap.c"),
 
             # MTX
-            Object(NonMatching, "revolution/MTX/mtx.c"),
+            Object(Matching, "revolution/MTX/mtx.c"),
             Object(Matching, "revolution/MTX/mtx44.c"),
             Object(Matching, "revolution/MTX/mtxvec.c"),
             Object(Matching, "revolution/MTX/vec.c"),

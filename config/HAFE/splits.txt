@@ -1667,7 +1667,7 @@ revolution/VI/vi3in1.c:
 revolution/MTX/mtx.c:
 	.text       start:0x800F86E0 end:0x800F9254
 	.sdata      start:0x803305C0 end:0x803305C8
-	.sdata2     start:0x80332E00 end:0x80332E20
+	.sdata2     start:0x80332E00 end:0x80332E1C
 
 revolution/MTX/mtxvec.c:
 	.text       start:0x800F9254 end:0x800F92A8

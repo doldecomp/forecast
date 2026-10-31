@@ -533,7 +533,8 @@ inline MTX34* MTX34Mult(MTX34* pOut, const MTX34* pA, const MTX34* pB) {
 
 inline MTX34* MTX34MultArray(MTX34* pOut, const MTX34* p1, const MTX34* pSrc,
                              u32 len) {
-    PSMTXConcatArray(*p1, *pSrc, *pOut, len);
+    PSMTXConcatArray(*p1, reinterpret_cast<const Mtx*>(pSrc),
+                     reinterpret_cast<Mtx*>(pOut), len);
     return pOut;
 }
 
