@@ -49,8 +49,8 @@ GlobeDots::GlobeDots() {
         f32 far = 3.0f * size;
         u16 lat = ((const u16*)gGlobeDotPositions)[i*2+1];
 
-        PSMTXRotTrig(rotX, nw4r::math::SinIdx(lon), nw4r::math::CosIdx(lon), 'x');
-        PSMTXRotTrig(rotY, nw4r::math::SinIdx(lat), nw4r::math::CosIdx(lat), 'y');
+        PSMTXRotTrig(rotX, 'x', nw4r::math::SinIdx(lon), nw4r::math::CosIdx(lon));
+        PSMTXRotTrig(rotY, 'y', nw4r::math::SinIdx(lat), nw4r::math::CosIdx(lat));
         PSMTXConcat(rotY, rotX, mtx);
 
 
