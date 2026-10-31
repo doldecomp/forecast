@@ -2349,15 +2349,38 @@ Runtime.PPCEABI.H/__mem.c:
 	.init       start:0x80004338 end:0x8000446C
 	.text       start:0x801612EC end:0x80161308
 
+Runtime.PPCEABI.H/__va_arg.c:
+	.text       start:0x80161308 end:0x801613D0
+
 Runtime.PPCEABI.H/global_destructor_chain.c:
 	.text       start:0x801613D0 end:0x80161430
 	.sbss       start:0x803318B8 end:0x803318C0
+
+Runtime.PPCEABI.H/NMWException.cpp:
+	extab       start:0x800066A0 end:0x800066E8
+	extabindex  start:0x80006BE0 end:0x80006C1C
+	.text       start:0x80161430 end:0x801617E0
+
+Runtime.PPCEABI.H/ptmf.c:
+	.text       start:0x801617E0 end:0x8016189C
+	.rodata     start:0x801979A0 end:0x801979AC
+
+Runtime.PPCEABI.H/runtime.c:
+	.text       start:0x8016189C end:0x80161FB8
+	.rodata     start:0x801979B0 end:0x801979C8
 
 Runtime.PPCEABI.H/__init_cpp_exceptions.cpp:
 	.text       start:0x80161FB8 end:0x80162028
 	.ctors      start:0x80179240 end:0x80179244
 	.dtors      start:0x80179320 end:0x80179328
 	.sdata      start:0x80330948 end:0x80330950
+
+Runtime.PPCEABI.H/Gecko_setjmp.c:
+	.text       start:0x80162028 end:0x8016223C
+
+Runtime.PPCEABI.H/Gecko_ExceptionPPC.cpp:
+	.text       start:0x8016223C end:0x801622A0
+	.bss        start:0x8032CC78 end:0x8032CC84
 
 MSL_C/GCN_Mem_Alloc.c:
 	.text       start:0x801622A0 end:0x80162358
