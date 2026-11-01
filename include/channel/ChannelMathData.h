@@ -27,4 +27,8 @@ extern const f32 sHalf;
 extern const f32 sDegToRad;
 extern const f32 sDegToFIdx;
 
+// Date line prefixes of the forecast panels, one per language
+extern const wchar_t* gUpdatedPrefixes[7];
+extern const wchar_t* gLastUpdatedPrefixes[7];
+
 #endif  // CHANNEL_CHANNEL_MATH_DATA_H

@@ -56,7 +56,7 @@ extern "C" {
 static tHCI_CFG s_hci_cfg[2] = {{0x0A5C, 0x2101}, {0x0000, 0x0000}};
 
 /* Fiber stack used to run the BTU task, and the alarm that switches to it. */
-static UINT32 s_btu_stack[0x400];
+static UINT32 s_btu_stack[0x400] ALIGN(32);
 static OSAlarm s_btu_alarm;
 
 /* Shutdown callback handed to BTA_CleanUp. */

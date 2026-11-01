@@ -1,8 +1,12 @@
+// Based on NETVersion.c from the Super Mario Galaxy decompilation
+// (SMGCommunity/Petari, CC0), with this channel's RevoEX version string.
 #include <revolution/NET.h>
-#include <revolution/version.h>
 
-REX_PPC_LIB_VERSION(NET, "1.0.0.2", "RevoEX-1.0plus2", "070510173628");
+// Nothing in the channel calls this, but the original kept it.
+#pragma force_active on
 
-const char* NETGetRexPPCVersionPrintable(void) {
+char* NETRexPPCVersionPrintableString = "<< REX-PPC 2.0.4.0 (RevoEX-2.0PR4) REL 070628174553 >>";
+
+char* NETGetRexPPCVersionPrintable() {
     return NETRexPPCVersionPrintableString;
 }

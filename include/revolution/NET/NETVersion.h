@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-const char* NETGetRexPPCVersionPrintable(void);
+char* NETGetRexPPCVersionPrintable(void);
 
 #ifdef __cplusplus
 }

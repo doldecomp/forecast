@@ -22,6 +22,10 @@ struct TextBox {
 };
 
 // d_weather_base.cpp: base of the forecast panels that slide around on screen (size 0xA0)
+// Weekday name textures, Sunday first: the Japanese set, then one row per language
+extern const u32 gWeekdayTexturesJP[7];
+extern const u32 gWeekdayTextures[7][7];
+
 class WeatherBase {
 public:
     WeatherBase(const Vec2& pos, const Vec2& size, s32 type);
