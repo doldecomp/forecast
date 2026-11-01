@@ -1123,7 +1123,7 @@ config.libs = [
                 Object(Matching, "main.cpp"),
                 Object(Matching, "DrawUtil.cpp"),
                 Object(Matching, "GlobeDots.cpp"),
-                Object(NonMatching, "GlobeDotsTable.cpp"),
+                Object(Matching, "GlobeDotsTable.cpp"),
                 Object(Matching, "WiiConnect24.cpp"),
                 Object(Matching, "WeatherUtil.cpp"),
                 Object(Matching, "ChannelMathData.cpp"),
