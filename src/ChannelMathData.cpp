@@ -23,3 +23,12 @@ const f32 sIdxToFIdx = 0.00390625f;
 const f32 sHalf = 0.5f;
 const f32 sDegToRad = 0.017453292f;
 const f32 sDegToFIdx = 0.7111111f;
+
+// Date line prefixes of the forecast panels, one per language (JP, EN, DE, FR, ES, IT, NL)
+const wchar_t* gUpdatedPrefixes[7] = {
+    L"Updated ", L"As of ", L"Stand: ", L"Le ", L"Actualizado: ", L"Aggiornato: ", L"Bijgewerkt: ",
+};
+
+const wchar_t* gLastUpdatedPrefixes[7] = {
+    L"Last Updated: ", L"Last Updated: ", L"Stand: ", L"Le ", L"Actualizado: ", L"Aggiornato: ", L"Bijgewerkt: ",
+};

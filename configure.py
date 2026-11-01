@@ -708,7 +708,7 @@ config.libs = [
 
             # SI
             Object(Matching, "revolution/SI/SIBios.c"),
-            Object(NonMatching, "revolution/SI/SISamplingRate.c"),
+            Object(Matching, "revolution/SI/SISamplingRate.c"),
 
             # SO
             Object(Matching, "revolution/SO/soCommon.c", mw_version="GC/3.0a5.2"),
@@ -1020,6 +1020,7 @@ config.libs = [
             Object(Matching, "nw4r/snd/snd_FxReverbHi.cpp"),
             Object(Matching, "nw4r/snd/snd_InstancePool.cpp"),
             Object(Matching, "nw4r/snd/snd_Lfo.cpp"),
+            Object(Matching, "nw4r/snd/snd_McsSoundArchive.cpp"),
             Object(Matching, "nw4r/snd/snd_MemorySoundArchive.cpp"),
             Object(Matching, "nw4r/snd/snd_MidiSeqPlayer.cpp"),
             Object(Matching, "nw4r/snd/snd_MmlParser.cpp"),
@@ -1137,7 +1138,7 @@ config.libs = [
                 Object(Matching, "GlobeDotsTable.cpp"),
                 Object(Matching, "WiiConnect24.cpp"),
                 Object(Matching, "WeatherUtil.cpp"),
-                Object(Matching, "ChannelMathData.cpp"),
+                Object(Matching, "ChannelMathData.cpp", extra_cflags=["-str noreuse"]),
                 Object(Matching, "DragScroll.cpp"),
                 Object(Matching, "MtxUtil.cpp"),
                 Object(Matching, "System.cpp"),

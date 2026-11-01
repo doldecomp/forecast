@@ -19,10 +19,6 @@ wchar_t* FormatNumber(s32 value, wchar_t* pBuf, s32 digits, BOOL zeroPad);
 void DrawWeatherIcon(u16 icon, const Vec2* pos, f32 scale, s32 alpha);
 void MinutesToCalendarTime(u32 minutes, OSCalendarTime* time);
 
-// Weekday textures, Sunday first
-extern const u32 gWeekdayTexturesJP[7];
-extern const u32 gWeekdayTextures[7][7];
-
 static Color sColorSunday(240, 49, 49, 255);
 static Color sColorSaturday(49, 162, 240, 255);
 static Color sColorWeekday(0, 24, 88, 255);

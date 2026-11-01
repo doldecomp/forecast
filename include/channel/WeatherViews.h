@@ -433,6 +433,7 @@ public:
     void UpdateArrows();
     inline void LayoutPages();
     inline void StartNormal();
+    void RestartNormal();
     inline void ApplyBelt(const char* name, s32 state);
     void UpdateBelt();
     BOOL ChangeState(StateFunc state, s32 arg);

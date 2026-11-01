@@ -1079,7 +1079,7 @@ void WC24Free(u32 unused, void* block, s32 size) {
     MEMFreeToExpHeap(gWC24Heap, block);
 }
 
-NWC24Work gNWC24Work;
+NWC24Work gNWC24Work ATTRIBUTE_ALIGN(32);
 OSMessageQueue gWC24Queue;
 OSMessage gWC24QueueBuffer[16];
 OSThread gWC24Thread;

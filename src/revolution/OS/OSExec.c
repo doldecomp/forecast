@@ -46,7 +46,7 @@ typedef struct PartInfo {
 // address would.
 DECL_SECTION(".data") extern OSExecParams* __OSExecParamsAddr;
 
-static DVDDiskID DiskID;
+static DVDDiskID DiskID ALIGN(32);
 
 static volatile BOOL Prepared;
 BOOL __OSInReboot;
@@ -343,7 +343,7 @@ void __OSLaunchNextFirmware(void) {
         }
 
         targetPart = NULL;
-        for (p = partInfo, i = 0; i < tableInfo->numGamePartitions; p++, i++) {
+        for (p = partInfo, i = 0; i < tableInfo->numGamePartitions; i++, p++) {
             if (p->type == __OSNextPartitionType) {
                 targetPart = p;
             }
@@ -351,7 +351,7 @@ void __OSLaunchNextFirmware(void) {
 
         if (targetPart == NULL) {
             for (p = partInfo + 4, i = 0; i < tableInfo->numOtherPartitions;
-                 p++, i++) {
+                 i++, p++) {
                 if (p->type == __OSNextPartitionType) {
                     targetPart = p;
                 }

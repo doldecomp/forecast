@@ -125,6 +125,7 @@ WeatherAround.cpp:
 
 WeatherBase.cpp:
 	.text       start:0x8001C334 end:0x8001CA80
+	.rodata     start:0x80179CE0 end:0x80179DC0
 	.data       start:0x8019AC70 end:0x8019AC8C
 	.sdata2     start:0x80331C18 end:0x80331C4C
 
@@ -149,7 +150,7 @@ WeatherNormal.cpp:
 	.text       start:0x80020F9C end:0x80027C84
 	.ctors      start:0x8017926C end:0x80179270
 	.rodata     start:0x8017B358 end:0x8017B4A0
-	.data       start:0x8019B148 end:0x8019B5C8
+	.data       start:0x8019B148 end:0x8019B5D4
 	.bss        start:0x801D7220 end:0x801D722C
 	.sdata      start:0x8032FEE8 end:0x803300DC
 	.sbss       start:0x80330AA0 end:0x80330AA4
@@ -234,12 +235,14 @@ System.cpp:
 	.sdata2     start:0x80331F00 end:0x80331F78
 
 ChannelMathData.cpp:
+	.data       start:0x8019BBA0 end:0x8019BD08
+	.sdata      start:0x80330160 end:0x80330170
 	.sdata2     start:0x80331F78 end:0x80331FC0
 
 WiiConnect24.cpp:
 	.text       start:0x80032610 end:0x80035BA8
 	.data       start:0x8019BD08 end:0x8019C189
-	.bss        start:0x801D99E0 end:0x801F6B18
+	.bss        start:0x801D99E0 end:0x801F6B18 align:32
 	.sdata      start:0x80330170 end:0x80330188
 	.sbss       start:0x80330B78 end:0x80330B98
 
@@ -1133,6 +1136,9 @@ nw4r/snd/snd_Lfo.cpp:
 	.rodata     start:0x80195B50 end:0x80195B78
 	.sdata2     start:0x80332AF8 end:0x80332B28
 
+nw4r/snd/snd_McsSoundArchive.cpp:
+	.text       start:0x800BD2E4 end:0x800BD2FC
+
 nw4r/snd/snd_MemorySoundArchive.cpp:
 	.text       start:0x800BD2FC end:0x800BD730
 	.data       start:0x801B7158 end:0x801B71D8
@@ -1205,7 +1211,7 @@ nw4r/snd/snd_SoundArchiveLoader.cpp:
 nw4r/snd/snd_SoundArchivePlayer.cpp:
 	.text       start:0x800C3374 end:0x800C5CE4
 	.data       start:0x801B7520 end:0x801B75F0
-	.bss        start:0x802AEB80 end:0x802AEDA0
+	.bss        start:0x802AEB80 end:0x802AEDA0 align:32
 	.sbss       start:0x80331148 end:0x80331150
 	.sdata2     start:0x80332B88 end:0x80332B98
 
@@ -1536,7 +1542,7 @@ revolution/OS/OSError.c:
 revolution/OS/OSExec.c:
 	.text       start:0x800E6E8C end:0x800E905C
 	.data       start:0x801B9B18 end:0x801B9E64
-	.bss        start:0x802CB4C0 end:0x802CB4E0
+	.bss        start:0x802CB4C0 end:0x802CB4E0 align:32
 	.sdata      start:0x80330528 end:0x80330533
 	.sbss       start:0x80331260 end:0x80331274
 	.sdata2     start:0x80332D98 end:0x80332D9C
@@ -1580,7 +1586,7 @@ revolution/OS/OSReset.c:
 
 revolution/OS/OSRtc.c:
 	.text       start:0x800EC6E4 end:0x800ED170
-	.bss        start:0x802CB7C0 end:0x802CB814
+	.bss        start:0x802CB7C0 end:0x802CB814 align:32
 
 revolution/OS/OSSync.c:
 	.text       start:0x800ED170 end:0x800ED1F0
@@ -1607,7 +1613,7 @@ revolution/OS/OSIpc.c:
 revolution/OS/OSStateTM.c:
 	.text       start:0x800EF0BC end:0x800EF800
 	.data       start:0x801C6AE0 end:0x801C6BA6
-	.bss        start:0x802CC220 end:0x802CC2E0
+	.bss        start:0x802CC220 end:0x802CC2E0 align:32
 	.sbss       start:0x803312D0 end:0x803312F0
 
 revolution/OS/__start.c:
@@ -1625,7 +1631,7 @@ revolution/OS/OSPlayRecord.c:
 revolution/OS/OSStateFlags.c:
 	.text       start:0x800EFF44 end:0x800F0150
 	.data       start:0x801C6BF0 end:0x801C6C18
-	.bss        start:0x802CC4E0 end:0x802CC500
+	.bss        start:0x802CC4E0 end:0x802CC500 align:32
 
 revolution/OS/OSNet.c:
 	.text       start:0x800F0150 end:0x800F0204
@@ -1671,7 +1677,7 @@ revolution/SI/SIBios.c:
 
 revolution/SI/SISamplingRate.c:
 	.text       start:0x800F3AB4 end:0x800F3B94
-	.data       start:0x801C6E98 end:0x801C6EC8
+	.data       start:0x801C6E98 end:0x801C6F2B
 	.sbss       start:0x80331358 end:0x8033135C
 
 revolution/DB/db.c:
@@ -1794,7 +1800,7 @@ revolution/DVD/dvdfs.c:
 revolution/DVD/dvd.c:
 	.text       start:0x8010334C end:0x80107E20
 	.data       start:0x801C8470 end:0x801C87E0
-	.bss        start:0x802CD300 end:0x802D1FB0
+	.bss        start:0x802CD300 end:0x802D1FB0 align:32
 	.sdata      start:0x80330638 end:0x80330650
 	.sbss       start:0x803314C0 end:0x80331558
 
@@ -1805,7 +1811,7 @@ revolution/DVD/dvdqueue.c:
 revolution/DVD/dvderror.c:
 	.text       start:0x80108078 end:0x8010897C
 	.data       start:0x801C87E0 end:0x801C880B
-	.bss        start:0x802D1FE0 end:0x802D2240
+	.bss        start:0x802D1FE0 end:0x802D2240 align:32
 	.sbss       start:0x80331558 end:0x80331564
 
 revolution/DVD/dvdidutils.c:
@@ -2121,7 +2127,7 @@ revolution/BTE/main/bte_logmsg.c:
 
 revolution/BTE/main/bte_main.c:
 	.text       start:0x80136180 end:0x801362D8
-	.bss        start:0x80323420 end:0x80324450
+	.bss        start:0x80323420 end:0x80324450 align:32
 	.sdata      start:0x803308E0 end:0x803308E8
 	.sbss       start:0x80331888 end:0x80331890
 
@@ -2133,6 +2139,7 @@ revolution/BTE/stack/btu/btu_task.c:
 
 revolution/BTE/bta/sys/bd.c:
 	.text       start:0x80136728 end:0x801367FC
+	.sbss2      start:0x803337A0 end:0x803337A6
 
 revolution/BTE/bta/sys/bta_sys_conn.c:
 	.text       start:0x801367FC end:0x80136A50

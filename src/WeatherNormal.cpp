@@ -1,5 +1,6 @@
 // d_weather_normal.cpp: the main forecast display
 #include <channel/WeatherViews.h>
+#include <channel/ChannelMathData.h>
 #include <channel/ColorWhite.h>
 #include <channel/DrawUtil.h>
 #include <channel/ForecastData.h>
@@ -26,8 +27,6 @@ extern s32 gForecastPage;
 extern s32 gForecastPageCount;
 extern char sNameBuf[0x100];
 extern wchar_t sTextBuf[0x100];
-extern const wchar_t* gUpdatedPrefixes[];
-extern const wchar_t* gLastUpdatedPrefixes[];
 extern const wchar_t* gAmText;
 extern const wchar_t* gPmText;
 
@@ -2352,4 +2351,10 @@ BOOL WeatherNormal::IsBackPressed() {
         }
     }
     return FALSE;
+}
+
+// Unused, so the linker drops it, but the member pointer it builds stays in .data.
+// The original had a function like this at the end of the file; its name is ours.
+void WeatherNormal::RestartNormal() {
+    StartNormal();
 }

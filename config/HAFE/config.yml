@@ -73,6 +73,9 @@ block_relocations:
 # ErrorLayoutArc.cpp gErrorLayoutArc: archive bytes that happen to equal .text addresses
 - source: 0x801AAAA8
 - source: 0x801B0180
+# pf_cp932.c cp932_to_unicode: table values that happen to equal addresses
+- source: 0x80192B24
+- source: 0x80192B2C
 
 # System.cpp: lis/addi pairs split by register spills, which analysis cannot pair
 add_relocations:
