@@ -16,7 +16,10 @@ enum SampleFormat {
     SAMPLE_FORMAT_DSP_ADPCM
 };
 
-class FxBase : private ut::NonCopyable {
+// FxBase is only ever a base class, so nothing uses its own vtable. The
+// original objects still carried a weak copy that the linker dead-stripped;
+// novtable keeps it out of our objects so their .data matches the split.
+class __declspec(novtable) FxBase : private ut::NonCopyable {
 public:
     virtual ~FxBase() {} // at 0x8
 

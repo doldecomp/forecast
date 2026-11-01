@@ -31,6 +31,10 @@ extract:
 - symbol: gGlobeDotColors
   header: assets/globe_dot_colors.inc
   header_type: raw
+- symbol: gErrorLayoutArc
+  binary: assets/error_layout.arc
+  header: assets/error_layout.arc.inc
+  header_type: raw
 
 mw_comment_version: 14
 
@@ -66,6 +70,9 @@ block_relocations:
 # addresses inside RSOLink.c's first string and an HBM .data object
 - source: 0x801B5B98
 - source: 0x801B5CB8
+# ErrorLayoutArc.cpp gErrorLayoutArc: archive bytes that happen to equal .text addresses
+- source: 0x801AAAA8
+- source: 0x801B0180
 
 # System.cpp: lis/addi pairs split by register spills, which analysis cannot pair
 add_relocations:

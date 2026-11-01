@@ -19,7 +19,7 @@
 
 extern TPLPalette* gCommonTpl;
 extern u32 gSceneFrameCount;
-extern nw4r::snd::SoundHandle gAmbientSounds[4];
+extern nw4r::snd::SoundHandle gAmbientSounds[5];
 extern Vec gGlobeRotation;
 extern const f32 gGlobeZooms[];
 extern s32 gCursorState[4];

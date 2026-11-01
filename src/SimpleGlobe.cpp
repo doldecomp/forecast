@@ -35,11 +35,6 @@ const f32 sSpinDamping[10] = {
     0.98f, 0.98f, 0.98f, 0.98f, 0.98f,
 };
 
-// Unused in this file; extern keeps -ipa file from dropping it, as the original kept it
-extern const f32 gUnusedGlobeTable[6] = {
-    0.1f, 2.1f, 0.6f, 0.4f, 0.1f, 0.2f,
-};
-
 #pragma explicit_zero_data on
 f32 speedX = 0.0f;
 f32 speedY = 0.0f;
