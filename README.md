@@ -11,7 +11,7 @@ Forecast Channel
 [progress]: https://decomp.dev/doldecomp/forecast
 
 
-A work-in-progress decompilation of The Wii's Forecast Channel.
+A decompilation of The Wii's Forecast Channel.
 
 This repository does **not** contain any game assets or assembly whatsoever. An existing copy of the channel WAD is required.
 
