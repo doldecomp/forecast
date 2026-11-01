@@ -631,6 +631,9 @@ config.libs = [
             Object(Matching, "revolution/NAND/NANDLogging.c"),
             Object(Matching, "revolution/NAND/NANDOpenClose.c"),
 
+            # NCD
+            Object(Matching, "revolution/NCD/ncdsystem.c"),
+
             # NdevExi2AD
             Object(Matching, "revolution/NdevExi2AD/DebuggerDriver.c"),
             Object(Matching, "revolution/NdevExi2AD/exi2.c"),
@@ -638,7 +641,8 @@ config.libs = [
             # NET (GC/3.0a5.2, as in the News Channel decomp of the same build)
             Object(Matching, "revolution/NET/nettime.c", mw_version="GC/3.0a5.2"),
             Object(Matching, "revolution/NET/netcrc.c", mw_version="GC/3.0a5.2"),
-            Object(NonMatching, "revolution/NET/NETVersion.c"),
+            Object(Matching, "revolution/NET/neterrorcode.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/NET/NETVersion.c"),
 
             # NWC24
             Object(Matching, "revolution/NWC24/NWC24Config.c"),
@@ -694,6 +698,9 @@ config.libs = [
             # PAD
             Object(Matching, "revolution/PAD/Pad.c"),
 
+            # RSO
+            Object(Matching, "revolution/RSO/RSOLink.c"),
+
             # SC
             Object(Matching, "revolution/SC/scapi.c"),
             Object(Matching, "revolution/SC/scapi_prdinfo.c"),
@@ -702,6 +709,10 @@ config.libs = [
             # SI
             Object(Matching, "revolution/SI/SIBios.c"),
             Object(NonMatching, "revolution/SI/SISamplingRate.c"),
+
+            # SO
+            Object(Matching, "revolution/SO/soCommon.c", mw_version="GC/3.0a5.2"),
+            Object(Matching, "revolution/SO/soBasic.c", mw_version="GC/3.0a5.2"),
 
             # TPL
             Object(Matching, "revolution/TPL/TPL.c"),
